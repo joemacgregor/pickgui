@@ -1,21 +1,24 @@
 % INTERSECTI Linearly interpolated intersections for two vectors.
 % 
 %   [XINT,YINT,IND1,IND2] = INTERSECTI(X1,Y1,X2,Y2) finds the linearly
-%   interpolated intersections XINT and YINT between vectors (X1,Y1) and
-%   (X2,Y2). IND1 and IND2 are the indices of the nearest points in (X1,Y1)
-%   and (X2,Y2) to the those intersections, respectively.
+%   interpolated intersection positions XINT and YINT between vectors
+%   (X1,Y1) and (X2,Y2). IND1 and IND2 are the indices of the nearest
+%   points in (X1,Y1) and (X2,Y2) to the those intersections, respectively.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 02/01/13
+% Last updated: 03/13/13
 
 function [x_int, y_int, ind1, ind2] ...
                         = intersecti(x1, y1, x2, y2)
 
+if (nargin ~= 4)
+    error('intersecti:nargin', 'Number of inputs to INTERSECTI must be 4.')
+end
 if (length(x1) ~= length(y1))
-    error('intersecti:xy1size', 'X1 and Y1 are not the same size.')
+    error('intersecti:xy1size', 'X1 and Y1 are not the same length.')
 end
 if (length(x2) ~= length(y2))
-    error('intersecti:xy2size', 'X2 and Y2 are not the same size.')
+    error('intersecti:xy2size', 'X2 and Y2 are not the same length.')
 end
 
 % want both (x1,y1) and (x2,y2) to be row vectors
