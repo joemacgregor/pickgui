@@ -95,12 +95,12 @@ end
 
 set(0, 'DefaultFigureWindowStyle', 'docked')
 if ispc % windows switch
-    mgui                    = figure('toolbar', 'figure', 'name', 'MERGEGUI', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress, 'closerequestfcn', @closefig);
+    mgui                    = figure('toolbar', 'figure', 'name', 'MERGEGUI', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress);
     ax_radar                = subplot('position', [0.065 0.06 1.42 0.81]);
     size_font               = 14;
     width_slide             = 0.01;
 else
-    mgui                    = figure('toolbar', 'figure', 'name', 'MERGEGUI', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress, 'closerequestfcn', @closefig);
+    mgui                    = figure('toolbar', 'figure', 'name', 'MERGEGUI', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress);
     ax_radar                = subplot('position', [0.065 0.06 0.86 0.81]);
     size_font               = 18;
     width_slide             = 0.02;
@@ -3698,15 +3698,6 @@ set(disp_group, 'selectedobject', disp_check(1))
                         plot_db
                 end
         end
-    end
-
-%% Close mergegui
-
-    function closefig(source, eventdata)
-        if parallel_check
-            matlabpool close
-        end
-        close(mgui)
     end
 
 %% Test something

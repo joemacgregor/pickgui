@@ -109,12 +109,12 @@ amp_flat                    = NaN;
 
 set(0, 'DefaultFigureWindowStyle', 'docked')
 if ispc % windows switch
-    pkgui                   = figure('toolbar', 'figure', 'name', 'PICKGUI', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress, 'closerequestfcn', @closefig);
+    pkgui                   = figure('toolbar', 'figure', 'name', 'PICKGUI', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress);
     ax_radar                = subplot('position', [0.065 0.06 1.42 0.81]);
     size_font               = 14;
     width_slide             = 0.01;
 else
-    pkgui                   = figure('toolbar', 'figure', 'name', 'PICKGUI', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress, 'closerequestfcn', @closefig);
+    pkgui                   = figure('toolbar', 'figure', 'name', 'PICKGUI', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress);
     ax_radar                = subplot('position', [0.065 0.06 0.86 0.81]);
     size_font               = 18;
     width_slide             = 0.02;
@@ -5982,15 +5982,6 @@ set(disp_group, 'selectedobject', disp_check(1))
                     plot_db
                 end
         end
-    end
-
-%% Close pickgui
-
-    function closefig(source, eventdata)
-        if parallel_check
-            matlabpool close
-        end
-        close(pkgui)
     end
 
 %% Test something
