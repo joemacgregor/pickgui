@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 03/13/13
+% Last updated: 03/18/13
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -2992,9 +2992,9 @@ set(disp_group, 'selectedobject', disp_check(1))
                 [ind_x_pk(ii), ind_y_pk(ii)] ...
                             = deal(tmp1, tmp2);
                 ind_x_pk(ii)= interp1(block.dist_lin(ind_decim), ind_decim, ind_x_pk(ii), 'nearest', 'extrap'); % raw picks must be indices, not dimensionalized vectors (horizontal)
-                ind_y_pk(ii)= interp1(block.twtt, 1:num_sample_trim, (1e-6 .* ind_y_pk(ii)), 'nearest', 'extrap');
+                ind_y_pk(ii)= interp1(block.twtt, 1:num_sample_trim, (1e-6 .* ind_y_pk(ii)), 'nearest', 'extrap'); % interpolate traveltime pick onto traveltime vector
                 if (ii > 1)
-                    delete(tmp3)
+                    delete(tmp3) % get rid of old plot handle
                 end
                 tmp3        = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'rx', 'markersize', 12); % original picks
                 ii          = ii + 1;
@@ -3018,15 +3018,16 @@ set(disp_group, 'selectedobject', disp_check(1))
                         delete(tmp3)
                     end
                     set(status_box, 'string', 'Not enough picked points to make a manual layer. Start over.')
+                    set(pkgui, 'keypressfcn', @keypress)
                     break
                 end
                 
                 if ~issorted(ind_x_pk) % resort picks
-                    [ind_x_pk, tmp1]= sort(ind_x_pk);
+                    [ind_x_pk, tmp1] = sort(ind_x_pk);
                     ind_y_pk= ind_y_pk(tmp1);
                 end
                 if (length(unique(ind_x_pk)) < length(ind_x_pk)) % don't keep picks that are accidentally at the same horizontal index, otherwise spline will fail
-                    [ind_x_pk, tmp1]= unique(ind_x_pk);
+                    [ind_x_pk, tmp1] = unique(ind_x_pk);
                     ind_y_pk= ind_y_pk(tmp1);
                 end
                 
@@ -3040,12 +3041,12 @@ set(disp_group, 'selectedobject', disp_check(1))
                     [~, tmp2] ...
                             = max(amp_mean((pk.layer(pk.num_layer).ind_y(ind_decim(ii)) - pk.num_win):(pk.layer(pk.num_layer).ind_y(ind_decim(ii)) + pk.num_win), ii));
                     pk.layer(pk.num_layer).ind_y(ind_decim(ii)) ...
-                            = pk.layer(pk.num_layer).ind_y(ind_decim(ii)) - pk.num_win - 1 + tmp2;
+                            = pk.layer(pk.num_layer).ind_y(ind_decim(ii)) - pk.num_win - 1 + tmp2; % adjust local maximum index
                 end
                 pk.layer(pk.num_layer).ind_y(ind_x_pk(1):ind_x_pk(end)) ...
                             = round(spline(ind_x_pk, pk.layer(pk.num_layer).ind_y(ind_x_pk), ind_x_pk(1):ind_x_pk(end))); % interpolate spline through improved picks
                 
-                tmp1        = find(~isnan(pk.layer(pk.num_layer).ind_y(ind_decim)));
+                tmp1        = find(~isnan(pk.layer(pk.num_layer).ind_y(ind_decim))); % 
                 delete(tmp3)
                 p_pk(pk.num_layer) ...
                             = plot(block.dist_lin(ind_decim(tmp1)), (1e6 .* block.twtt(round(pk.layer(pk.num_layer).ind_y(ind_decim(tmp1))))), 'r.', 'markersize', 12, 'visible', 'off');
@@ -3684,7 +3685,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     delete(p_pksmooth(ii))
                 end
                 if (logical(p_pksmoothflat(ii)) && ishandle(p_pksmoothflat(ii)))
-                    delete(p_pksmoothflat(tmp1(ii)))
+                    delete(p_pksmoothflat(ii))
                 end
             end
             curr_layer      = interp1(1:length(tmp2), tmp2, curr_layer, 'nearest', 'extrap');
@@ -5968,6 +5969,14 @@ set(disp_group, 'selectedobject', disp_check(1))
                         set(disp_group, 'selectedobject', disp_check(2))
                         disp_type = 'phase';
                         plot_phase_diff
+                    elseif aresp_avail
+                        set(disp_group, 'selectedobject', disp_check(3))
+                        disp_type = 'ARESP';
+                        plot_aresp
+                    elseif spec_avail
+                        set(disp_group, 'selectedobject', disp_check(4))
+                        disp_type = 'spec.';
+                        plot_spec                        
                     end
                 else
                     set(disp_group, 'selectedobject', disp_check(1))
