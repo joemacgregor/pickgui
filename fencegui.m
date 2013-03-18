@@ -13,7 +13,7 @@ function fencegui
 %   flattening will be parallelized.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 03/13/13
+% Last updated: 03/18/13
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Function INTERSECTI is not available within this user''s path.')
@@ -90,12 +90,11 @@ curr_dim                    = '3D';
 [file_core, file_ref, path_core, path_ref] ...
                             = deal('');
 
-if license('test', 'distrib_computing_toolbox')
-    if matlabpool('size')
-        matlabpool close
+if license('checkout', 'distrib_computing_toolbox')
+    if ~matlabpool('size')
+        matlabpool open
     end
     parallel_check          = true;
-    matlabpool open
 else
     parallel_check          = false;
 end
@@ -104,11 +103,11 @@ end
 
 set(0, 'DefaultFigureWindowStyle', 'docked')
 if ispc % windows switch
-    fgui(1)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 3D', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress1);
+    fgui(1)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 3D', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress1, 'closerequestfcn', @closefig);
     size_font               = 14;
     width_slide             = 0.01;
 else
-    fgui(1)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 3D', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress1);
+    fgui(1)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 3D', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress1, 'closerequestfcn', @closefig);
     size_font               = 18;
     width_slide             = 0.02;
 end
@@ -221,11 +220,11 @@ core_check(1)               = uicontrol(fgui(1), 'style', 'checkbox', 'units', '
 %% draw second GUI
 
 if ispc % windows switch
-    fgui(2)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress2);
+    fgui(2)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress2, 'closerequestfcn', @closefig);
     ax(2)                   = subplot('position', [0.065 0.06 0.41 0.81]);
     ax(3)                   = subplot('position', [0.55 0.06 0.41 0.81]);
 else
-    fgui(2)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress2);
+    fgui(2)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress2, 'closerequestfcn', @closefig);
     ax(2)                   = subplot('position', [0.065 0.06 0.41 0.81]);
     ax(3)                   = subplot('position', [0.55 0.06 0.41 0.81]);
 end
@@ -4269,6 +4268,15 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                         plot_db
                 end
         end
+    end
+
+%% Close fencegui
+
+    function closefig(source, eventdata)
+        if parallel_check
+            matlabpool close
+        end
+        close(fgui)
     end
 
 %% Test something

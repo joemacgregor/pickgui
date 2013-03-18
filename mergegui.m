@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 03/13/13
+% Last updated: 03/18/13
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Function TOPOCORR is not available within this user''s path.')
@@ -82,12 +82,11 @@ colors_def                  = [0    0       0.75;
                             = deal('');
 layer_str                   = {};
 
-if license('test', 'distrib_computing_toolbox')
-    if matlabpool('size')
-        matlabpool close
+if license('checkout', 'distrib_computing_toolbox')
+    if ~matlabpool('size')
+        matlabpool open
     end
     parallel_check          = true;
-    matlabpool open
 else
     parallel_check          = false;
 end
@@ -96,12 +95,12 @@ end
 
 set(0, 'DefaultFigureWindowStyle', 'docked')
 if ispc % windows switch
-    mgui                    = figure('toolbar', 'figure', 'name', 'MERGEGUI', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress);
+    mgui                    = figure('toolbar', 'figure', 'name', 'MERGEGUI', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress, 'closerequestfcn', @closefig);
     ax_radar                = subplot('position', [0.065 0.06 1.42 0.81]);
     size_font               = 14;
     width_slide             = 0.01;
 else
-    mgui                    = figure('toolbar', 'figure', 'name', 'MERGEGUI', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress);
+    mgui                    = figure('toolbar', 'figure', 'name', 'MERGEGUI', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress, 'closerequestfcn', @closefig);
     ax_radar                = subplot('position', [0.065 0.06 0.86 0.81]);
     size_font               = 18;
     width_slide             = 0.02;
@@ -3241,7 +3240,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(status_box, 'string', 'Cannot make map until picks are loaded.')
             return
         end
-        if ~license('test', 'map_toolbox')
+        if ~license('checkout', 'map_toolbox')
             set(status_box, 'string', 'Cannot make map without Mapping Toolbox.')
             return
         end
@@ -3699,6 +3698,15 @@ set(disp_group, 'selectedobject', disp_check(1))
                         plot_db
                 end
         end
+    end
+
+%% Close mergegui
+
+    function closefig(source, eventdata)
+        if parallel_check
+            matlabpool close
+        end
+        close(mgui)
     end
 
 %% Test something
