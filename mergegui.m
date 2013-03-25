@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 03/18/13
+% Last updated: 03/22/13
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Function TOPOCORR is not available within this user''s path.')
@@ -25,21 +25,19 @@ end
 
 pk                          = struct;
 
-% elevation/depth/distance defaults
+% elevation/depth/distance/dB defaults
 [elev_min_ref, elev_max_ref]= deal(0, 1);
 [elev_min, elev_max]        = deal(elev_min_ref, elev_max_ref);
 [depth_min, depth_min_ref]  = deal(elev_min_ref);
 [depth_max, depth_max_ref]  = deal(elev_max_ref);
 [dist_min_ref, dist_max_ref]= deal(0, 1);
 [dist_min, dist_max]        = deal(dist_min_ref, dist_max_ref);
-
-% dB default
 [db_min_ref, db_max_ref]    = deal(-130, 0);
 [db_min, db_max]            = deal(-80, -20);
 
 % more default values
 speed_vacuum                = 299792458; % m/s
-permitt_ice                 = 3.15;
+permitt_ice                 = 3.15; % standard CReSIS permittivity for Greenland
 speed_ice                   = speed_vacuum / sqrt(permitt_ice);
 decim                       = 10; % decimate radargram for display
 length_chunk                = 100; % chunk length in km
@@ -1295,7 +1293,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         pause(0.1)
         
         % flatten bed pick
-        if (any(bed_avail) && any(~isnan(pk.elev_bed)))
+        if (any(bed_avail) && any(~isnan(pk.elev_bed)) && ~any(isinf(pk.elev_bed)))
             depth_bed_flat  = NaN(1, num_decim);
             for ii = 1:length(tmp2)
                 [~, tmp1]   = unique(depth_flat(:, tmp2(ii)), 'last');
@@ -2795,10 +2793,6 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Plot data in dB (amplitude)
 
     function plot_db(source, eventdata)
-        if ~data_done
-            set(status_box, 'string', 'Data not loaded yet.')
-            return
-        end
         if (logical(p_data) && ishandle(p_data))
             delete(p_data)
         end
@@ -2851,7 +2845,7 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Plot layer-flattened radargram
 
     function plot_flat(source, eventdata)
-        if ~flat_done
+        if ~(flat_done && data_done)
             set(disp_group, 'selectedobject', disp_check(1))
             disp_type       = 'amplitude';
             plot_db

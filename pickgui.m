@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 03/18/13
+% Last updated: 03/25/13
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -864,7 +864,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 for ii = 1:pk.num_phase
                     p_phase(ii) = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(ind_y_phase(ii, ind_decim)))), 'b', 'linewidth', 1, 'visible', 'off'); % plot the phase-tracked layers
                 end
-                p_startphase     = plot((ones(1, pk.num_phase) .* block.dist_lin(pk.ind_x_start_phase)), (1e6 .* block.twtt(pk.ind_y_start_phase)), 'm.', 'markersize', 12, 'visible', 'off'); 
+                p_startphase= plot((ones(1, pk.num_phase) .* block.dist_lin(pk.ind_x_start_phase)), (1e6 .* block.twtt(pk.ind_y_start_phase)), 'm.', 'markersize', 12, 'visible', 'off'); 
                 phase_done  = true;
                 set(phase_check, 'value', 1)
                 if pk.num_keep_phase
@@ -886,21 +886,25 @@ set(disp_group, 'selectedobject', disp_check(1))
                 pk          = rmfield(pk, {'ind_layer_keep_aresp' 'num_layer_keep_aresp'});
             end
             
-            if (aresp_avail && pk.num_keep_aresp)
-                prop_aresp
-                p_aresp     = zeros(1, pk.num_aresp);
-                for ii = 1:pk.num_aresp
-                    p_aresp(ii) = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(ind_y_aresp(ii, ind_decim)))), 'b', 'linewidth', 1, 'visible', 'off'); % plot the phase-tracked layers
-                end
-                p_startaresp= plot((ones(1, pk.num_aresp) .* block.dist_lin(pk.ind_x_start_aresp)), (1e6 .* block.twtt(pk.ind_y_start_aresp)), 'm.', 'markersize', 12, 'visible', 'off'); % plot the starting y indices
-                aresp_done  = true;
-                set(aresp_check, 'value', 1)
+            if (aresp_avail && isfield(pk, 'num_keep_aresp'))
                 if pk.num_keep_aresp
-                    for ii = 1:pk.num_keep_aresp
-                        set(p_aresp(pk.ind_keep_aresp(ii)), 'linewidth', 2, 'color', 'w') % increase linewidth and change color
+                    prop_aresp
+                    p_aresp = zeros(1, pk.num_aresp);
+                    for ii = 1:pk.num_aresp
+                        p_aresp(ii) = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(ind_y_aresp(ii, ind_decim)))), 'b', 'linewidth', 1, 'visible', 'off'); % plot the phase-tracked layers
                     end
-                    keep_aresp_done ...
+                    p_startaresp ...
+                            = plot((ones(1, pk.num_aresp) .* block.dist_lin(pk.ind_x_start_aresp)), (1e6 .* block.twtt(pk.ind_y_start_aresp)), 'm.', 'markersize', 12, 'visible', 'off'); % plot the starting y indices
+                    aresp_done ...
                             = true;
+                    set(aresp_check, 'value', 1)
+                    if pk.num_keep_aresp
+                        for ii = 1:pk.num_keep_aresp
+                            set(p_aresp(pk.ind_keep_aresp(ii)), 'linewidth', 2, 'color', 'w') % increase linewidth and change color
+                        end
+                        keep_aresp_done ...
+                            = true;
+                    end
                 end
             else
                 pk.num_keep_aresp ...
@@ -4876,7 +4880,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         if (any(p_phase) && any(ishandle(p_phase)))
             set(p_phase(logical(p_phase) & ishandle(p_phase)), 'visible', 'off')
         end
-        if (logical(p_aresp) && ishandle(p_aresp))
+        if (any(p_aresp) && any(ishandle(p_aresp)))
             set(p_aresp(logical(p_aresp) & ishandle(p_aresp)), 'visible', 'off')
         end
         if (any(p_ref) && any(ishandle(p_ref)))
