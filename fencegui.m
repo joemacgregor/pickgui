@@ -13,7 +13,7 @@ function fencegui
 %   flattening will be parallelized.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 03/25/13
+% Last updated: 03/28/13
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Function INTERSECTI is not available within this user''s path.')
@@ -402,6 +402,12 @@ disp_check(2, 2)            = uicontrol(fgui(2), 'style', 'radio', 'string', 'fl
                                                  'handlevisibility', 'off', 'visible', 'off');
 set(disp_group(2), 'selectedobject', disp_check(2, 1))
 
+rad_group                   = uibuttongroup('position', [0.84 0.925 0.06 0.03], 'selectionchangefcn', @rad_radio);
+uicontrol(fgui(2), 'style', 'text', 'parent', disp_group(2), 'units', 'normalized', 'position', [0 0.6 0.9 0.3], 'fontsize', size_font)
+rad_check(1)                = uicontrol(fgui(2), 'style', 'radio', 'string', 'M', 'units', 'normalized', 'position', [0.01 0.1 0.45 0.8], 'parent', rad_group, 'fontsize', size_font, 'handlevisibility', 'off');
+rad_check(2)                = uicontrol(fgui(2), 'style', 'radio', 'string', 'I', 'units', 'normalized', 'position', [0.51 0.1 0.45 0.8], 'parent', rad_group, 'fontsize', size_font, 'handlevisibility', 'off');
+set(rad_group, 'selectedobject', rad_check(1))
+
 % value boxes
 decim_edit(2, 1)            = uicontrol(fgui(2), 'style', 'edit', 'string', num2str(decim(1)), 'units', 'normalized', 'position', [0.135 0.925 0.03 0.03], 'fontsize', size_font, 'foregroundcolor', 'k', ...
                                                  'backgroundcolor', 'w', 'callback', @adj_decim3);
@@ -529,7 +535,7 @@ linkprop(decim_edit(:, 2), 'string');
                 path_ref    = '\\melt\icebridge\data\mat\';
             end
         else
-            if exist('/Volumes/melt/icebridge/data/mat/', 'dir')
+            if exist('/Volumes/icebridge/data/mat/', 'dir')
                 path_ref    = '/Volumes/melt/icebridge/data/mat/';
             end
         end
@@ -717,6 +723,8 @@ linkprop(decim_edit(:, 2), 'string');
     end
 
     function load_pk(source, eventdata)
+        
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
         
         if ~int_done
             set(status_box(1), 'string', 'Load transect intersection data before loading master picks.')
@@ -1247,6 +1255,8 @@ linkprop(decim_edit(:, 2), 'string');
 
     function load_data(source, eventdata) %#ok<*INUSD>
         
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
+        
         if ~pk_done(curr_rad)
             set(status_box(2), 'string', 'Load picks before data.')
             return
@@ -1513,15 +1523,28 @@ linkprop(decim_edit(:, 2), 'string');
                             = NaN;
             end
             
+            if (bed_avail(curr_rad) && any(~isnan(depth_bed_flat{curr_rad})))
+                if any(isnan(depth_bed_flat{curr_rad}))
+                    p_bedflat(curr_rad) ...
+                            = plot(pk{curr_rad}.dist_lin(ind_decim{curr_rad}(~isnan(depth_bed_flat{curr_rad}))), depth_bed_flat{curr_rad}(~isnan(depth_bed_flat{curr_rad})), 'g.', 'markersize', 12, 'visible', 'off');
+                else
+                    p_bedflat(curr_rad) ...
+                            = plot(pk{curr_rad}.dist_lin(ind_decim{curr_rad}), depth_bed_flat{curr_rad}, 'g--', 'linewidth', 2, 'visible', 'off');
+                end
+            end
+            
             % flatten merged layer depths
             warning('off', 'MATLAB:interp1:NaNinY')
             depth_layer_flat{curr_rad} ...
                             = NaN(pk{curr_rad}.num_layer, num_decim(curr_rad));
             for ii = 1:length(tmp2)
+                if ~any(~isnan(pk{curr_rad}.depth_smooth(:, ind_decim{curr_rad}(tmp2(ii)))))
+                    continue
+                end
                 [~, tmp1]   = unique(depth_flat{curr_rad}(:, tmp2(ii)), 'last');
                 tmp1        = intersect((1 + find(diff(depth_flat{curr_rad}(:, tmp2(ii))) > 0)), tmp1);
-                depth_layer_flat{curr_rad}(~isnan(pk{curr_rad}.depth(:, ind_decim{curr_rad}(tmp2(ii)))), tmp2(ii)) ...
-                            = interp1(depth_flat{curr_rad}(tmp1, tmp2(ii)), depth{curr_rad}(tmp1), pk{curr_rad}.depth(~isnan(pk{curr_rad}.depth(:, ind_decim{curr_rad}(tmp2(ii)))), ...
+                depth_layer_flat{curr_rad}(~isnan(pk{curr_rad}.depth_smooth(:, ind_decim{curr_rad}(tmp2(ii)))), tmp2(ii)) ...
+                            = interp1(depth_flat{curr_rad}(tmp1, tmp2(ii)), depth{curr_rad}(tmp1), pk{curr_rad}.depth_smooth(~isnan(pk{curr_rad}.depth_smooth(:, ind_decim{curr_rad}(tmp2(ii)))), ...
                                       ind_decim{curr_rad}(tmp2(ii))), 'nearest', 'extrap');
             end
             warning('on', 'MATLAB:interp1:NaNinY')
@@ -1674,6 +1697,7 @@ linkprop(decim_edit(:, 2), 'string');
     end
 
     function choose_layer(source, eventdata)
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
         curr_layer(curr_rad)= get(layer_list(curr_gui, curr_rad), 'value');
         if pk_done(curr_rad)
             set(layer_list(:, curr_rad), 'value', curr_layer(curr_rad))
@@ -1720,7 +1744,7 @@ linkprop(decim_edit(:, 2), 'string');
         if (all(pk_done) && ~isempty(pk{2}.ind_layer))
             switch curr_rad
                 case 1
-                    if ~isempty(find(pk{2}.ind_layer(:, 4) == curr_layer(1), 1))
+                    if (length(find(pk{2}.ind_layer(:, 4) == curr_layer(1))) == 1)
                         curr_layer(2) = pk{2}.ind_layer(find(pk{2}.ind_layer(:, 4) == curr_layer(1), 1), 1);
                         for ii = 1:2
                             if (any(p_pk{ii, 2}) && any(ishandle(p_pk{ii, 2})))
@@ -1745,10 +1769,12 @@ linkprop(decim_edit(:, 2), 'string');
                             end
                         end
                         tmp1 = 'matched';
+                    else
+                        tmp1 = '';
                     end
                     set(layer_list(:, 2), 'value', curr_layer(2))
                 case 2
-                    if ~isempty(find(pk{2}.ind_layer(:, 1) == curr_layer(2), 1))
+                    if (length(find(pk{2}.ind_layer(:, 1) == curr_layer(2))) == 1)
                         curr_layer(1) = pk{2}.ind_layer(find(pk{2}.ind_layer(:, 1) == curr_layer(2), 1), 4);
                         for ii = 1:2
                             if (any(p_pk{ii, 1}) && any(ishandle(p_pk{ii, 2})))
@@ -1773,12 +1799,13 @@ linkprop(decim_edit(:, 2), 'string');
                             end
                         end
                         tmp1 = 'matched';
+                    else
+                        tmp1 = '';
                     end
                     set(layer_list(:, 1), 'value', curr_layer(1))
             end
         end
-        if (get(nearest_check, 'value') && all(pk_done) && ~strcmp(tmp1, 'matched'))
-            tmp2            = 'nearest';
+        if (get(nearest_check, 'value') && all(pk_done) && ischar(tmp1) && isempty(tmp1))
             if any(~isnan(pk{curr_rad_alt}.elev_smooth(:, curr_ind_int(curr_int, curr_rad_alt))))
                 [~, curr_layer(curr_rad_alt)] ...
                             = min(abs(pk{curr_rad}.elev_smooth(curr_layer(curr_rad), curr_ind_int(curr_int, curr_rad)) - pk{curr_rad_alt}.elev_smooth(:, curr_ind_int(curr_int, curr_rad_alt))));
@@ -1806,6 +1833,7 @@ linkprop(decim_edit(:, 2), 'string');
     end
 
     function choose_pk(source, eventdata)
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
         if ~pk_done(curr_rad)
             set(status_box(curr_gui), 'string', 'No layers to focus on.')
             return
@@ -1865,6 +1893,7 @@ linkprop(decim_edit(:, 2), 'string');
     end
 
     function pk_last(source, eventdata)
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
         if (pk_done(curr_rad) && (curr_layer(curr_rad) > 1))
             curr_layer(curr_rad) ...
                             = curr_layer(curr_rad) - 1;
@@ -1919,6 +1948,7 @@ linkprop(decim_edit(:, 2), 'string');
     end
 
     function pk_next(source, eventdata)
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
         if (pk_done(curr_rad) && (curr_layer(curr_rad) < pk{curr_rad}.num_layer))
             curr_layer(curr_rad) ...
                             = curr_layer(curr_rad) + 1;
@@ -2067,7 +2097,7 @@ linkprop(decim_edit(:, 2), 'string');
         [~, tmp1]           = unique(tmp1, 'rows', 'first');
         pk{2}.ind_layer     = pk{2}.ind_layer(tmp1, :);
         pk{2}               = orderfields(pk{2});
-        
+                
         if ~isempty(path_pk{2})
             [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save picks:', [path_pk{2} file_pk{2}]);
         elseif ~isempty(path_data{2})
@@ -2742,20 +2772,21 @@ linkprop(decim_edit(:, 2), 'string');
 %% Reset minimum dB/x/y/z/dist
 
     function reset_db_min1(source, eventdata)
-        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
-                            = deal(1, 1, 1, 2);
+        [curr_gui, curr_ax] = deal(1, 1, 1, 2);
         reset_db_min
     end
 
     function reset_db_min2(source, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(2, 2, 1, 2);
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
         reset_db_min
     end
 
     function reset_db_min3(source, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(2, 3, 2, 1);
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
         reset_db_min
     end
 
@@ -3007,13 +3038,29 @@ linkprop(decim_edit(:, 2), 'string');
 %% Update dB/x/y/z/elevation/depth range
 
     function update_db_range(source, eventdata)
+        set(rad_group, 'selectedobject', rad_check(curr_rad))        
         axes(ax(curr_ax))
         caxis([db_min(curr_ax) db_max(curr_ax)])
     end
 
     function update_dist_range(source, eventdata)
+        set(rad_group, 'selectedobject', rad_check(curr_rad))        
         axes(ax(curr_ax))
         xlim([dist_min(curr_rad) dist_max(curr_rad)])
+        switch curr_ax
+            case 2
+                [curr_ax, curr_rad] ...
+                           = deal(3, 2);
+                narrow_cb
+                [curr_ax, curr_rad] ...
+                           = deal(2, 1);
+            case 3
+                [curr_ax, curr_rad] ...
+                           = deal(2, 1);
+                narrow_cb
+                [curr_ax, curr_rad] ...
+                           = deal(3, 2);
+        end
     end
 
     function update_x_range(source, eventdata)
@@ -3027,6 +3074,7 @@ linkprop(decim_edit(:, 2), 'string');
     end
 
     function update_z_range(source, eventdata)
+        set(rad_group, 'selectedobject', rad_check(curr_rad))        
         axes(ax(curr_ax))
         switch disp_type{curr_ax}
             case 'amp.'
@@ -3039,6 +3087,20 @@ linkprop(decim_edit(:, 2), 'string');
                 ylim([depth_min depth_max])
         end
         narrow_cb
+        switch curr_ax
+            case 2
+                [curr_ax, curr_rad] ...
+                           = deal(3, 2);
+                narrow_cb
+                [curr_ax, curr_rad] ...
+                           = deal(2, 1);
+            case 3
+                [curr_ax, curr_rad] ...
+                           = deal(2, 1);
+                narrow_cb
+                [curr_ax, curr_rad] ...
+                           = deal(3, 2);
+        end
     end
 
 %% Adjust slider limits after panning or zooming
@@ -3056,6 +3118,7 @@ linkprop(decim_edit(:, 2), 'string');
     end
 
     function panzoom(source, eventdata)
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
         tmp1                = get(ax(curr_ax), 'xlim');
         if (tmp1(1) < dist_min_ref(curr_rad))
             reset_dist_min
@@ -3178,7 +3241,7 @@ linkprop(decim_edit(:, 2), 'string');
         if (data_done(curr_rad) && data_check(curr_gui, curr_rad))
             switch curr_gui
                 case 1
-                    set(status_box(1), 'string', 'Displaying primary radargram in 3D GUI...')
+                    set(status_box(1), 'string', 'Displaying radargram in 3D GUI...')
                     zlim([elev_min(curr_gui) elev_max(curr_gui)])
                     p_data(curr_gui, curr_rad) ...
                             = surf(repmat(pk{curr_rad}.x(ind_decim{curr_rad}), num_sample(curr_rad), 1), repmat(pk{curr_rad}.y(ind_decim{curr_rad}), num_sample(curr_rad), 1), ...
@@ -3186,9 +3249,6 @@ linkprop(decim_edit(:, 2), 'string');
                     set(status_box(1), 'string', 'Displayed. Changing view will be slower.')
                     reset_xyz
                 case 2
-                    if (logical(p_bedflat(curr_rad)) && ishandle(p_bedflat(curr_rad)))
-                        set(p_bedflat(curr_rad), 'visible', 'off')
-                    end
                     if strcmp(disp_type{2}, disp_type{3})
                         linkaxes(ax(2:3), 'y')
                         h_link1 = linkprop(z_min_slide(2:3), {'value' 'min' 'max'});
@@ -3232,15 +3292,6 @@ linkprop(decim_edit(:, 2), 'string');
         if (logical(p_data(curr_rad)) && ishandle(p_data(curr_rad))) % get rid of old plotted data
             delete(p_data(curr_rad))
         end
-        if (logical(p_bedflat(curr_rad)) && ishandle(p_bedflat(curr_rad)))
-            delete(p_bedflat(curr_rad))
-        end
-        if (logical(p_bed(curr_gui, curr_rad)) && ishandle(p_bed(curr_gui, curr_rad)))
-            set(p_bed(curr_rad), 'visible', 'off')
-        end
-        if (logical(p_surf(curr_gui, curr_rad)) && ishandle(p_surf(curr_gui, curr_rad)))
-            set(p_surf(curr_gui, curr_rad), 'visible', 'off')
-        end
         axes(ax(curr_ax))
         if (get(cmap_list(curr_gui), 'value') ~= 1)
             set(cmap_list(curr_gui), 'value', 1)
@@ -3270,15 +3321,6 @@ linkprop(decim_edit(:, 2), 'string');
         set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min))
         ylim([depth_min depth_max])
         p_data(curr_rad)    = imagesc(pk{curr_rad}.dist_lin(ind_decim{curr_rad}), depth{curr_rad}, amp_flat{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
-        if (bed_avail(curr_rad) && any(~isnan(depth_bed_flat{curr_rad})))
-            if any(isnan(depth_bed_flat{curr_rad}))
-                p_bedflat(curr_rad) ...
-                            = plot(pk{curr_rad}.dist_lin(ind_decim{curr_rad}(~isnan(depth_bed_flat{curr_rad}))), depth_bed_flat{curr_rad}(~isnan(depth_bed_flat{curr_rad})), 'g.', 'markersize', 12);
-            else
-                p_bedflat(curr_rad) ...
-                            = plot(pk.dist_lin(ind_decim{curr_rad}), depth_bed_flat{curr_rad}, 'g--', 'linewidth', 2);
-            end
-        end
         disp_type{curr_ax}  = 'flat';
         reset_xz
         narrow_cb
@@ -3317,6 +3359,7 @@ linkprop(decim_edit(:, 2), 'string');
     end
 
     function show_data(source, eventdata)
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
         if data_done(curr_rad)
             if (get(data_check(curr_gui, curr_rad), 'value') && logical(p_data(curr_gui, curr_rad)) && ishandle(p_data(curr_gui, curr_rad)))
                 set(p_data(curr_gui, curr_rad), 'visible', 'on')
@@ -3331,30 +3374,31 @@ linkprop(decim_edit(:, 2), 'string');
 %% Show picked layers
 
     function show_pk1(source, eventdata)
-       [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(1, 1, 1, 2);
-       show_pk
+        show_pk
     end
 
     function show_pk2(source, eventdata)
-       [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(1, 1, 2, 1);
-       show_pk
+        show_pk
     end
 
     function show_pk3(source, eventdata)
-       [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(2, 2, 1, 2);
-       show_pk
+        show_pk
     end
 
     function show_pk4(source, eventdata)
-       [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(2, 3, 2, 1);
-       show_pk
+        show_pk
     end
 
     function show_pk(source, eventdata)
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
         if pk_done(curr_rad)
             if get(pk_check(curr_gui, curr_rad), 'value')
                 switch disp_type{curr_ax}
@@ -3362,9 +3406,6 @@ linkprop(decim_edit(:, 2), 'string');
                         if (any(p_pk{curr_gui, curr_rad}) && any(ishandle(p_pk{curr_gui, curr_rad})))
                             set(p_pk{curr_gui, curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'on')
                             uistack(p_pk{curr_gui, curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pk{curr_gui, curr_rad})), 'top')
-                            if (any(p_pkflat{curr_rad}) && any(ishandle(p_pkflat{curr_rad})))
-                                set(p_pkflat{curr_rad}(logical(p_pkflat{curr_rad}) & ishandle(p_pkflat{curr_rad})), 'visible', 'off')
-                            end
                         end
                         if (logical(p_surf(curr_gui, curr_rad)) && ishandle(p_surf(curr_gui, curr_rad)))
                             set(p_surf(curr_gui, curr_rad), 'visible', 'on')
@@ -3374,15 +3415,32 @@ linkprop(decim_edit(:, 2), 'string');
                             set(p_bed(curr_gui, curr_rad), 'visible', 'on')
                             uistack(p_bed(curr_gui, curr_rad), 'top')
                         end
+                        if (any(p_pkflat{curr_rad}) && any(ishandle(p_pkflat{curr_rad})))
+                            set(p_pkflat{curr_rad}(logical(p_pkflat{curr_rad}) & ishandle(p_pkflat{curr_rad})), 'visible', 'off')
+                        end
+                        if (logical(p_bedflat(curr_rad)) && ishandle(p_bedflat(curr_rad)))
+                            set(p_bedflat(curr_rad), 'visible', 'off')
+                        end
                     case 'flat'
                         if (any(p_pkflat{curr_rad}) && any(ishandle(p_pkflat{curr_rad})))
                             set(p_pkflat{curr_rad}(logical(p_pkflat{curr_rad}) & ishandle(p_pkflat{curr_rad})), 'visible', 'on')
                             uistack(p_pkflat{curr_rad}(logical(p_pkflat{curr_rad}) & ishandle(p_pkflat{curr_rad})), 'top')
                         end
+                        if (logical(p_bedflat(curr_rad)) && ishandle(p_bedflat(curr_rad)))
+                            set(p_bedflat(curr_rad), 'visible', 'on')
+                            uistack(p_bedflat(curr_rad), 'top')
+                        end
                         if (any(p_pk{curr_gui, curr_rad}) && any(ishandle(p_pk{curr_gui, curr_rad})))
                             set(p_pk{curr_gui, curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'off')
                         end
+                        if (logical(p_bed(curr_gui, curr_rad)) && ishandle(p_bed(curr_gui, curr_rad)))
+                            set(p_bed(curr_rad), 'visible', 'off')
+                        end
+                        if (logical(p_surf(curr_gui, curr_rad)) && ishandle(p_surf(curr_gui, curr_rad)))
+                            set(p_surf(curr_gui, curr_rad), 'visible', 'off')
+                        end
                 end
+                show_int
             else
                 if (any(p_pk{curr_gui, curr_rad}) && any(ishandle(p_pk{curr_gui, curr_rad})))
                     set(p_pk{curr_gui, curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'off')
@@ -3395,6 +3453,9 @@ linkprop(decim_edit(:, 2), 'string');
                 end
                 if (logical(p_bed(curr_gui, curr_rad)) && ishandle(p_bed(curr_gui, curr_rad)))
                     set(p_bed(curr_gui, curr_rad), 'visible', 'off')
+                end
+                if (logical(p_bedflat(curr_rad)) && ishandle(p_bedflat(curr_rad)))
+                    set(p_bedflat(curr_rad), 'visible', 'off')
                 end
             end
         elseif get(pk_check(curr_gui, curr_rad), 'value')
@@ -3411,19 +3472,20 @@ linkprop(decim_edit(:, 2), 'string');
     end
 
     function show_int2(source, eventdata)
-       [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(2, 2, 1, 2);
-       show_int
+        show_int
     end
 
     function show_int3(source, eventdata)
-       [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(2, 3, 2, 1);
-       show_int
+        show_int
     end
 
     function show_int(source, eventdata)
-        if pk_done(2)
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
+        if all(pk_done)
             if get(int_check(curr_ax), 'value')
                 switch disp_type{curr_ax}
                     case 'amp.'
@@ -3462,10 +3524,8 @@ linkprop(decim_edit(:, 2), 'string');
                     if (any(p_int1{ii, curr_ax}) && any(ishandle(p_int1{ii, curr_ax})))
                         set(p_int1{ii, curr_ax}(logical(p_int1{ii, curr_ax}) & ishandle(p_int1{ii, curr_ax})), 'visible', 'off')
                     end
-                    for jj = 1:2
-                        if (any(p_int2{ii, jj}) && any(ishandle(p_int2{ii, jj})))
-                            set(p_int2{ii, jj}(logical(p_int2{ii, jj}) & ishandle(p_int2{ii, jj})), 'visible', 'off')
-                        end
+                    if (any(p_int2{ii, curr_rad}) && any(ishandle(p_int2{ii, curr_rad})))
+                        set(p_int2{ii, curr_rad}(logical(p_int2{ii, curr_rad}) & ishandle(p_int2{ii, curr_rad})), 'visible', 'off')
                     end
                 end
             end
@@ -3483,18 +3543,19 @@ linkprop(decim_edit(:, 2), 'string');
     end
 
     function show_core2(source, eventdata)
-       [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(2, 2, 1, 2);
-       show_core
+        show_core
     end
 
     function show_core3(source, eventdata)
-       [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(2, 3, 2, 1);
-       show_core
+        show_core
     end
 
     function show_core(source, eventdata)
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
         if (core_done && ~isempty(ind_int_core{curr_rad}))
             if get(core_check(curr_ax), 'value')
                 switch disp_type{curr_ax}
@@ -3549,30 +3610,31 @@ linkprop(decim_edit(:, 2), 'string');
 %% Adjust number of indices to display
 
     function adj_decim1(source, eventdata)
-       [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(1, 1, 1, 2);
         adj_decim
     end
 
     function adj_decim2(source, eventdata)
-       [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(1, 1, 2, 1);
         adj_decim
     end
 
     function adj_decim3(source, eventdata)
-       [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(2, 2, 1, 2);
         adj_decim
     end
 
     function adj_decim4(source, eventdata)
-       [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(2, 3, 2, 1);
         adj_decim
     end
 
     function adj_decim(source, eventdata)
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
         decim(curr_rad)     = abs(round(str2double(get(decim_edit(curr_gui, curr_rad), 'string'))));
         if pk_done(curr_rad)
             set(status_box(curr_gui), 'string', 'Updating picks to new decimation...')
@@ -3711,16 +3773,19 @@ linkprop(decim_edit(:, 2), 'string');
     end
 
     function toggle_grid2(source, eventdata)
-        [curr_gui, curr_ax] = deal(2);
+        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+                            = deal(2, 2, 1, 2);
         toggle_grid
     end
 
     function toggle_grid3(source, eventdata)
-        [curr_gui, curr_ax] = deal(2, 3);
+        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+                            = deal(2, 3, 2, 1);
         toggle_grid
     end
 
     function toggle_grid
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
         if get(grid_check(curr_ax), 'value')
             axes(ax(curr_ax))
             grid on
@@ -3749,6 +3814,7 @@ linkprop(decim_edit(:, 2), 'string');
     end
 
     function narrow_cb(source, eventdata)
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
         if (get(cbfix_check2(curr_ax), 'value') && data_done(curr_rad))
             axes(ax(curr_ax))
             tmp4            = zeros(2);
@@ -3801,7 +3867,7 @@ linkprop(decim_edit(:, 2), 'string');
     function disp_radio1(~, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(2, 2, 1, 2);
-        disp_type{curr_ax}  = get(eventdata.NewValue, 'string');
+                        set(rad_group, 'selectedobject', rad_check(curr_rad))
         disp_radio
     end
 
@@ -3813,16 +3879,60 @@ linkprop(decim_edit(:, 2), 'string');
     end
 
     function disp_radio(source, eventdata)
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
         switch disp_type{curr_ax}
             case 'amp.'
                 plot_db
             case 'flat'
                 if (flat_done(curr_rad) && data_done(curr_rad))
                     plot_flat
+                    if (flat_done(curr_rad_alt) && data_done(curr_rad_alt))
+                        switch curr_ax
+                            case 2
+                                set(disp_group, 'selectedobject', disp_check(2, 2))
+                                [curr_ax, curr_rad, curr_rad_alt] = deal(3, 2, 1);
+                                plot_flat
+                                [curr_ax, curr_rad, curr_rad_alt] = deal(2, 1, 2);
+                            case 3
+                                set(disp_group, 'selectedobject', disp_check(1, 2))
+                                [curr_ax, curr_rad, curr_rad_alt] = deal(2, 1, 2);
+                                plot_flat
+                                [curr_ax, curr_rad, curr_rad_alt] = deal(3, 2, 1);
+                        end
+                    end
                 else
                     disp_type{curr_ax} = 'amp.';
                     set(disp_group(curr_rad), 'selectedobject', disp_check(curr_rad, 1));
+                    switch curr_ax
+                        case 2
+                            if (get(disp_group, 'selectedobject') ~= disp_check(2, 1))
+                            set(disp_group, 'selectedobject', disp_check(2, 1))
+                            [curr_ax, curr_rad, curr_rad_alt] = deal(3, 2, 1);
+                            plot_db
+                            [curr_ax, curr_rad, curr_rad_alt] = deal(2, 1, 2);
+                            end
+                        case 3
+                            set(disp_group, 'selectedobject', disp_check(1, 1))
+                            [curr_ax, curr_rad, curr_rad_alt] = deal(2, 1, 2);
+                            plot_db
+                            [curr_ax, curr_rad, curr_rad_alt] = deal(3, 2, 1);
+                    end
                 end
+        end
+    end
+
+%% Switch active transect
+
+    function rad_radio(~, eventdata)
+        switch get(eventdata.NewValue, 'string')
+            case 'M'
+                [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+                            = deal(2, 2, 1, 2);
+                set(status_box(curr_gui), 'string', 'Master transect now selected/active.')
+            case 'I'
+                [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+                            = deal(2, 3, 2, 1);
+                set(status_box(curr_gui), 'string', 'Intersecting transect now selected/active.')
         end
     end
 
@@ -4080,8 +4190,8 @@ linkprop(decim_edit(:, 2), 'string');
                 pk_match
             case 'n'
                 pk_next
-            case 'x'
-                choose_pk2
+            case 'u'
+                pk_unmatch
             case 'v'
                 if get(nearest_check, 'value')
                     set(nearest_check, 'value', 0)
@@ -4095,6 +4205,8 @@ linkprop(decim_edit(:, 2), 'string');
                     set(cmap_list(curr_gui), 'value', 1)
                 end
                 change_cmap
+            case 'x'
+                choose_pk2
             case 'y'
                 if get(zfix_check(curr_ax), 'value')
                     set(zfix_check(curr_ax), 'value', 0)

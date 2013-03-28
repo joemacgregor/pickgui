@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 03/22/13
+% Last updated: 03/28/13
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Function TOPOCORR is not available within this user''s path.')
@@ -72,8 +72,8 @@ colors_def                  = [0    0       0.75;
 % allocate a bunch of variables
 [bed_avail, core_done, data_done, edit_flag, flat_done, merge_done, merge_file, surf_avail] ...
                             = deal(false);
-[amp_flat, amp_mean, button, colors, curr_chunk, curr_layer, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_mat, dist_chunk, dt, elev, ii, ind_corr, ...
-    ind_decim, ind_int, ind_layer_flat, ind_x_pk, ind_x_ref, ind_y_pk, int_core, jj, kk, name_core, name_trans, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, num_trans, num_year, p_bed, p_bedflat, ...
+[amp_flat, amp_mean, button, colors, curr_chunk, curr_layer, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ...
+    ind_corr, ind_decim, ind_int, ind_x_pk, ind_x_ref, ind_y_pk, int_core, jj, kk, name_core, name_trans, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, num_trans, num_year, p_bed, p_bedflat, ...
     p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, pk_all, p_pk, p_pkflat, p_surf, pkfig, p_refflat, rad_threshold, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
                             = deal(0);
 [file_data, file_core, file_pk, file_pk_short, file_save, path_core, path_data, path_pk, path_save] ...
@@ -285,8 +285,8 @@ set(disp_group, 'selectedobject', disp_check(1))
         pk                  = struct;
         [bed_avail, data_done, edit_flag, flat_done, merge_done, merge_file, surf_avail] ...
                             = deal(false);
-        [amp_mean, amp_flat, colors, curr_chunk, curr_layer, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_mat, dist_chunk, dt, elev, ii, ind_corr, ...
-         ind_decim, ind_int, ind_layer_flat, ind_x_pk, ind_x_ref, ind_y_pk, jj, kk, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, p_bed, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, ...
+        [amp_mean, amp_flat, colors, curr_chunk, curr_layer, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ...
+         ind_corr, ind_decim, ind_int, ind_x_pk, ind_x_ref, ind_y_pk, jj, kk, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, p_bed, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, ...
          p_coreflat, p_corename, p_corenameflat, p_data, p_pk, p_pkflat, p_refflat, p_surf, pk_all, pkfig, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
                             = deal(0);
         [file_data, file_pk, file_pk_short, file_save] ...
@@ -985,8 +985,8 @@ set(disp_group, 'selectedobject', disp_check(1))
         plot_db
         
         if flat_done
-            ind_layer_flat  = NaN(pk.num_layer, 1);
-            ind_layer_flat(~isnan(pk.elev_smooth(:, pk.ind_x_ref))) ...
+            depth_layer_ref  = NaN(pk.num_layer, 1);
+            depth_layer_ref(~isnan(pk.elev_smooth(:, pk.ind_x_ref))) ...
                             = 1;
             % fix polynomials to current decimation vector
             if (num_decim ~= size(pk.poly_flat_merge, 2))
@@ -1043,8 +1043,8 @@ set(disp_group, 'selectedobject', disp_check(1))
         % keep the maximum number of layers for first go
         ind_x_ref           = sum(isnan(depth_curr));
         ind_x_ref           = find((ind_x_ref == min(ind_x_ref)), 1); % reference trace, i.e., the trace with the most layers
-        ind_layer_flat      = depth_curr(:, ind_x_ref); % layer depths at reference trace
-        tmp1                = depth_curr(~isnan(ind_layer_flat), :); % depth of all layers that are not nan at the reference trace
+        depth_layer_ref     = depth_curr(:, ind_x_ref); % layer depths at reference trace
+        tmp1                = depth_curr(~isnan(depth_layer_ref), :); % depth of all layers that are not nan at the reference trace
         tmp2                = tmp1(:, ind_x_ref); % depths of non-nan layers at reference trace
         tmp3                = find(sum(~isnan(tmp1)) > 3); % traces where it will be worth doing the polynomial
         
@@ -1099,16 +1099,16 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         
         % iterate using other layers if any are available
-        if any(isnan(ind_layer_flat))
+        if any(isnan(depth_layer_ref))
             
             % determine which layers overlap with original polyfit layers and order polyfit iteration based on the length of their overlap
-            tmp1            = zeros(1, length(ind_layer_flat));
-            for ii = find(isnan(ind_layer_flat))'
+            tmp1            = zeros(1, length(depth_layer_ref));
+            for ii = find(isnan(depth_layer_ref))'
                 tmp1(ii)    = length(find(~isnan(depth_curr(ii, tmp3))));
             end
             [tmp1, tmp2]    = sort(tmp1, 'descend');
             tmp5            = tmp2(logical(tmp1));
-            set(status_box, 'string', ['Iterating flattening for ' num2str(length(tmp2(logical(tmp1)))) ' overlapping layers out of ' num2str(length(find(isnan(ind_layer_flat)))) ' not fitted initially...'])
+            set(status_box, 'string', ['Iterating flattening for ' num2str(length(tmp2(logical(tmp1)))) ' overlapping layers out of ' num2str(length(find(isnan(depth_layer_ref)))) ' not fitted initially...'])
             
             pause(0.1)
             
@@ -1151,12 +1151,12 @@ set(disp_group, 'selectedobject', disp_check(1))
                     tmp4(jj)        = interp1(depth_flat(tmp2, jj), depth(tmp2), depth_curr(ii, tmp1(jj)), 'linear', NaN);
                 end
                 
-                ind_layer_flat(ii)  = nanmean(tmp4); % best guess depth at reference trace 
+                depth_layer_ref(ii)  = nanmean(tmp4); % best guess depth at reference trace 
                 
                 % extract best layers again, now including the new layer
                 tmp4                = tmp1(tmp3);
-                tmp1                = depth_curr(~isnan(ind_layer_flat), tmp4);
-                tmp2                = ind_layer_flat(~isnan(ind_layer_flat));
+                tmp1                = depth_curr(~isnan(depth_layer_ref), tmp4);
+                tmp2                = depth_layer_ref(~isnan(depth_layer_ref));
                 tmp3                = find(sum(~isnan(tmp1)) > 3);
                 tmp4                = tmp4(sum(~isnan(tmp1)) > 3);
                 
@@ -1195,7 +1195,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
         end
         
-        ind_layer_flat      = ind_layer_flat(2:end); % drop surface
+        depth_layer_ref      = depth_layer_ref(2:end); % drop surface
         
         if parallel_check
             pctRunOnAll warning('on', 'MATLAB:polyfit:RepeatedPointsOrRescale')
@@ -1329,7 +1329,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             else
                 p_pkflat(ii)    = plot(0, 0, '.', 'markersize', 12, 'color', colors(ii, :), 'visible', 'off');
             end
-            if isnan(ind_layer_flat(ii))
+            if isnan(depth_layer_ref(ii))
                 set(p_pkflat(ii), 'markersize', 6)
             end
         end
@@ -1380,7 +1380,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 if (any(p_pkflat) && any(ishandle(p_pkflat)))
                     set(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)), 'markersize', 12)
                 end
-                for ii = find(isnan(ind_layer_flat))'
+                for ii = find(isnan(depth_layer_ref))'
                     if (logical(p_pkflat(ii)) && ishandle(p_pkflat(ii)))
                         set(p_pkflat(ii), 'markersize', 6)
                     end
@@ -1573,7 +1573,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
             p_pkflat        = p_pkflat(tmp1);
             depth_layer_flat= depth_layer_flat(tmp1, :);
-            ind_layer_flat  = ind_layer_flat(tmp1);
+            depth_layer_ref  = depth_layer_ref(tmp1);
             edit_flag       = true;
         end
         curr_layer          = curr_layer - 1;
@@ -1608,7 +1608,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 if (logical(p_pkflat(curr_layer)) && ishandle(p_pkflat(curr_layer)))
                     set(p_pkflat(curr_layer), 'markersize', 24)
                 end
-                for ii = find(isnan(ind_layer_flat))'
+                for ii = find(isnan(depth_layer_ref))'
                     if (logical(p_pkflat(ii)) && ishandle(p_pkflat(ii)))
                         set(p_pkflat(ii), 'markersize', 6)
                     end
@@ -1636,7 +1636,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 if (logical(p_pkflat(curr_layer)) && ishandle(p_pkflat(curr_layer)))
                     set(p_pkflat(curr_layer), 'markersize', 24)
                 end
-                for ii = find(isnan(ind_layer_flat))'
+                for ii = find(isnan(depth_layer_ref))'
                     if (logical(p_pkflat(ii)) && ishandle(p_pkflat(ii)))
                         set(p_pkflat(ii), 'markersize', 6)
                     end
@@ -1730,7 +1730,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 else
                     p_pkflat(curr_layer)= plot(0, 0, '.', 'markersize', 12, 'color', colors(ii, :), 'visible', 'off');
                 end
-                if isnan(ind_layer_flat(curr_layer))
+                if isnan(depth_layer_ref(curr_layer))
                     set(p_pkflat(curr_layer), 'markersize', 6)
                 end
                 edit_flag   = true;
@@ -1741,11 +1741,11 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         [p_pk, colors]      = deal(p_pk(setdiff(1:pk.num_layer, tmp1)), colors(setdiff(1:pk.num_layer, tmp1), :));
         if flat_done
-            [p_pkflat, depth_layer_flat, ind_layer_flat] ...
-                            = deal(p_pkflat(setdiff(1:pk.num_layer, tmp1)), depth_layer_flat(setdiff(1:pk.num_layer, tmp1), :), ind_layer_flat(setdiff(1:pk.num_layer, tmp1))');
+            [p_pkflat, depth_layer_flat, depth_layer_ref] ...
+                            = deal(p_pkflat(setdiff(1:pk.num_layer, tmp1)), depth_layer_flat(setdiff(1:pk.num_layer, tmp1), :), depth_layer_ref(setdiff(1:pk.num_layer, tmp1))');
         end
-        if isrow(ind_layer_flat)
-            ind_layer_flat  = ind_layer_flat';
+        if isrow(depth_layer_ref)
+            depth_layer_ref  = depth_layer_ref';
         end
         pk.num_layer        = pk.num_layer - 1;
         show_pk
@@ -3353,7 +3353,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                         if ~isempty(find(~isnan(depth_layer_flat(ii, :)), 1))
                             tmp1    = plot(pk.dist_lin(ind_decim(~isnan(depth_layer_flat(ii, :)))), depth_layer_flat(ii, ~isnan(depth_layer_flat(ii, :))), '.', 'markersize', 12, 'color', colors(ii, :));
                         end
-                        if isnan(ind_layer_flat(ii))
+                        if isnan(depth_layer_ref(ii))
                             set(tmp1, 'markersize', 6)
                         end
                     end
