@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 03/25/13
+% Last updated: 04/03/13
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -523,6 +523,8 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
             
             % convert to dB
+            block.amp(block.amp == 0) ...
+                            = NaN;
             block.amp(isinf(block.amp)) ...
                             = NaN;
             block.amp       = 10 .* log10(abs(block.amp));
@@ -1525,7 +1527,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         axes(ax_radar)
         ii                  = 0;
         
-        set(pkgui, 'keypressfcn', [])        
+        set(pkgui, 'keypressfcn', [])
         while true
             
             [ind_x_pk, ind_y_pk, button] ...
@@ -1533,6 +1535,12 @@ set(disp_group, 'selectedobject', disp_check(1))
             if ~ii % dummy start
                 ii          = 1;
                 continue
+            end
+            
+            if ~any(strcmpi(char(button), {'Q' 'D'}))
+                if (button ~= 1)
+                    continue
+                end
             end
             
             if strcmpi(char(button), 'Q') % quit/stop picking keepers
@@ -1768,6 +1776,12 @@ set(disp_group, 'selectedobject', disp_check(1))
             if ~ii % dummy start
                 ii          = 1;
                 continue
+            end
+            
+            if ~any(strcmpi(char(button), {'Q' 'D'}))
+                if (button ~= 1)
+                    continue
+                end
             end
             
             if strcmpi(char(button), 'Q') % quit/stop picking keepers

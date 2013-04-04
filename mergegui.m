@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 03/28/13
+% Last updated: 04/04/13
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Function TOPOCORR is not available within this user''s path.')
@@ -128,9 +128,9 @@ cb_min_slide                = uicontrol(mgui, 'style', 'slider', 'units', 'norma
                                               'sliderstep', [0.01 0.1]);
 cb_max_slide                = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.96 0.50 width_slide 0.32], 'callback', @slide_db_max, 'min', -150, 'max', 0, 'value', db_max_ref, ...
                                               'sliderstep', [0.01 0.1]);
-dist_min_slide              = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.12 width_slide 0.27 0.02], 'callback', @slide_dist_min, 'min', 0, 'max', 1, 'value', dist_min_ref, ...
+dist_min_slide              = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.12 0.005 0.27 0.02], 'callback', @slide_dist_min, 'min', 0, 'max', 1, 'value', dist_min_ref, ...
                                               'sliderstep', [0.01 0.1]);
-dist_max_slide              = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.64 width_slide 0.27 0.02], 'callback', @slide_dist_max, 'min', 0, 'max', 1, 'value', dist_max_ref, ...
+dist_max_slide              = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.64 0.005 0.27 0.02], 'callback', @slide_dist_max, 'min', 0, 'max', 1, 'value', dist_max_ref, ...
                                               'sliderstep', [0.01 0.1]);
 % slider values
 z_min_edit                  = annotation('textbox', [0.005 0.39 0.04 0.03], 'string', num2str(elev_min_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');

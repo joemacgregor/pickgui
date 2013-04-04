@@ -13,7 +13,7 @@ function fencegui
 %   flattening will be parallelized.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 03/28/13
+% Last updated: 04/04/13
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Function INTERSECTI is not available within this user''s path.')
@@ -104,15 +104,16 @@ end
 set(0, 'DefaultFigureWindowStyle', 'docked')
 if ispc % windows switch
     fgui(1)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 3D', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress1);
+    ax(1)                   = subplot('position', [0.08 0.10 1.42 0.81]);
     size_font               = 14;
     width_slide             = 0.01;
 else
     fgui(1)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 3D', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress1);
+    ax(1)                   = subplot('position', [0.08 0.10 0.84 0.81]);
     size_font               = 18;
     width_slide             = 0.02;
 end
 
-ax(1)                       = subplot('position', [0.08 0.10 0.84 0.81]);
 hold on
 colormap(bone)
 caxis([db_min(1) db_max(1)])
@@ -127,13 +128,13 @@ zlabel('Elevation (m)')
 colorbar('fontsize', size_font)
 
 % sliders
-x_min_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.11 0.04 0.24 width_slide], 'callback', @slide_x_min, 'min', 0, 'max', 1, 'value', x_min_ref, ...
+x_min_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.11 0.04 0.24 0.02], 'callback', @slide_x_min, 'min', 0, 'max', 1, 'value', x_min_ref, ...
                                                'sliderstep', [0.01 0.1]);
-x_max_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.11 0.01 0.24 width_slide], 'callback', @slide_x_max, 'min', 0, 'max', 1, 'value', x_max_ref, ...
+x_max_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.11 0.01 0.24 0.02], 'callback', @slide_x_max, 'min', 0, 'max', 1, 'value', x_max_ref, ...
                                                'sliderstep', [0.01 0.1]);
-y_min_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.64 0.04 0.24 width_slide], 'callback', @slide_y_min, 'min', 0, 'max', 1, 'value', x_min_ref, ...
+y_min_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.64 0.04 0.24 0.02], 'callback', @slide_y_min, 'min', 0, 'max', 1, 'value', x_min_ref, ...
                                                'sliderstep', [0.01 0.1]);
-y_max_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.64 0.01 0.24 width_slide], 'callback', @slide_y_max, 'min', 0, 'max', 1, 'value', x_max_ref, ...
+y_max_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.64 0.01 0.24 0.02], 'callback', @slide_y_max, 'min', 0, 'max', 1, 'value', x_max_ref, ...
                                                'sliderstep', [0.01 0.1]);
 z_min_slide(1)              = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.07 width_slide 0.32], 'callback', @slide_z_min1, 'min', 0, 'max', 1, 'value', elev_min_ref, ...
                                                'sliderstep', [0.01 0.1]);
@@ -390,15 +391,15 @@ status_box(2)               = annotation('textbox', [0.69 0.965 0.30 0.03], 'str
 
 disp_group(1)               = uibuttongroup('position', [0.26 0.965 0.08 0.03], 'selectionchangefcn', @disp_radio1);
 uicontrol(fgui(2), 'style', 'text', 'parent', disp_group(1), 'units', 'normalized', 'position', [0 0.6 0.9 0.3], 'fontsize', size_font)
-disp_check(1, 1)            = uicontrol(fgui(2), 'style', 'radio', 'string', 'amp.', 'units', 'normalized', 'position', [0.01 0.1 0.45 0.8], 'parent', disp_group(1), 'fontsize', size_font, 'handlevisibility', 'off');
-disp_check(1, 2)            = uicontrol(fgui(2), 'style', 'radio', 'string', 'flat', 'units', 'normalized', 'position', [0.51 0.1 0.45 0.8], 'parent', disp_group(1), 'fontsize', size_font, ...
+disp_check(1, 1)            = uicontrol(fgui(2), 'style', 'radio', 'string', 'amp.', 'units', 'normalized', 'position', [0.01 0.1 0.45 0.89], 'parent', disp_group(1), 'fontsize', size_font, 'handlevisibility', 'off');
+disp_check(1, 2)            = uicontrol(fgui(2), 'style', 'radio', 'string', 'flat', 'units', 'normalized', 'position', [0.51 0.1 0.45 0.89], 'parent', disp_group(1), 'fontsize', size_font, ...
                                                  'handlevisibility', 'off', 'visible', 'off');
 set(disp_group(1), 'selectedobject', disp_check(1, 1))
 
 disp_group(2)               = uibuttongroup('position', [0.60 0.965 0.08 0.03], 'selectionchangefcn', @disp_radio2);
 uicontrol(fgui(2), 'style', 'text', 'parent', disp_group(2), 'units', 'normalized', 'position', [0 0.6 0.9 0.3], 'fontsize', size_font)
-disp_check(2, 1)            = uicontrol(fgui(2), 'style', 'radio', 'string', 'amp.', 'units', 'normalized', 'position', [0.01 0.1 0.45 0.8], 'parent', disp_group(2), 'fontsize', size_font, 'handlevisibility', 'off');
-disp_check(2, 2)            = uicontrol(fgui(2), 'style', 'radio', 'string', 'flat', 'units', 'normalized', 'position', [0.51 0.1 0.45 0.8], 'parent', disp_group(2), 'fontsize', size_font, ...
+disp_check(2, 1)            = uicontrol(fgui(2), 'style', 'radio', 'string', 'amp.', 'units', 'normalized', 'position', [0.01 0.1 0.45 0.89], 'parent', disp_group(2), 'fontsize', size_font, 'handlevisibility', 'off');
+disp_check(2, 2)            = uicontrol(fgui(2), 'style', 'radio', 'string', 'flat', 'units', 'normalized', 'position', [0.51 0.1 0.45 0.89], 'parent', disp_group(2), 'fontsize', size_font, ...
                                                  'handlevisibility', 'off', 'visible', 'off');
 set(disp_group(2), 'selectedobject', disp_check(2, 1))
 
@@ -449,8 +450,6 @@ figure(fgui(1))
 
 linkprop(layer_list(:, 1), {'value' 'string'});
 linkprop(layer_list(:, 2), {'value' 'string'});
-linkprop(decim_edit(:, 1), 'string');
-linkprop(decim_edit(:, 2), 'string');
 
 %% Clear plots
 
@@ -468,7 +467,7 @@ linkprop(decim_edit(:, 2), 'string');
             delete(p_corenameflat{curr_rad}(logical(p_corenameflat{curr_rad}) & ishandle(p_corenameflat{curr_rad})))
         end
         if (any(p_data(:, curr_rad)) && any(ishandle(p_data(:, curr_rad))))
-            delete(p_data((logical(p_data(:, curr_rad)) & ishandle(p_data(:, curr_rad))), :))
+            delete(p_data((logical(p_data(:, curr_rad)) & ishandle(p_data(:, curr_rad))), curr_rad))
         end
         for ii = 1:2
             for jj = 1:3
@@ -515,8 +514,8 @@ linkprop(decim_edit(:, 2), 'string');
             p_corename{1, curr_rad}, p_corename{2, curr_rad}, p_coreflat{curr_rad}, p_corenameflat{curr_rad}, p_int1{1, 1}, p_int1{1, 2}, p_int1{1, 3}, p_int1{2, 1}, p_int1{2, 2}, p_int1{2, 3}, ...
             p_int2{1, curr_rad}, p_int2{2, curr_rad}, p_pk{1, curr_rad}, p_pk{2, curr_rad}, p_pkflat{curr_rad}, twtt{curr_rad}] ...
                             = deal([]);
-        [curr_layer(curr_rad), curr_trans(curr_rad), curr_year(curr_rad), dt(curr_rad), num_data(curr_rad), num_decim(curr_rad), num_sample(curr_rad), p_bed(curr_rad), p_bedflat(curr_rad), p_data(1, curr_rad), ...
-            p_data(2, curr_rad), p_surf(curr_rad)] ...
+        [curr_layer(curr_rad), curr_trans(curr_rad), curr_year(curr_rad), dt(curr_rad), num_data(curr_rad), num_decim(curr_rad), num_sample(curr_rad), p_bed(1, curr_rad), p_bed(2, curr_rad), ...
+            p_bedflat(curr_rad), p_data(1, curr_rad), p_data(2, curr_rad), p_surf(1, curr_rad), p_surf(2, curr_rad)] ...
                             = deal(0);
         [curr_ind_int, ii, ind_x_pk, ind_y_pk, jj, num_int, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8] ...
                             = deal(0);
@@ -955,8 +954,10 @@ linkprop(decim_edit(:, 2), 'string');
                 tmp1        = [];
                 
                 % ensure density of consecutive intersections is not too great (1 per 2.5 km)
-                if ~isempty(find(((abs(diff(pk{1}.dist(curr_ind_int(:, 1)))) < 2.5) & (abs(diff(pk{2}.dist(curr_ind_int(:, 2)))) < 2.5)), 1))
-                    tmp1    = [tmp1 find(((abs(diff(pk{1}.dist(curr_ind_int(:, 1)))) < 2.5) & (abs(diff(pk{2}.dist(curr_ind_int(:, 2)))) < 2.5)))];
+                if ~isempty(curr_ind_int)
+                    if ~isempty(find(((abs(diff(pk{1}.dist(curr_ind_int(:, 1)))) < 2.5) & (abs(diff(pk{2}.dist(curr_ind_int(:, 2)))) < 2.5)), 1))
+                        tmp1= [tmp1 find(((abs(diff(pk{1}.dist(curr_ind_int(:, 1)))) < 2.5) & (abs(diff(pk{2}.dist(curr_ind_int(:, 2)))) < 2.5)))];
+                    end
                 end
                 
                 for ii = 1:size(curr_ind_int, 1)
@@ -1083,16 +1084,16 @@ linkprop(decim_edit(:, 2), 'string');
                             = deal(min(tmp2), max(tmp2), min(tmp2), max(tmp2));
                 [dist_min_ref(curr_rad), dist_max_ref(curr_rad), dist_min(curr_rad), dist_max(curr_rad)] ...
                             = deal(min(pk{curr_rad}.dist_lin), max(pk{curr_rad}.dist_lin), min(pk{curr_rad}.dist_lin), max(pk{curr_rad}.dist_lin));
-                if surf_avail(curr_rad)
+                if all(surf_avail)
                     [elev_max_ref, elev_max(1:2)] ...
-                            = deal(max(tmp3) + (0.1 * (max(tmp3) - min(tmp3))));
+                            = deal(max(tmp3));
                 else
                     [elev_max_ref, elev_max(1:2)] ...
                             = deal(max(tmp5) + (0.1 * (max(tmp5) - min(tmp5))));
                 end
-                if bed_avail(curr_rad)
+                if all(bed_avail)
                     [elev_min_ref, elev_min(1:2)] ...
-                            = deal(min(tmp4) - (0.1 * (max(tmp4) - min(tmp4))));
+                            = deal(min(tmp4));
                 else
                     [elev_min_ref, elev_min(1:2)] ...
                             = deal(min(tmp5) - (0.1 * (max(tmp5) - min(tmp5))));
@@ -1106,14 +1107,14 @@ linkprop(decim_edit(:, 2), 'string');
                             = deal(min(pk{curr_rad}.dist_lin), max(pk{curr_rad}.dist_lin), min(pk{curr_rad}.dist_lin), max(pk{curr_rad}.dist_lin));
                 if surf_avail(curr_rad)
                     [elev_max_ref, elev_max(1:2)] ...
-                            = deal(max(pk{curr_rad}.elev_surf) + (0.1 * (max(pk{curr_rad}.elev_surf) - min(pk{curr_rad}.elev_surf))));
+                            = deal(max(pk{curr_rad}.elev_surf));
                 else
                     [elev_max_ref, elev_max(1:2)] ...
                             = deal(max(pk{curr_rad}.elev_smooth(:)) + (0.1 * (max(pk{curr_rad}.elev_smooth(:)) - min(pk{curr_rad}.elev_smooth(:)))));
                 end
                 if bed_avail(curr_rad)
                     [elev_min_ref, elev_min(1:2)] ...
-                            = deal(min(pk{curr_rad}.elev_bed) - (0.1 * (max(pk{curr_rad}.elev_bed) - min(pk{curr_rad}.elev_bed))));
+                            = deal(min(pk{curr_rad}.elev_bed));
                 else
                     [elev_min_ref, elev_min(1:2)] ...
                             = deal(min(pk{curr_rad}.elev_smooth(:)) - (0.1 * (max(pk{curr_rad}.elev_smooth(:)) - min(pk{curr_rad}.elev_smooth(:)))));
@@ -1180,6 +1181,11 @@ linkprop(decim_edit(:, 2), 'string');
                 for ii = 1:pk{1}.num_layer
                     p_int2{1, 2}(ii) = plot(pk{2}.dist_lin(curr_ind_int(:, 2)), pk{1}.elev_smooth(ii, curr_ind_int(:, 1)), 'ko', 'markersize', 8, 'markerfacecolor', colors{1}(ii, :), 'visible', 'off');
                 end
+                if ~isempty(pk{1}.ind_layer) % existing matches
+                    for ii = 1:size(pk{1}.ind_layer, 1)
+                        set(p_int2{1, 2}(pk{1}.ind_layer(ii, 1)), 'marker', 's')
+                    end
+                end
                 if ~isempty(pk{2}.ind_layer) % existing matches
                     for ii = 1:size(pk{2}.ind_layer, 1)
                         if ((pk{2}.ind_layer(ii, 2) == curr_year(1)) && (pk{2}.ind_layer(ii, 3) == curr_trans(1))) % match associated with current transect
@@ -1189,7 +1195,6 @@ linkprop(decim_edit(:, 2), 'string');
                             set(p_pk{2, 2}(pk{2}.ind_layer(ii, 1)), 'color', colors{1}(pk{2}.ind_layer(ii, 4), :))
                         else % match associated with another transect
                             set(p_int2{1, 1}(pk{2}.ind_layer(ii, 1)), 'marker', 's')
-                            set(p_int2{1, 2}(pk{2}.ind_layer(ii, 4)), 'marker', 's')
                         end
                     end
                 end
@@ -1262,13 +1267,19 @@ linkprop(decim_edit(:, 2), 'string');
             return
         end
         
+        % check if data are in expected location based on picks' path
+        tmp1                = file_pk_short;
+        if isnan(str2double(tmp1(end))) % check for a/b/c/etc in file_pk_short
+            tmp1            = tmp1(1:(end - 1));
+        end
+        
         if ispc
-            if (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '..\block\' file_pk_short{curr_rad}], 'dir'))
-                path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '\merge')) 'block\' file_pk_short{curr_rad} '\'];
+            if (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '..\block\' tmp1], 'dir'))
+                path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '\fence')) 'block\' tmp1 '\'];
             end
         else
-            if (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '../block/' file_pk_short{curr_rad}], 'dir'))
-                path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '/merge')) 'block/' file_pk_short{curr_rad} '/'];
+            if (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '../block/' tmp1], 'dir'))
+                path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '/fence')) 'block/' tmp1 '/'];
             end
         end
         
@@ -1566,9 +1577,10 @@ linkprop(decim_edit(:, 2), 'string');
             
             % assign traveltime and distance reference values/sliders based on data
             [elev_min_ref, db_min_ref(curr_ax), elev_max_ref, db_max_ref(curr_ax), elev_min(2), db_min(curr_ax), elev_max(2), db_max(curr_ax), depth_min_ref, depth_max_ref, depth_min, depth_max] ...
-                            = deal(min(elev{curr_rad}), min(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), max(elev{curr_rad}), max(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), min(elev{curr_rad}), ...
-                                   min(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), max(elev{curr_rad}), max(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), min(depth{curr_rad}), max(depth{curr_rad}), ...
-                                   min(depth{curr_rad}), max(depth{curr_rad}));
+                            = deal(min([min(elev{curr_rad}) elev_min_ref]), min(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), max([max(elev{curr_rad}) elev_max_ref]), ...
+                                   max(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), min([min(elev{curr_rad}) elev_min_ref]), min(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), ...
+                                   max([max(elev{curr_rad}) elev_max_ref]), max(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), min([min(depth{curr_rad}) depth_min_ref]), ...
+                                   max([max(depth{curr_rad}) depth_max_ref]), min([min(depth{curr_rad}) depth_min_ref]), max([  max(depth{curr_rad}) depth_max_ref]));
             set(cb_min_slide(curr_ax), 'min', db_min_ref(curr_ax), 'max', db_max_ref(curr_ax), 'value', db_min_ref(curr_ax))
             set(cb_max_slide(curr_ax), 'min', db_min_ref(curr_ax), 'max', db_max_ref(curr_ax), 'value', db_max_ref(curr_ax))
             set(cb_min_edit(curr_ax), 'string', sprintf('%3.0f', db_min_ref(curr_ax)))
@@ -1599,6 +1611,11 @@ linkprop(decim_edit(:, 2), 'string');
                 for ii = 1:pk{1}.num_layer
                     p_int2{2, 2}(ii) = plot(pk{2}.dist_lin(curr_ind_int(:, 2)), pk{1}.depth_smooth(ii, curr_ind_int(:, 1)), 'ko', 'markersize', 8, 'markerfacecolor', colors{1}(ii, :), 'visible', 'off');
                 end
+                if ~isempty(pk{1}.ind_layer) % existing matches
+                    for ii = 1:size(pk{1}.ind_layer, 1)
+                        set(p_int2{2, 2}(pk{1}.ind_layer(ii, 1)), 'marker', 's')
+                    end
+                end
                 if ~isempty(pk{2}.ind_layer)
                     for ii = 1:size(pk{2}.ind_layer, 1)
                         if ((pk{2}.ind_layer(ii, 2) == curr_year(1)) && (pk{2}.ind_layer(ii, 3) == curr_trans(1))) % match associated with current transect
@@ -1607,7 +1624,6 @@ linkprop(decim_edit(:, 2), 'string');
                             set(p_pkflat{2}(pk{2}.ind_layer(ii, 1)), 'color', colors{1}(pk{2}.ind_layer(ii, 4), :))
                         else
                             set(p_int2{2, 1}(pk{2}.ind_layer(ii, 1)), 'marker', 's')
-                            set(p_int2{2, 2}(pk{2}.ind_layer(ii, 4)), 'marker', 's')
                         end
                     end
                 end
@@ -2015,12 +2031,23 @@ linkprop(decim_edit(:, 2), 'string');
             return
         end
         
-        set([p_int2{1, 1}(curr_layer(2)) p_int2{2, 1}(curr_layer(2)) p_int2{1, 2}(curr_layer(1)) p_int2{2, 2}(curr_layer(1))], 'marker', '^')
-        
         set(status_box(2), 'string', ['Matching master transect layer #' num2str(curr_layer(1)) ' with intersecting transect layer # ' num2str(curr_layer(2)) '...'])
         pause(0.1)
         
-        pk{2}.ind_layer     = [pk{2}.ind_layer; [curr_layer(2) curr_year(1) curr_trans(1) curr_layer(1) (pk{1}.ind_layer(curr_layer(1), end) + 1)]];
+        for ii = 1:2
+            if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                set(p_int2{ii, 1}(curr_layer(2)), 'marker', '^')
+            end
+            if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                set(p_int2{ii, 2}(curr_layer(1)), 'marker', '^')
+            end
+        end
+                
+        if ~isempty(find(pk{1}.ind_layer(:, 1) == curr_layer(1), 1))
+            pk{2}.ind_layer = [pk{2}.ind_layer; [curr_layer(2) curr_year(1) curr_trans(1) curr_layer(1) (pk{1}.ind_layer(find(pk{1}.ind_layer(:, 1) == curr_layer(1), 1), end) + 1)]];
+        else
+            pk{2}.ind_layer = [pk{2}.ind_layer; [curr_layer(2) curr_year(1) curr_trans(1) curr_layer(1) 0]];
+        end
         
         set(status_box(2), 'string', ['Intersecting layer # ' num2str(curr_layer(2)) ' matched to master layer #' num2str(curr_layer(1)) '.'])
     end
@@ -3289,8 +3316,8 @@ linkprop(decim_edit(:, 2), 'string');
             plot_db
             return
         end
-        if (logical(p_data(curr_rad)) && ishandle(p_data(curr_rad))) % get rid of old plotted data
-            delete(p_data(curr_rad))
+        if (logical(p_data(curr_gui, curr_rad)) && ishandle(p_data(curr_gui, curr_rad))) % get rid of old plotted data
+            delete(p_data(curr_gui, curr_rad))
         end
         axes(ax(curr_ax))
         if (get(cmap_list(curr_gui), 'value') ~= 1)
@@ -3320,7 +3347,8 @@ linkprop(decim_edit(:, 2), 'string');
         set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max))
         set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min))
         ylim([depth_min depth_max])
-        p_data(curr_rad)    = imagesc(pk{curr_rad}.dist_lin(ind_decim{curr_rad}), depth{curr_rad}, amp_flat{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
+        p_data(curr_gui, curr_rad) ...
+                            = imagesc(pk{curr_rad}.dist_lin(ind_decim{curr_rad}), depth{curr_rad}, amp_flat{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
         disp_type{curr_ax}  = 'flat';
         reset_xz
         narrow_cb
@@ -3696,7 +3724,7 @@ linkprop(decim_edit(:, 2), 'string');
             pause(0.1)
             load_data_breakout
         end
-        set(decim_edit(curr_gui, curr_rad), 'string', num2str(decim(curr_rad)))
+        set(decim_edit(:, curr_rad), 'string', num2str(decim(curr_rad)))
         set(status_box(curr_gui), 'string', ['Decimation number set to 1/' num2str(decim(curr_rad)) ' indice(s).'])
     end
 
