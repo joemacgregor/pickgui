@@ -71,7 +71,7 @@ colors_def                  = [0    0       0.75;
 [bed_avail, data_done, flat_done, pk_done, surf_avail] ...
                             = deal(false(1, 2));
 [amp_mean, amp_flat, colors, depth, depth_bed, depth_bed_flat, depth_flat, depth_layer_flat, depth_mat, elev, file_data, file_pk, file_pk_short, ind_corr, ind_decim, ind_int_core, layer_str, path_data, path_pk, ...
-    pk, p_pkflat, twtt]     = deal(cell(1, 2));
+ pk, p_pkflat, twtt]        = deal(cell(1, 2));
 p_int1                      = cell(2, 3);
 [p_core, p_corename, p_coreflat, p_corenameflat, p_int2, p_pk] ...
                             = deal(cell(2));
@@ -104,7 +104,7 @@ end
 set(0, 'DefaultFigureWindowStyle', 'docked')
 if ispc % windows switch
     fgui(1)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 3D', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress1);
-    ax(1)                   = subplot('position', [0.08 0.10 1.42 0.81]);
+    ax(1)                   = subplot('position', [0.08 0.10 1.38 0.81]);
     size_font               = 14;
     width_slide             = 0.01;
 else
@@ -1268,7 +1268,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         end
         
         % check if data are in expected location based on picks' path
-        tmp1                = file_pk_short;
+        tmp1                = file_pk_short{curr_rad};
         if isnan(str2double(tmp1(end))) % check for a/b/c/etc in file_pk_short
             tmp1            = tmp1(1:(end - 1));
         end
@@ -1760,8 +1760,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         if (all(pk_done) && ~isempty(pk{2}.ind_layer))
             switch curr_rad
                 case 1
-                    if (length(find(pk{2}.ind_layer(:, 4) == curr_layer(1))) == 1)
-                        curr_layer(2) = pk{2}.ind_layer(find(pk{2}.ind_layer(:, 4) == curr_layer(1), 1), 1);
+                    if (length(find((pk{2}.ind_layer(:, 4) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)))) == 1)
+                        curr_layer(2) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 4) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1))), 1), 1);
                         for ii = 1:2
                             if (any(p_pk{ii, 2}) && any(ishandle(p_pk{ii, 2})))
                                 set(p_pk{ii, 2}(logical(p_pk{ii, 2}) & ishandle(p_pk{ii, 2})), 'markersize', 12)
@@ -1790,8 +1790,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                     end
                     set(layer_list(:, 2), 'value', curr_layer(2))
                 case 2
-                    if (length(find(pk{2}.ind_layer(:, 1) == curr_layer(2))) == 1)
-                        curr_layer(1) = pk{2}.ind_layer(find(pk{2}.ind_layer(:, 1) == curr_layer(2), 1), 4);
+                    if (length(find((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)))) == 1)
+                        curr_layer(1) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1))), 1), 4);
                         for ii = 1:2
                             if (any(p_pk{ii, 1}) && any(ishandle(p_pk{ii, 2})))
                                 set(p_pk{ii, 1}(logical(p_pk{ii, 1}) & ishandle(p_pk{ii, 1})), 'markersize', 12)
