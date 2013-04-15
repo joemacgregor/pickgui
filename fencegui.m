@@ -13,13 +13,13 @@ function fencegui
 %   flattening will be parallelized.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 04/04/13
+% Last updated: 04/15/13
 
 if ~exist('intersecti', 'file')
-    error('fencegui:intersecti', 'Function INTERSECTI is not available within this user''s path.')
+    error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
 end
 if ~exist('topocorr', 'file')
-    error('fencegui:topocorr', 'Function TOPOCORR is not available within this user''s path.')
+    error('fencegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
 end
 
 %% Intialize variables
@@ -48,7 +48,7 @@ elev_max                    = ones(1, 2);
 speed_vacuum                = 299792458; % m/s
 permitt_ice                 = 3.15;
 speed_ice                   = speed_vacuum / sqrt(permitt_ice);
-decim                       = [25 25]; % decimate radargram for display
+decim                       = [10 10]; % decimate radargram for display
 cmaps                       = {'bone' 'jet'}';
 colors_def                  = [0    0       0.75;
                                0    0       1;
@@ -67,7 +67,8 @@ colors_def                  = [0    0       0.75;
                                0.75 0       0];
 
 % allocate a bunch of variables
-[core_done, int_done]       = deal(false);
+[core_done, int_done, master_done] ...
+                            = deal(false);
 [bed_avail, data_done, flat_done, pk_done, surf_avail] ...
                             = deal(false(1, 2));
 [amp_mean, amp_flat, colors, depth, depth_bed, depth_bed_flat, depth_flat, depth_layer_flat, depth_mat, elev, file_data, file_pk, file_pk_short, ind_corr, ind_decim, ind_int_core, layer_str, path_data, path_pk, ...
@@ -75,19 +76,19 @@ colors_def                  = [0    0       0.75;
 p_int1                      = cell(2, 3);
 [p_core, p_corename, p_coreflat, p_corenameflat, p_int2, p_pk] ...
                             = deal(cell(2));
-[curr_layer, curr_trans, curr_year, dt, num_data, num_decim, num_int_core, num_sample, p_bedflat] ...
+[curr_layer, curr_trans, curr_subtrans, curr_year, dt, num_data, num_decim, num_int_core, num_sample, p_bedflat] ...
                             = deal(zeros(1, 2));
 [decim_edit, layer_list, p_bed, p_data, pk_check, p_surf] ...
                             = deal(zeros(2));
-[curr_az2, curr_el2, curr_ind_int, h_link1, h_link2, h_link3, h_link4, ii, ind_x_pk, ind_y_pk, int_all, int_core, jj, kk, name_core, name_trans, num_int, num_trans, num_year, rad_threshold, tmp1, tmp2, tmp3, tmp4, ...
- tmp5, tmp6, tmp7, tmp8, x_core, y_core] ...
+[curr_az2, curr_el2, curr_ind_int, h_link1, h_link2, h_link3, h_link4, id_layer_master_mat, id_layer_master_cell, ii, ind_x_pk, ind_y_pk, int_all, int_core, jj, kk, name_core, name_trans, num_int, num_trans, ...
+ num_year, rad_threshold, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8, x_core, y_core] ...
                             = deal(0);
 [curr_ax, curr_gui, curr_int, curr_rad] ...
                             = deal(1);
 curr_rad_alt                = 2;
 disp_type                   = {'amp.' 'amp.' 'amp.'};
 curr_dim                    = '3D';
-[file_core, file_ref, path_core, path_ref] ...
+[file_core, file_master, file_ref, path_core, path_master, path_ref] ...
                             = deal('');
 
 if license('checkout', 'distrib_computing_toolbox')
@@ -132,9 +133,9 @@ x_min_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'no
                                                'sliderstep', [0.01 0.1]);
 x_max_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.11 0.01 0.24 0.02], 'callback', @slide_x_max, 'min', 0, 'max', 1, 'value', x_max_ref, ...
                                                'sliderstep', [0.01 0.1]);
-y_min_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.64 0.04 0.24 0.02], 'callback', @slide_y_min, 'min', 0, 'max', 1, 'value', x_min_ref, ...
+y_min_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.62 0.04 0.24 0.02], 'callback', @slide_y_min, 'min', 0, 'max', 1, 'value', x_min_ref, ...
                                                'sliderstep', [0.01 0.1]);
-y_max_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.64 0.01 0.24 0.02], 'callback', @slide_y_max, 'min', 0, 'max', 1, 'value', x_max_ref, ...
+y_max_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.62 0.01 0.24 0.02], 'callback', @slide_y_max, 'min', 0, 'max', 1, 'value', x_max_ref, ...
                                                'sliderstep', [0.01 0.1]);
 z_min_slide(1)              = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.07 width_slide 0.32], 'callback', @slide_z_min1, 'min', 0, 'max', 1, 'value', elev_min_ref, ...
                                                'sliderstep', [0.01 0.1]);
@@ -150,8 +151,8 @@ cb_min_edit(1)              = annotation('textbox', [0.965 0.39 0.04 0.03], 'str
 cb_max_edit(1)              = annotation('textbox', [0.965 0.82 0.04 0.03], 'string', num2str(db_max(1)), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 x_min_edit                  = annotation('textbox', [0.07 0.045 0.04 0.03], 'string', num2str(x_min_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 x_max_edit                  = annotation('textbox', [0.07 0.005 0.04 0.03], 'string', num2str(x_max_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-y_min_edit                  = annotation('textbox', [0.93 0.045 0.04 0.03], 'string', num2str(y_min_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-y_max_edit                  = annotation('textbox', [0.93 0.005 0.04 0.03], 'string', num2str(y_max_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+y_min_edit                  = annotation('textbox', [0.90 0.045 0.04 0.03], 'string', num2str(y_min_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+y_max_edit                  = annotation('textbox', [0.90 0.005 0.04 0.03], 'string', num2str(y_max_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 z_min_edit(1)               = annotation('textbox', [0.005 0.39 0.04 0.03], 'string', num2str(elev_min_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 z_max_edit(1)               = annotation('textbox', [0.005 0.84 0.04 0.03], 'string', num2str(elev_max_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 
@@ -165,11 +166,12 @@ uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'test', 'units', 'normalized
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Save', 'units', 'normalized', 'position', [0.965 0.965 0.03 0.03], 'callback', @pk_save, 'fontsize', size_font, 'foregroundcolor', 'g')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'transects', 'units', 'normalized', 'position', [0.63 0.965 0.05 0.03], 'callback', @load_int, 'fontsize', size_font, 'foregroundcolor', 'b')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'cores', 'units', 'normalized', 'position', [0.695 0.965 0.03 0.03], 'callback', @load_core, 'fontsize', size_font, 'foregroundcolor', 'b')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'master', 'units', 'normalized', 'position', [0.745 0.965 0.04 0.03], 'callback', @locate_master, 'fontsize', size_font, 'foregroundcolor', 'b')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset x/y/z', 'units', 'normalized', 'position', [0.94 0.925 0.055 0.03], 'callback', @reset_xyz, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.36 0.04 0.03 0.03], 'callback', @reset_x_min, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.36 0.005 0.03 0.03], 'callback', @reset_x_max, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.605 0.04 0.03 0.03], 'callback', @reset_y_min, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.605 0.005 0.03 0.03], 'callback', @reset_y_max, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.585 0.04 0.03 0.03], 'callback', @reset_y_min, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.585 0.005 0.03 0.03], 'callback', @reset_y_max, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.005 0.005 0.03 0.03], 'callback', @reset_z_min1, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.005 0.48 0.03 0.03], 'callback', @reset_z_max1, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.965 0.03 0.03 0.03], 'callback', @reset_db_min1, 'fontsize', size_font, 'foregroundcolor', 'r')
@@ -183,15 +185,15 @@ a(4)                        = annotation('textbox', [0.445 0.965 0.03 0.03], 'st
 a(5)                        = annotation('textbox', [0.90 0.925 0.03 0.03], 'string', 'Grid', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 a(6)                        = annotation('textbox', [0.04 0.04 0.03 0.03], 'string', 'x_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 a(7)                        = annotation('textbox', [0.04 0.005 0.03 0.03], 'string', 'x_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(8)                        = annotation('textbox', [0.90 0.04 0.03 0.03], 'string', 'y_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(9)                        = annotation('textbox', [0.90 0.005 0.03 0.03], 'string', 'y_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(8)                        = annotation('textbox', [0.87 0.04 0.03 0.03], 'string', 'y_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(9)                        = annotation('textbox', [0.87 0.005 0.03 0.03], 'string', 'y_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 a(10)                       = annotation('textbox', [0.005 0.42 0.03 0.03], 'string', 'z_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 a(11)                       = annotation('textbox', [0.005 0.87 0.03 0.03], 'string', 'z_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 a(12)                       = annotation('textbox', [0.005 0.89 0.03 0.03], 'string', 'fix', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(13)                       = annotation('textbox', [0.365 0.005 0.03 0.03], 'string', 'fix', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(14)                       = annotation('textbox', [0.595 0.005 0.03 0.03], 'string', 'fix', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(13)                       = annotation('textbox', [0.395 0.005 0.03 0.03], 'string', 'fix', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(14)                       = annotation('textbox', [0.57 0.005 0.03 0.03], 'string', 'fix', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 a(15)                       = annotation('textbox', [0.28 0.965 0.10 0.03], 'string', 'Intersecting picks', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
-a(16)                       = annotation('textbox', [0.545 0.965 0.10 0.03], 'string', 'Load intersections', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
+a(16)                       = annotation('textbox', [0.545 0.965 0.12 0.03], 'string', 'Load intersections', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
 a(17)                       = annotation('textbox', [0.17 0.925 0.04 0.03], 'string', 'data', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
 a(18)                       = annotation('textbox', [0.44 0.925 0.04 0.03], 'string', 'data', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
 a(19)                       = annotation('textbox', [0.965 0.42 0.03 0.03], 'string', 'dB_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
@@ -228,7 +230,7 @@ cmap_list(1)                = uicontrol(fgui(1), 'style', 'popupmenu', 'string',
 
 % check boxes
 xfix_check                  = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.415 0.005 0.01 0.03], 'fontsize', size_font, 'value', 0);
-yfix_check                  = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.585 0.005 0.01 0.03], 'fontsize', size_font, 'value', 0);
+yfix_check                  = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.56 0.005 0.01 0.03], 'fontsize', size_font, 'value', 0);
 zfix_check(1)               = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.02 0.89 0.01 0.03], 'fontsize', size_font, 'value', 0);
 grid_check(1)               = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.925 0.925 0.01 0.03], 'callback', @toggle_grid1, 'fontsize', size_font, 'value', 1);
 pk_check(1, 1)              = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.105 0.965 0.01 0.03], 'callback', @show_pk1, 'fontsize', size_font, 'value', 0);
@@ -239,6 +241,7 @@ data_check(1, 1)            = uicontrol(fgui(1), 'style', 'checkbox', 'units', '
 data_check(1, 2)            = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.465 0.925 0.01 0.03], 'callback', @show_data2, 'fontsize', size_font, 'value', 0);
 cbfix_check1(1)             = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.97 0.88 0.01 0.03], 'fontsize', size_font, 'value', 0);
 cbfix_check2(1)             = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.985 0.88 0.01 0.03], 'callback', @narrow_cb1, 'fontsize', size_font, 'value', 0);
+master_check                = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.79 0.965 0.01 0.03], 'fontsize', size_font, 'value', 0);
 
 %% draw second GUI
 
@@ -510,12 +513,12 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         [bed_avail(curr_rad), data_done(curr_rad), flat_done(curr_rad), pk_done(curr_rad), surf_avail(curr_rad)] ...
                             = deal(false);
         [amp_mean{curr_rad}, colors{curr_rad}, depth{curr_rad}, depth_bed{curr_rad}, depth_bed_flat{curr_rad}, depth_flat{curr_rad}, depth_layer_flat{curr_rad}, depth_mat{curr_rad}, elev{curr_rad}, ...
-            file_pk_short{curr_rad}, ind_decim{curr_rad}, ind_corr{curr_rad}, ind_int_core{curr_rad}, layer_str{curr_rad}, pk{curr_rad}, p_core{1, curr_rad}, p_core{2, curr_rad}, ...
-            p_corename{1, curr_rad}, p_corename{2, curr_rad}, p_coreflat{curr_rad}, p_corenameflat{curr_rad}, p_int1{1, 1}, p_int1{1, 2}, p_int1{1, 3}, p_int1{2, 1}, p_int1{2, 2}, p_int1{2, 3}, ...
-            p_int2{1, curr_rad}, p_int2{2, curr_rad}, p_pk{1, curr_rad}, p_pk{2, curr_rad}, p_pkflat{curr_rad}, twtt{curr_rad}] ...
+            file_pk_short{curr_rad}, ind_decim{curr_rad}, ind_corr{curr_rad}, ind_int_core{curr_rad}, layer_str{curr_rad}, pk{curr_rad}, p_core{1, curr_rad}, p_core{2, curr_rad}, p_corename{1, curr_rad}, ...
+            p_corename{2, curr_rad}, p_coreflat{curr_rad}, p_corenameflat{curr_rad}, p_int1{1, 1}, p_int1{1, 2}, p_int1{1, 3}, p_int1{2, 1}, p_int1{2, 2}, p_int1{2, 3}, p_int2{1, curr_rad}, p_int2{2, curr_rad}, ...
+            p_pk{1, curr_rad}, p_pk{2, curr_rad}, p_pkflat{curr_rad}, twtt{curr_rad}] ...
                             = deal([]);
-        [curr_layer(curr_rad), curr_trans(curr_rad), curr_year(curr_rad), dt(curr_rad), num_data(curr_rad), num_decim(curr_rad), num_sample(curr_rad), p_bed(1, curr_rad), p_bed(2, curr_rad), ...
-            p_bedflat(curr_rad), p_data(1, curr_rad), p_data(2, curr_rad), p_surf(1, curr_rad), p_surf(2, curr_rad)] ...
+        [curr_layer(curr_rad), curr_trans(curr_rad), curr_subtrans(curr_rad), curr_year(curr_rad), dt(curr_rad), num_data(curr_rad), num_decim(curr_rad), num_sample(curr_rad), p_bed(1, curr_rad), ...
+            p_bed(2, curr_rad), p_bedflat(curr_rad), p_data(1, curr_rad), p_data(2, curr_rad), p_surf(1, curr_rad), p_surf(2, curr_rad)] ...
                             = deal(0);
         [curr_ind_int, ii, ind_x_pk, ind_y_pk, jj, num_int, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8] ...
                             = deal(0);
@@ -707,6 +710,48 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         show_core1
     end
 
+%% Locate master layer ID list
+
+    function locate_master(source, eventdata)
+        
+        [curr_gui, curr_ax] = deal(1);
+        
+        if master_done
+            set(status_box(1), 'string', 'Master layer ID list already located.')
+            return
+        end
+        
+        if (~int_done || ~core_done)
+            set(status_box(1), 'string', 'Load transect and core intersections first.')
+            return
+        end
+        
+        if (~isempty(path_ref) && exist([path_ref 'id_layer_master.mat'], 'file'))
+            [file_master, path_master] ...
+                            = deal('id_layer_master.mat', path_ref);
+        elseif ~isempty(path_core)
+            [file_master, path_master] = uigetfile('*.mat', 'Locate master layer ID list (id_layer_master.mat):', path_core);
+        elseif ~isempty(path_ref)
+            [file_master, path_master] = uigetfile('*.mat', 'Locate master layer ID list (id_layer_master.mat):', path_ref);
+        elseif ~isempty(path_pk)
+            [file_master, path_master] = uigetfile('*.mat', 'Locate master layer ID list (id_layer_master.mat):', path_pk);
+        elseif ~isempty(path_data)
+            [file_master, path_master] = uigetfile('*.mat', 'Locate master layer ID list (id_layer_master.mat):', path_data);
+        else
+            [file_master, path_master] = uigetfile('*.mat', 'Locate master layer ID list (id_layer_master.mat):');
+        end
+        
+        if isnumeric(file_master)
+            [file_master, path_master] ...
+                            = deal('');
+            set(status_box(1), 'string', 'No master layer ID list located.')
+        else
+            master_done     = true;
+            set(master_check, 'value', 1)
+            set(status_box(1), 'string', 'Master layer ID list located.')
+        end
+    end
+
 %% Load picks for this transect
 
     function load_pk1(source, eventdata)
@@ -803,10 +848,6 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                     set(status_box(1), 'string', 'Load merged picks files only.')
                     return
                 end
-                if ((curr_rad == 1) && ~isfield(pk{curr_rad}, 'ind_layer'))
-                    set(status_box(1), 'string', 'Primary picks must already be tied to a core-intersecting transect.')
-                    return
-                end
                 % check to see if surface and bed picks are available
                 if isfield(pk{curr_rad}, 'elev_surf')
                     surf_avail(curr_rad) ...
@@ -833,7 +874,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             end
             
             % add master picks matrix if not already present
-            if ((curr_rad == 2) && ~isfield(pk{curr_rad}, 'ind_layer'))
+            if ~isfield(pk{curr_rad}, 'ind_layer')
                 pk{curr_rad}.ind_layer ...
                             = [];
             end
@@ -889,6 +930,14 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             end
             [curr_year(curr_rad), curr_trans(curr_rad)] ...
                             = deal(ii, jj);
+            tmp1            = 'a':'z';
+            for ii = 1:length(tmp1)
+                if strcmp(file_pk{curr_rad}(12), tmp1(ii))
+                    curr_subtrans(curr_rad) ...
+                            = ii;
+                    break
+                end
+            end
             
             % find intersections for primary transect
             if (curr_rad == 1)
@@ -913,9 +962,9 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 
                 curr_ind_int= [];
                 
-                tmp1        = 1:decim(1):pk{1}.num_trace_tot;
+                tmp1        = 1:(decim(1) * 5):pk{1}.num_trace_tot;
                 tmp1(end)   = pk{1}.num_trace_tot;
-                tmp2        = 1:decim(2):pk{2}.num_trace_tot;
+                tmp2        = 1:(decim(2) * 5):pk{2}.num_trace_tot;
                 tmp2(end)   = pk{2}.num_trace_tot;
                 
                 [~, ~, tmp3, tmp4] ...
@@ -1075,6 +1124,9 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             axes(ax(curr_ax))
             
             % get new min/max limits for 3D display
+            [dist_min_ref(curr_rad), dist_max_ref(curr_rad), dist_min(curr_rad), dist_max(curr_rad)] ...
+                            = deal(min(pk{curr_rad}.dist_lin), max(pk{curr_rad}.dist_lin), min(pk{curr_rad}.dist_lin), max(pk{curr_rad}.dist_lin));
+            
             if (curr_rad == 2)
                 [tmp1, tmp2, tmp3, tmp4, tmp5] ...
                             = deal([pk{1}.x pk{2}.x], [pk{1}.y pk{2}.y], [pk{1}.elev_surf pk{2}.elev_surf], [pk{1}.elev_bed pk{2}.elev_bed], [pk{1}.elev_smooth(:); pk{2}.elev_smooth(:)]);
@@ -1082,8 +1134,6 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                             = deal(min(tmp1), max(tmp1), min(tmp1), max(tmp1));
                 [y_min_ref, y_max_ref, y_min, y_max] ...
                             = deal(min(tmp2), max(tmp2), min(tmp2), max(tmp2));
-                [dist_min_ref(curr_rad), dist_max_ref(curr_rad), dist_min(curr_rad), dist_max(curr_rad)] ...
-                            = deal(min(pk{curr_rad}.dist_lin), max(pk{curr_rad}.dist_lin), min(pk{curr_rad}.dist_lin), max(pk{curr_rad}.dist_lin));
                 if all(surf_avail)
                     [elev_max_ref, elev_max(1:2)] ...
                             = deal(max(tmp3));
@@ -1103,8 +1153,6 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                             = deal(min(pk{curr_rad}.x), max(pk{curr_rad}.x), min(pk{curr_rad}.x), max(pk{curr_rad}.x));
                 [y_min_ref, y_max_ref, y_min, y_max] ...
                             = deal(min(pk{curr_rad}.y), max(pk{curr_rad}.y), min(pk{curr_rad}.y), max(pk{curr_rad}.y));
-                [dist_min_ref(curr_rad), dist_max_ref(curr_rad), dist_min(curr_rad), dist_max(curr_rad)] ...
-                            = deal(min(pk{curr_rad}.dist_lin), max(pk{curr_rad}.dist_lin), min(pk{curr_rad}.dist_lin), max(pk{curr_rad}.dist_lin));
                 if surf_avail(curr_rad)
                     [elev_max_ref, elev_max(1:2)] ...
                             = deal(max(pk{curr_rad}.elev_surf));
@@ -1143,7 +1191,6 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             pk_done(curr_rad) ...
                             = true;
             set(pk_check(:, curr_rad), 'value', 1)
-            show_pk
             
             % intersection plots
             if (curr_rad == 2)
@@ -1151,6 +1198,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                     for jj = 1:3
                         p_int1{ii, jj} = zeros(1, num_int);
                     end
+                    p_int2{ii, 1} = zeros(1, pk{2}.num_layer);
+                    p_int2{ii, 2} = zeros(1, pk{1}.num_layer);
                 end
                 axes(ax(1))
                 for ii = 1:num_int
@@ -1160,14 +1209,6 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 for ii = 1:num_int
                     p_int1{1, 2}(ii) = plot(repmat(pk{1}.dist_lin(curr_ind_int(ii, 1)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
                 end
-                for ii = 1:2
-                    if (any(p_int2{1, ii}) && any(ishandle(p_int2{1, ii})))
-                        delete(p_int2{1, ii}(logical(p_int2{1, ii}) & ishandle(p_int2{1, ii})))
-                    end
-                end
-                for ii = 1:2
-                    p_int2{ii, 1} = zeros(1, pk{2}.num_layer);
-                end
                 for ii = 1:pk{2}.num_layer
                     p_int2{1, 1}(ii) = plot(pk{1}.dist_lin(curr_ind_int(:, 1)), pk{2}.elev_smooth(ii, curr_ind_int(:, 2)), 'ko', 'markersize', 8, 'markerfacecolor', colors{2}(ii, :), 'visible', 'off');
                 end
@@ -1175,27 +1216,21 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 for ii = 1:num_int
                     p_int1{1, 3}(ii) = plot(repmat(pk{2}.dist_lin(curr_ind_int(ii, 2)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
                 end
-                for ii = 1:2
-                    p_int2{ii, 2} = zeros(1, pk{1}.num_layer);
-                end
                 for ii = 1:pk{1}.num_layer
                     p_int2{1, 2}(ii) = plot(pk{2}.dist_lin(curr_ind_int(:, 2)), pk{1}.elev_smooth(ii, curr_ind_int(:, 1)), 'ko', 'markersize', 8, 'markerfacecolor', colors{1}(ii, :), 'visible', 'off');
                 end
-                if ~isempty(pk{1}.ind_layer) % existing matches
-                    for ii = 1:size(pk{1}.ind_layer, 1)
-                        set(p_int2{1, 2}(pk{1}.ind_layer(ii, 1)), 'marker', 's')
-                    end
+                for ii = 1:size(pk{1}.ind_layer, 1)
+                    set(p_int2{1, 2}(pk{1}.ind_layer(ii, 1)), 'marker', 's')
                 end
-                if ~isempty(pk{2}.ind_layer) % existing matches
-                    for ii = 1:size(pk{2}.ind_layer, 1)
-                        if ((pk{2}.ind_layer(ii, 2) == curr_year(1)) && (pk{2}.ind_layer(ii, 3) == curr_trans(1))) % match associated with current transect
-                            set(p_int2{1, 1}(pk{2}.ind_layer(ii, 1)), 'marker', '^', 'markerfacecolor', colors{1}(pk{2}.ind_layer(ii, 4), :))
-                            set(p_int2{1, 2}(pk{2}.ind_layer(ii, 4)), 'marker', '^', 'markerfacecolor', colors{1}(pk{2}.ind_layer(ii, 4), :))
-                            set(p_pk{1, 2}(pk{2}.ind_layer(ii, 1)), 'color', colors{1}(pk{2}.ind_layer(ii, 4), :))
-                            set(p_pk{2, 2}(pk{2}.ind_layer(ii, 1)), 'color', colors{1}(pk{2}.ind_layer(ii, 4), :))
-                        else % match associated with another transect
-                            set(p_int2{1, 1}(pk{2}.ind_layer(ii, 1)), 'marker', 's')
-                        end
+                for ii = 1:size(pk{2}.ind_layer, 1)
+                    set(p_int2{1, 1}(pk{2}.ind_layer(ii, 1)), 'marker', 's')
+                end
+                for ii = 1:size(pk{1}.ind_layer, 1)
+                    if ((pk{1}.ind_layer(ii, 2) == curr_year(2)) && (pk{1}.ind_layer(ii, 3) == curr_trans(2)) && (pk{1}.ind_layer(ii, 4) == curr_subtrans(2))) % match to current transect
+                        set(p_int2{1, 2}(pk{1}.ind_layer(ii, 1)), 'marker', '^', 'markerfacecolor', colors{1}(pk{1}.ind_layer(ii, 1), :))
+                        set(p_int2{1, 1}(pk{1}.ind_layer(ii, 5)), 'marker', '^', 'markerfacecolor', colors{1}(pk{1}.ind_layer(ii, 1), :))
+                        set(p_pk{1, 2}(pk{1}.ind_layer(ii, 5)), 'color', colors{1}(pk{1}.ind_layer(ii, 1), :))
+                        set(p_pk{2, 2}(pk{1}.ind_layer(ii, 5)), 'color', colors{1}(pk{1}.ind_layer(ii, 1), :))
                     end
                 end
                 set(int_check, 'value', 1)
@@ -1216,9 +1251,14 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             axes(ax(curr_ax))
             update_z_range
             update_dist_range
-            show_pk
-            [curr_gui, curr_ax] ...
-                            = deal(1);
+            switch curr_rad
+                case 1
+                    show_pk3
+                    show_pk1
+                case 2
+                    show_pk4
+                    show_pk2
+            end
             axes(ax(curr_ax))
             
             if (core_done && all(pk_done))
@@ -1275,11 +1315,11 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         
         if ispc
             if (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '..\block\' tmp1], 'dir'))
-                path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '\fence')) 'block\' tmp1 '\'];
+                path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '\merge')) 'block\' tmp1 '\'];
             end
         else
             if (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '../block/' tmp1], 'dir'))
-                path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '/fence')) 'block/' tmp1 '/'];
+                path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '/merge')) 'block/' tmp1 '/'];
             end
         end
         
@@ -1321,7 +1361,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 set(status_box(2), 'string', ['Number of data blocks selected (' num2str(num_data(curr_rad)) ') does not match number of blocks in intersection list (' num2str(length(pk{curr_rad}.file_block)) ').'])
                 return
             end
-            if ~strcmp(file_data{curr_rad}, [pk{curr_rad}.file_block{1} '.mat'])
+            if (~strcmp(file_data{curr_rad}{1}, [pk{curr_rad}.file_block{1} '.mat']) && ~isempty(pk{curr_rad}.file_block{1}))
                 set(status_box(2), 'string', 'Correct intersecting blocks may not have been selected. Try again.')
                 return
             end
@@ -1433,6 +1473,17 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         depth{curr_rad}     = (speed_ice / 2) .* (0:dt(curr_rad):((num_sample(curr_rad) - 1) * dt(curr_rad)))'; % simple monotonically increasing depth vector
         elev{curr_rad}      = flipud(max(pk{curr_rad}.elev_surf(ind_decim{curr_rad})) - depth{curr_rad}); % elevation vector
         depth{curr_rad}     = depth{curr_rad}(1:(num_sample(curr_rad) - max(ind_corr{curr_rad})));
+        
+        % assign traveltime and distance reference values/sliders based on data
+        [elev_min_ref, db_min_ref(curr_ax), elev_max_ref, db_max_ref(curr_ax), elev_min(2), db_min(curr_ax), elev_max(2), db_max(curr_ax)] ...
+                            = deal(min([min(elev{curr_rad}) elev_min_ref]), min(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), max([max(elev{curr_rad}) elev_max_ref]), ...
+                                   max(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), min([min(elev{curr_rad}) elev_min_ref]), min(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), ...
+                                   max([max(elev{curr_rad}) elev_max_ref]), max(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))));
+        set(cb_min_slide(curr_ax), 'min', db_min_ref(curr_ax), 'max', db_max_ref(curr_ax), 'value', db_min_ref(curr_ax))
+        set(cb_max_slide(curr_ax), 'min', db_min_ref(curr_ax), 'max', db_max_ref(curr_ax), 'value', db_max_ref(curr_ax))
+        set(cb_min_edit(curr_ax), 'string', sprintf('%3.0f', db_min_ref(curr_ax)))
+        set(cb_max_edit(curr_ax), 'string', sprintf('%3.0f', db_max_ref(curr_ax)))
+        update_z_range
         
         if flat_done(curr_rad)
             
@@ -1575,17 +1626,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 end
             end
             
-            % assign traveltime and distance reference values/sliders based on data
-            [elev_min_ref, db_min_ref(curr_ax), elev_max_ref, db_max_ref(curr_ax), elev_min(2), db_min(curr_ax), elev_max(2), db_max(curr_ax), depth_min_ref, depth_max_ref, depth_min, depth_max] ...
-                            = deal(min([min(elev{curr_rad}) elev_min_ref]), min(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), max([max(elev{curr_rad}) elev_max_ref]), ...
-                                   max(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), min([min(elev{curr_rad}) elev_min_ref]), min(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), ...
-                                   max([max(elev{curr_rad}) elev_max_ref]), max(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), min([min(depth{curr_rad}) depth_min_ref]), ...
-                                   max([max(depth{curr_rad}) depth_max_ref]), min([min(depth{curr_rad}) depth_min_ref]), max([  max(depth{curr_rad}) depth_max_ref]));
-            set(cb_min_slide(curr_ax), 'min', db_min_ref(curr_ax), 'max', db_max_ref(curr_ax), 'value', db_min_ref(curr_ax))
-            set(cb_max_slide(curr_ax), 'min', db_min_ref(curr_ax), 'max', db_max_ref(curr_ax), 'value', db_max_ref(curr_ax))
-            set(cb_min_edit(curr_ax), 'string', sprintf('%3.0f', db_min_ref(curr_ax)))
-            set(cb_max_edit(curr_ax), 'string', sprintf('%3.0f', db_max_ref(curr_ax)))
-            update_z_range
+            [depth_min_ref, depth_max_ref, depth_min, depth_max] ...
+                            = deal(min([min(depth{curr_rad}) depth_min_ref]), max([max(depth{curr_rad}) depth_max_ref]), min([min(depth{curr_rad}) depth_min_ref]), max([  max(depth{curr_rad}) depth_max_ref]));
             
             if (curr_rad == 2)
                 axes(ax(2))
@@ -1602,29 +1644,24 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                     end
                 end
                 axes(ax(2))
-                p_int2{2, 1} = zeros(1, pk{2}.num_layer);
                 for ii = 1:pk{2}.num_layer
                     p_int2{2, 1}(ii) = plot(pk{1}.dist_lin(curr_ind_int(:, 1)), pk{2}.depth_smooth(ii, curr_ind_int(:, 2)), 'ko', 'markersize', 8, 'markerfacecolor', colors{2}(ii, :), 'visible', 'off');
                 end
                 axes(ax(3))
-                p_int2{2, 2} = zeros(1, pk{1}.num_layer);
                 for ii = 1:pk{1}.num_layer
                     p_int2{2, 2}(ii) = plot(pk{2}.dist_lin(curr_ind_int(:, 2)), pk{1}.depth_smooth(ii, curr_ind_int(:, 1)), 'ko', 'markersize', 8, 'markerfacecolor', colors{1}(ii, :), 'visible', 'off');
                 end
-                if ~isempty(pk{1}.ind_layer) % existing matches
-                    for ii = 1:size(pk{1}.ind_layer, 1)
-                        set(p_int2{2, 2}(pk{1}.ind_layer(ii, 1)), 'marker', 's')
-                    end
+                for ii = 1:size(pk{1}.ind_layer, 1)
+                    set(p_int2{2, 2}(pk{1}.ind_layer(ii, 1)), 'marker', 's')
                 end
-                if ~isempty(pk{2}.ind_layer)
-                    for ii = 1:size(pk{2}.ind_layer, 1)
-                        if ((pk{2}.ind_layer(ii, 2) == curr_year(1)) && (pk{2}.ind_layer(ii, 3) == curr_trans(1))) % match associated with current transect
-                            set(p_int2{2, 1}(pk{2}.ind_layer(ii, 1)), 'marker', '^', 'markerfacecolor', colors{1}(pk{2}.ind_layer(ii, 4), :))
-                            set(p_int2{2, 2}(pk{2}.ind_layer(ii, 4)), 'marker', '^', 'markerfacecolor', colors{1}(pk{2}.ind_layer(ii, 4), :))
-                            set(p_pkflat{2}(pk{2}.ind_layer(ii, 1)), 'color', colors{1}(pk{2}.ind_layer(ii, 4), :))
-                        else
-                            set(p_int2{2, 1}(pk{2}.ind_layer(ii, 1)), 'marker', 's')
-                        end
+                for ii = 1:size(pk{2}.ind_layer, 1)
+                    set(p_int2{2, 1}(pk{2}.ind_layer(ii, 1)), 'marker', 's')
+                end
+                for ii = 1:size(pk{2}.ind_layer, 1)
+                    if ((pk{2}.ind_layer(ii, 2) == curr_year(1)) && (pk{2}.ind_layer(ii, 3) == curr_trans(1)) && (pk{2}.ind_layer(ii, 4) == curr_subtrans(1))) % match to current transect
+                        set(p_int2{2, 1}(pk{2}.ind_layer(ii, 1)), 'marker', '^', 'markerfacecolor', colors{1}(pk{2}.ind_layer(ii, 5), :))
+                        set(p_int2{2, 2}(pk{2}.ind_layer(ii, 5)), 'marker', '^', 'markerfacecolor', colors{1}(pk{2}.ind_layer(ii, 5), :))
+                        set(p_pkflat{2}(pk{2}.ind_layer(ii, 1)), 'color', colors{1}(pk{2}.ind_layer(ii, 5), :))
                     end
                 end
                 set(int_check, 'value', 1)
@@ -1632,7 +1669,6 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 show_int2
                 show_int3
             end
-            
         end
         
         if all(pk_done)
@@ -1760,8 +1796,9 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         if (all(pk_done) && ~isempty(pk{2}.ind_layer))
             switch curr_rad
                 case 1
-                    if (length(find((pk{2}.ind_layer(:, 4) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)))) == 1)
-                        curr_layer(2) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 4) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1))), 1), 1);
+                    if (length(find((pk{2}.ind_layer(:, 5) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1)))) == 1)
+                        curr_layer(2) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 5) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & ...
+                                                              (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1), 1);
                         for ii = 1:2
                             if (any(p_pk{ii, 2}) && any(ishandle(p_pk{ii, 2})))
                                 set(p_pk{ii, 2}(logical(p_pk{ii, 2}) & ishandle(p_pk{ii, 2})), 'markersize', 12)
@@ -1769,8 +1806,14 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                             if (logical(p_pk{ii, 2}(curr_layer(2))) && ishandle(p_pk{ii, 2}(curr_layer(2))))
                                 set(p_pk{ii, 2}(curr_layer(2)), 'markersize', 24)
                             end
+                            if (any(p_int2{ii, 1}) && any(ishandle(p_int2{ii, 1})))
+                                set(p_int2{ii, 1}(logical(p_int2{ii, 1}) & ishandle(p_int2{ii, 1})), 'markersize', 8)
+                            end
                             if (any(p_int2{ii, 2}) && any(ishandle(p_int2{ii, 2})))
                                 set(p_int2{ii, 2}(logical(p_int2{ii, 2}) & ishandle(p_int2{ii, 2})), 'markersize', 8)
+                            end
+                            if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                                set(p_int2{ii, 1}(curr_layer(2)), 'markersize', 16)
                             end
                             if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
                                 set(p_int2{ii, 2}(curr_layer(1)), 'markersize', 16)
@@ -1790,8 +1833,9 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                     end
                     set(layer_list(:, 2), 'value', curr_layer(2))
                 case 2
-                    if (length(find((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)))) == 1)
-                        curr_layer(1) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1))), 1), 4);
+                    if (length(find((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1)))) == 1)
+                        curr_layer(1) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & ...
+                                                              (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1), 5);
                         for ii = 1:2
                             if (any(p_pk{ii, 1}) && any(ishandle(p_pk{ii, 2})))
                                 set(p_pk{ii, 1}(logical(p_pk{ii, 1}) & ishandle(p_pk{ii, 1})), 'markersize', 12)
@@ -1802,8 +1846,14 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                             if (any(p_int2{ii, 1}) && any(ishandle(p_int2{ii, 1})))
                                 set(p_int2{ii, 1}(logical(p_int2{ii, 1}) & ishandle(p_int2{ii, 1})), 'markersize', 8)
                             end
+                            if (any(p_int2{ii, 2}) && any(ishandle(p_int2{ii, 2})))
+                                set(p_int2{ii, 2}(logical(p_int2{ii, 2}) & ishandle(p_int2{ii, 2})), 'markersize', 8)
+                            end
                             if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
                                 set(p_int2{ii, 1}(curr_layer(2)), 'markersize', 16)
+                            end
+                            if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                                set(p_int2{ii, 2}(curr_layer(1)), 'markersize', 16)
                             end
                         end
                         if (flat_done(1) && data_done(1))
@@ -2023,9 +2073,15 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         
         if ~strcmpi(get(fgui(2), 'currentcharacter'), 'Y')
             for ii = 1:2
-                set(p_pk{ii, 2}(curr_layer(2)), 'color', colors{2}(curr_layer(2), :))
-                set(p_int2{ii, 1}(curr_layer(2)), 'markerfacecolor', colors{2}(curr_layer(2), :))
-                set(p_int2{ii, 2}(curr_layer(1)), 'markerfacecolor', colors{1}(curr_layer(1), :))
+                if (logical(p_pk{ii, 2}(curr_layer(2))) && ishandle(p_pk{ii, 2}(curr_layer(2))))
+                    set(p_pk{ii, 2}(curr_layer(2)), 'color', colors{2}(curr_layer(2), :))
+                end
+                if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                    set(p_int2{ii, 1}(curr_layer(2)), 'markerfacecolor', colors{2}(curr_layer(2), :))
+                end
+                if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                    set(p_int2{ii, 2}(curr_layer(1)), 'markerfacecolor', colors{1}(curr_layer(1), :))
+                end
             end
             set(status_box(2), 'string', 'Layer matching cancelled by user.')
             return
@@ -2033,6 +2089,9 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         
         set(status_box(2), 'string', ['Matching master transect layer #' num2str(curr_layer(1)) ' with intersecting transect layer # ' num2str(curr_layer(2)) '...'])
         pause(0.1)
+        
+        pk{1}.ind_layer     = [pk{1}.ind_layer; [curr_layer(1) curr_year(2) curr_trans(2) curr_subtrans(2) curr_layer(2) NaN]];
+        pk{2}.ind_layer     = [pk{2}.ind_layer; [curr_layer(2) curr_year(1) curr_trans(1) curr_subtrans(1) curr_layer(1) NaN]];
         
         for ii = 1:2
             if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
@@ -2042,14 +2101,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 set(p_int2{ii, 2}(curr_layer(1)), 'marker', '^')
             end
         end
-                
-        if ~isempty(find(pk{1}.ind_layer(:, 1) == curr_layer(1), 1))
-            pk{2}.ind_layer = [pk{2}.ind_layer; [curr_layer(2) curr_year(1) curr_trans(1) curr_layer(1) (pk{1}.ind_layer(find(pk{1}.ind_layer(:, 1) == curr_layer(1), 1), end) + 1)]];
-        else
-            pk{2}.ind_layer = [pk{2}.ind_layer; [curr_layer(2) curr_year(1) curr_trans(1) curr_layer(1) 0]];
-        end
         
-        set(status_box(2), 'string', ['Intersecting layer # ' num2str(curr_layer(2)) ' matched to master layer #' num2str(curr_layer(1)) '.'])
+        set(status_box(2), 'string', ['Intersecting transect layer # ' num2str(curr_layer(2)) ' matched to master transect layer #' num2str(curr_layer(1)) '.'])
     end
 
 %% Match two intersecting layers
@@ -2072,28 +2125,66 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             set(status_box(2), 'string', ['Unmatching master transect layer #' num2str(curr_layer(1)) ' from intersecting transect layer # ' num2str(curr_layer(2)) '...'])
             pause(0.1)
             
-            if ~isempty(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 4) == curr_layer(1))), 1))
-                pk{2}.ind_layer = pk{2}.ind_layer(setdiff(1:size(pk{2}.ind_layer, 1), find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 4) == curr_layer(1))))), :);
+            if (~isempty(find(((pk{1}.ind_layer(:, 1) == curr_layer(1)) & (pk{1}.ind_layer(:, 5) == curr_layer(2))), 1)) && ...
+                ~isempty(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 5) == curr_layer(1))), 1)))
+                pk{1}.ind_layer = pk{1}.ind_layer(setdiff(1:size(pk{1}.ind_layer, 1), find(((pk{1}.ind_layer(:, 1) == curr_layer(1)) & (pk{1}.ind_layer(:, 5) == curr_layer(2))))), :);
+                pk{2}.ind_layer = pk{2}.ind_layer(setdiff(1:size(pk{2}.ind_layer, 1), find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 5) == curr_layer(1))))), :);
             else
                 set(status_box(2), 'string', 'Current layer pair not matched. Unmatching cancelled.')
                 return
             end
             
             for ii = 1:2
-                set(p_pk{ii, 2}(curr_layer(2)), 'color', colors{2}(curr_layer(2), :))
-                set(p_int2{ii, 1}(curr_layer(2)), 'markerfacecolor', colors{2}(curr_layer(2), :))
-                set(p_int2{ii, 2}(curr_layer(1)), 'markerfacecolor', colors{1}(curr_layer(1), :))
+                if (logical(p_pk{ii, 2}(curr_layer(2))) && ishandle(p_pk{ii, 2}(curr_layer(2))))
+                    set(p_pk{ii, 2}(curr_layer(2)), 'color', colors{2}(curr_layer(2), :))
+                end
+                if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                    set(p_int2{ii, 1}(curr_layer(2)), 'markerfacecolor', colors{2}(curr_layer(2), :))
+                end
+                if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                    set(p_int2{ii, 2}(curr_layer(1)), 'markerfacecolor', colors{1}(curr_layer(1), :))
+                end
+            end
+            
+            if ~isempty(find((pk{1}.ind_layer(:, 1) == curr_layer(1)), 1))
+                for ii = 1:2
+                    if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                        set(p_int2{ii, 2}(curr_layer(1)), 'marker', 's')
+                    end
+                end
+            else
+                for ii = 1:2
+                    if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                        set(p_int2{ii, 2}(curr_layer(1)), 'marker', 'o')
+                    end
+                end
+            end
+            if isempty(find((pk{1}.ind_layer(:, 5) == curr_layer(2)), 1))
+                for ii = 1:2
+                    if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                        set(p_int2{ii, 2}(curr_layer(1)), 'marker', 'o')
+                    end
+                end
             end
             if ~isempty(find((pk{2}.ind_layer(:, 1) == curr_layer(2)), 1))
-                set(p_int2{1, 1}(curr_layer(2)), 'marker', 's')
-                set(p_int2{2, 1}(curr_layer(2)), 'marker', 's')
+                for ii = 1:2
+                    if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                        set(p_int2{ii, 1}(curr_layer(2)), 'marker', 's')
+                    end
+                end
             else
-                set(p_int2{1, 1}(curr_layer(2)), 'marker', 'o')
-                set(p_int2{2, 1}(curr_layer(2)), 'marker', 'o')
+                for ii = 1:2
+                    if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                        set(p_int2{ii, 1}(curr_layer(2)), 'marker', 'o')
+                    end
+                end
             end
-            if isempty(find((pk{2}.ind_layer(:, 4) == curr_layer(1)), 1))
-                set(p_int2{1, 2}(curr_layer(1)), 'marker', 'o')
-                set(p_int2{2, 2}(curr_layer(1)), 'marker', 'o')
+            if isempty(find((pk{2}.ind_layer(:, 5) == curr_layer(1)), 1))
+                for ii = 1:2
+                    if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                        set(p_int2{ii, 1}(curr_layer(2)), 'marker', 'o')
+                    end
+                end
             end
             
             set(status_box(2), 'string', ['Intersecting layer # ' num2str(curr_layer(2)) ' unmatched from master layer #' num2str(curr_layer(1)) '.'])
@@ -2107,48 +2198,205 @@ linkprop(layer_list(:, 2), {'value' 'string'});
 %% Save merged picks
 
     function pk_save(source, eventdata)
+        
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(1, 1, 2, 1);
+        
         % want everything done before saving
-        if ~pk_done(2)
+        if ~all(pk_done)
             set(status_box(1), 'string', 'Intersecting picks not loaded yet.')
             return
         end
-        if isempty(pk{2}.ind_layer)
+        if (isempty(pk{1}.ind_layer) || isempty(pk{2}.ind_layer))
             set(status_box(1), 'string', 'No layers matched. No need to save intersecting picks.')
             return
         end
-        
-        pk{2}.ind_layer     = sortrows(pk{2}.ind_layer);
-        tmp1                = pk{2}.ind_layer(:, [1 4]);
-        [~, tmp1]           = unique(tmp1, 'rows', 'first');
-        pk{2}.ind_layer     = pk{2}.ind_layer(tmp1, :);
-        pk{2}               = orderfields(pk{2});
-                
-        if ~isempty(path_pk{2})
-            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save picks:', [path_pk{2} file_pk{2}]);
-        elseif ~isempty(path_data{2})
-            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save picks:', [path_data{2} file_pk{2}]);
-        elseif ~isempty(path_pk{1})
-            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save picks:', [path_pk{1} file_pk{2}]);
-        elseif ~isempty(path_data{1})
-            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save picks:', [path_data{1} file_pk{2}]);
+        if (isempty(find(isnan(pk{1}.ind_layer(:, end)), 1)) && isempty(find(isnan(pk{2}.ind_layer(:, end)), 1)))
+            set(status_box(1), 'string', 'No new layers matched. No need to save intersecting picks.')
+            return
+        end
+        if ~master_done
+            set(status_box(1), 'string', 'Master layer ID list not yet located.')
+            return
         else
-            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save picks:', file_pk{2});
+            set(status_box(1), 'string', 'Confirm that master layer ID list is not being accessed. Press any key...')
+            waitforbuttonpress
+        end
+        
+        if ~master_done
+            set(status_box(1), 'string', 'Locate master layer ID list before saving picks.')
+            return
+        else
+            set(status_box(1), 'string', 'Confirm that master layer ID list is not being accessed. Press any key...')
+            waitforbuttonpress
+            try
+                tmp1        = load([path_master file_master]);
+                [id_layer_master_mat, id_layer_master_cell] ...
+                            = deal(tmp1.id_layer_master_mat, tmp1.id_layer_master_cell);
+            catch
+                set(status_box(1), 'string', 'Selected master layer ID list does not contain expected variables. Re-locate.')
+                master_done = false;
+                return
+            end
+        end
+        
+        set(status_box(1), 'string', 'Preparing matches for saving...')
+        pause(0.1)
+        
+        % remove repeated matches
+        [~, tmp1]           = unique(pk{1}.ind_layer(:, 1:5), 'rows', 'stable'); 
+        pk{1}.ind_layer     = pk{1}.ind_layer(tmp1, :);
+        
+        [~, tmp1]           = unique(pk{2}.ind_layer(:, 1:5), 'rows', 'stable');
+        pk{2}.ind_layer     = pk{2}.ind_layer(tmp1, :);
+        
+        if (isempty(find(isnan(pk{1}.ind_layer(:, end)), 1)) && isempty(find(isnan(pk{2}.ind_layer(:, end)), 1)))
+            set(status_box(1), 'string', 'No new layers matched. No need to save intersecting picks.')
+            return
+        end
+        
+        % intitial concatenation of variables for id_layer_master_mat
+        tmp1                = [repmat([curr_year(1) curr_trans(1) curr_subtrans(1)], size(pk{1}.ind_layer, 1), 1) pk{1}.ind_layer]; 
+        
+        % extract match data from cells
+        if ~curr_subtrans(1)
+            tmp2            = id_layer_master_cell{curr_year(1)}{curr_trans(1)};
+        else
+            tmp2            = id_layer_master_cell{curr_year(1)}{curr_trans(1)}{curr_subtrans(1)};
+        end
+        if ~curr_subtrans(2)
+            tmp3            = id_layer_master_cell{curr_year(2)}{curr_trans(2)};
+        else
+            tmp3            = id_layer_master_cell{curr_year(2)}{curr_trans(2)}{curr_subtrans(2)};
+        end
+        
+        % loop through master transect's matches looking for existing matches for master ID
+        if ~isempty(tmp1)
+            for ii = find(isnan(tmp1(:, end)))' % only examine non-matched layers
+                if ~isempty(tmp2)
+                    if ~isempty(find((tmp1(ii, 4) == tmp2(:, 1)), 1)) % match found between master layer and existing matches
+                        tmp1(ii, end) ...
+                            = tmp2(find((tmp1(ii, 4) == tmp2(:, 1)), 1), end); % assign existing master ID
+                    else
+                        tmp1(ii, end) ...
+                            = max([0; id_layer_master_mat(:, end); tmp1(:, end)]) + 1;
+                    end
+                else
+                    tmp1(ii, end) ...
+                            = max([0; id_layer_master_mat(:, end); tmp1(:, end)]) + 1;
+                end
+            end
+        end
+        
+        % loop through intersecting transect for any layers that were not matched
+        if ~isempty(find(isnan(tmp1(:, end)), 1))
+            for ii = find(isnan(tmp1(:, end)))'
+                if ~isempty(tmp3)
+                    if ~isempty(find((tmp1(ii, 8) == tmp3(:, 1)), 1))
+                        tmp1(ii, end) ...
+                            = tmp3(find((tmp1(ii, 8) == tmp3(:, 1)), 1), end);
+                    else
+                        tmp1(ii, end) ...
+                            = max([0; id_layer_master_mat(:, end); tmp1(:, end)]) + 1;
+                    end
+                else
+                    tmp1(ii, end) ...
+                            = max([0; id_layer_master_mat(:, end); tmp1(:, end)]) + 1;
+                end
+            end
+        end
+        
+        % update pk.ind_layer fields
+        pk{1}.ind_layer     = tmp1(:, 4:end);
+        
+        % assign master matches to intersecting transect's match list
+        if ~isempty(find(isnan(pk{2}.ind_layer(:, end)), 1))
+            for ii = find(isnan(pk{2}.ind_layer(:, end)))'
+                if ~isempty(find(((pk{1}.ind_layer(:, 2) == curr_year(2)) & (pk{1}.ind_layer(:, 3) == curr_trans(2)) & (pk{1}.ind_layer(:, 4) == curr_subtrans(2)) ...
+                                 & (pk{1}.ind_layer(:, 5) == pk{2}.ind_layer(ii, 1)) & ~isnan(pk{1}.ind_layer(:, end))), 1))
+                    pk{2}.ind_layer(ii, end) ...
+                            = pk{1}.ind_layer(find(((pk{1}.ind_layer(:, 2) == curr_year(2)) & (pk{1}.ind_layer(:, 3) == curr_trans(2)) & (pk{1}.ind_layer(:, 4) == curr_subtrans(2)) ...
+                                                   & (pk{1}.ind_layer(:, 5) == pk{2}.ind_layer(ii, 1)) & ~isnan(pk{1}.ind_layer(:, end))), 1), end);
+                end
+            end
+        end
+        
+        % add new matches to master matrix and remove any repeated rows
+        id_layer_master_mat = [id_layer_master_mat; tmp1];
+        id_layer_master_mat = unique(id_layer_master_mat, 'rows');
+        
+        % reassign pk.ind_layer to cells and order pk fields
+        for ii = 1:2
+            if curr_subtrans(ii)
+                id_layer_master_cell{curr_year(ii)}{curr_trans(ii)}{curr_subtrans(ii)} ...
+                            = pk{ii}.ind_layer;
+            else
+                id_layer_master_cell{curr_year(ii)}{curr_trans(ii)} ...
+                            = pk{ii}.ind_layer;
+            end
+            pk{ii}          = orderfields(pk{ii});
+        end
+        
+        set(status_box(1), 'string', 'Saving master picks...')
+        pause(0.1)
+        
+        if ~isempty(path_pk{1})
+            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_pk{1} file_pk{1}]);
+        elseif ~isempty(path_data{1})
+            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_data{1} file_pk{1}]);
+        elseif ~isempty(path_pk{2})
+            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_pk{2} file_pk{1}]);
+        elseif ~isempty(path_data{2})
+            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_data{2} file_pk{1}]);
+        else
+            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', file_pk{1});
+        end
+        
+        if ~file_pk{1}
+            [file_pk{1}, path_pk{1}] ...
+                            = deal('');
+            set(status_box(1), 'string', 'Master picks location not chosen. Saving cancelled.')
+            return
+        else
+            tmp1            = pk;
+            pk              = pk{1};
+            save([path_pk{1} file_pk{1}], '-v7.3', 'pk')
+            pk              = tmp1;
+            set(status_box(1), 'string', ['Master picks saved as ' file_pk{1}(1:(end - 4)) ' in ' path_pk{1} '.'])
+        end
+        
+        set(status_box(1), 'string', 'Saving intersecting picks...')
+        pause(0.1)
+        
+        if ~isempty(path_pk{2})
+            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_pk{2} file_pk{2}]);
+        elseif ~isempty(path_data{2})
+            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_data{2} file_pk{2}]);
+        elseif ~isempty(path_pk{1})
+            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_pk{1} file_pk{2}]);
+        elseif ~isempty(path_data{1})
+            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_data{1} file_pk{2}]);
+        else
+            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', file_pk{2});
         end
         
         if ~file_pk{2}
             [file_pk{2}, path_pk{2}] ...
                             = deal('');
+            set(status_box(1), 'Intersecting picks location not chosen. Saving cancelled.')
+            return
         else
-            set(status_box(1), 'string', 'Saving intersecting picks...')
-            pause(0.1)
             tmp1            = pk;
             pk              = pk{2};
             save([path_pk{2} file_pk{2}], '-v7.3', 'pk')
             pk              = tmp1;
             set(status_box(1), 'string', ['Intersecting picks saved as ' file_pk{2}(1:(end - 4)) ' in ' path_pk{2} '.'])
         end
+        
+        set(status_box(1), 'string', 'Saving master layer ID list...')
+        pause(0.1)
+        save([path_master file_master], '-v7.3', 'id_layer_master_mat', 'id_layer_master_cell')
+        set(status_box(1), 'string', ['Saved master layer ID list as ' file_master ' in ' path_master '. Saving complete.'])
     end
 
 %% Update minimum dB/x/y/z/dist
@@ -3521,14 +3769,14 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                             set(p_int1{1, curr_ax}(logical(p_int1{1, curr_ax}) & ishandle(p_int1{1, curr_ax})), 'visible', 'on')
                             uistack(p_int1{1, curr_ax}(logical(p_int1{1, curr_ax}) & ishandle(p_int1{1, curr_ax})), 'top')
                         end
-                        if (any(p_int2{1, curr_rad}) && any(ishandle(p_int2{1, curr_rad})))
-                            set(p_int2{1, curr_rad}(logical(p_int2{1, curr_rad}) & ishandle(p_int2{1, curr_rad})), 'visible', 'on')
-                            uistack(p_int2{1, curr_rad}(logical(p_int2{1, curr_rad}) & ishandle(p_int2{1, curr_rad})), 'top')
-                        end
                         if (any(p_int1{2, curr_ax}) && any(ishandle(p_int1{2, curr_ax})))
                             set(p_int1{2, curr_ax}(logical(p_int1{2, curr_ax}) & ishandle(p_int1{2, curr_ax})), 'visible', 'off')
                         end
-                        if (any(p_int2{2, curr_rad}) && any(ishandle(p_int2{1, curr_rad})))
+                        if (any(p_int2{1, curr_rad}) && any(ishandle(p_int2{1, curr_rad})))
+                            set(p_int2{1, curr_rad}(logical(p_int2{1, curr_rad}) & ishandle(p_int2{1, curr_rad})), 'visible', 'on')
+                            uistack(p_int2{1, curr_rad}(logical(p_int2{1, curr_rad}) & ishandle(p_int2{1, curr_rad})), 'top')
+                        end                        
+                        if (any(p_int2{2, curr_rad}) && any(ishandle(p_int2{2, curr_rad})))
                             set(p_int2{2, curr_rad}(logical(p_int2{2, curr_rad}) & ishandle(p_int2{2, curr_rad})), 'visible', 'off')
                         end
                 case 'flat'
@@ -4126,8 +4374,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                             = deal(3, 2, 1);
                 axes(ax(curr_ax))
             case '3'
-                [curr_rad, curr_rad_alt] ...
-                            = deal(1, 2);
+                [curr_ax, curr_rad, curr_rad_alt] ...
+                            = deal(2, 1, 2);
                 if get(pk_check(curr_gui, curr_rad), 'value')
                     set(pk_check(curr_gui, curr_rad), 'value', 0)
                 else
@@ -4135,8 +4383,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 end
                 show_pk
             case '4'
-                [curr_rad, curr_rad_alt] ...
-                            = deal(2, 1);
+                [curr_ax, curr_rad, curr_rad_alt] ...
+                            = deal(3, 2, 1);
                 if get(pk_check(curr_gui, curr_rad), 'value')
                     set(pk_check(curr_gui, curr_rad), 'value', 0)
                 else
@@ -4144,8 +4392,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 end
                 show_pk
             case '5'
-                [curr_rad, curr_rad_alt] ...
-                            = deal(1, 2);
+                [curr_ax, curr_rad, curr_rad_alt] ...
+                            = deal(2, 1, 2);
                 if get(data_check(curr_gui, curr_rad), 'value')
                     set(data_check(curr_gui, curr_rad), 'value', 0)
                 else
@@ -4153,8 +4401,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 end
                 show_data
             case '6'
-                [curr_rad, curr_rad_alt] ...
-                            = deal(2, 1);
+                [curr_ax, curr_rad, curr_rad_alt] ...
+                            = deal(3, 2, 1);
                 if get(data_check(curr_gui, curr_rad), 'value')
                     set(data_check(curr_gui, curr_rad), 'value', 0)
                 else
@@ -4508,6 +4756,5 @@ linkprop(layer_list(:, 2), {'value' 'string'});
     function misctest(source, eventdata)
         
     end
-
 %%
 end
