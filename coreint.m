@@ -4,7 +4,7 @@
 %   deep ice-core sites and records this position if so.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 01/22/13
+% Last updated: 03/30/13
 
 clear
 
@@ -69,6 +69,18 @@ else
     load([dir_save 'core_int']) %#ok<UNRCH>
     disp(['Loaded core intersections from ' dir_save '.'])
 end
+%%
+% prepare core intersection results for easy loading into excel
+a                           = name_year(int_core_mat(:, 1))'; % name of campaign
+b                           = cell(size(int_core_mat, 1), 1);
+for ii = 1:size(int_core_mat, 1)
+    b{ii}                   = name_trans{int_core_mat(ii, 1)}{int_core_mat(ii, 2)}; % name of transect
+end
+c                           = int_core_mat(:, 3); % closest approach to core (km)
+d                           = int_core_mat(:, 4); % index in original file for intersection
+e                           = name_core(int_core_mat(:, 5))'; % name of core with intersection
+f                           = int_core_mat(:, 6); % x value of intersection (km)
+g                           = int_core_mat(:, 7); % y value of intersection (km)
 
 %%
 if plotting

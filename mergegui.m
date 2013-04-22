@@ -12,13 +12,13 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 04/04/13
+% Last updated: 04/18/13
 
 if ~exist('topocorr', 'file')
-    error('mergegui:topocorr', 'Function TOPOCORR is not available within this user''s path.')
+    error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
 end
 if ~exist('smooth_lowess', 'file')
-    error('mergegui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
+    error('mergegui:smoothlowess', 'Necessary function SMOOTH_LOWESS is not available within this user''s path.')
 end
 
 %% Intialize variables
@@ -1376,7 +1376,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             if (logical(p_pk(curr_layer)) && ishandle(p_pk(curr_layer)))
                 set(p_pk(curr_layer), 'markersize', 24)
             end
-            if flat_done
+            if (flat_done && data_done)
                 if (any(p_pkflat) && any(ishandle(p_pkflat)))
                     set(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)), 'markersize', 12)
                 end
@@ -1408,10 +1408,8 @@ set(disp_group, 'selectedobject', disp_check(1))
             case 'flattened'
                 [tmp1, tmp2]= unique(depth_layer_flat(:, interp1(ind_decim, 1:num_decim, interp1(pk.dist_lin(ind_decim), ind_decim, ind_x_pk, 'nearest', 'extrap'), 'nearest', 'extrap')));
         end
-        tmp2                = tmp2(~isnan(tmp1));
-        tmp1                = tmp1(~isnan(tmp1));
-        if (length(tmp1) > 1)
-            curr_layer      = interp1(tmp1, tmp2(~isnan(tmp1)), ind_y_pk, 'nearest', 'extrap');
+        if (length(tmp1(~isnan(tmp1))) > 1)
+            curr_layer      = interp1(tmp1(~isnan(tmp1)), tmp2(~isnan(tmp1)), ind_y_pk, 'nearest', 'extrap');
         else
             curr_layer      = tmp2;
         end
@@ -1567,7 +1565,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     = [num2str(layer_str{ii}) ' H'];
             end
         end
-        if flat_done
+        if (flat_done && data_done)
             if (logical(p_pkflat(curr_layer)) && ishandle(p_pkflat(curr_layer)))
                 delete(p_pkflat(curr_layer))
             end
@@ -1601,7 +1599,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             if (logical(p_pk(curr_layer)) && ishandle(p_pk(curr_layer)))
                 set(p_pk(curr_layer), 'markersize', 24)
             end
-            if flat_done
+            if (flat_done && data_done)
                 if (any(p_pkflat) && any(ishandle(p_pkflat)))
                     set(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)), 'markersize', 12)
                 end
@@ -1629,7 +1627,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             if (logical(p_pk(curr_layer)) && ishandle(p_pk(curr_layer)))
                 set(p_pk(curr_layer), 'markersize', 24)
             end
-            if flat_done
+            if (flat_done && data_done)
                 if (any(p_pkflat) && any(ishandle(p_pkflat)))
                     set(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)), 'markersize', 12)
                 end
@@ -1699,7 +1697,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         waitforbuttonpress
         if ~strcmpi(get(mgui, 'currentcharacter'), 'Y')
             set(p_pk(tmp1), 'color', colors(tmp1, :))
-            if flat_done
+            if (flat_done && data_done)
                 set(p_pkflat(tmp1), 'markersize', 6, 'color', colors(tmp1, :))
             end
             set(status_box, 'string', 'Layer merging cancelled by user.')
@@ -1710,7 +1708,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         for ii = 1:num_var_layer
             eval(['pk.' var_layer{ii} '(curr_layer, ~isnan(pk.' var_layer{ii} '(tmp1, :))) = pk.' var_layer{ii} '(tmp1, ~isnan(pk. ' var_layer{ii} '(tmp1, :)));']);
         end
-        if flat_done
+        if (flat_done && data_done)
             depth_layer_flat(curr_layer, ~isnan(depth_layer_flat(tmp1, :))) ...
                             = depth_layer_flat(tmp1, ~isnan(depth_layer_flat(tmp1, :)));
         end
@@ -1720,7 +1718,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             delete(p_pk([curr_layer tmp1]))
             p_pk(curr_layer)= plot(pk.dist_lin(~isnan(pk.elev_smooth(curr_layer, :))), pk.elev_smooth(curr_layer, ~isnan(pk.elev_smooth(curr_layer, :))), ...
                                    '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
-            if flat_done
+            if (flat_done && data_done)
                 if (any(p_pkflat([curr_layer tmp1])) && any(ishandle(p_pkflat([curr_layer tmp1]))))
                     delete(p_pkflat([curr_layer tmp1]))
                 end
@@ -1740,7 +1738,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             eval(['pk.' var_layer{ii} ' = pk.' var_layer{ii} '(setdiff(1:pk.num_layer, tmp1), :);']) % remove old layer
         end
         [p_pk, colors]      = deal(p_pk(setdiff(1:pk.num_layer, tmp1)), colors(setdiff(1:pk.num_layer, tmp1), :));
-        if flat_done
+        if (flat_done && data_done)
             [p_pkflat, depth_layer_flat, depth_layer_ref] ...
                             = deal(p_pkflat(setdiff(1:pk.num_layer, tmp1)), depth_layer_flat(setdiff(1:pk.num_layer, tmp1), :), depth_layer_ref(setdiff(1:pk.num_layer, tmp1))');
         end
@@ -3183,34 +3181,35 @@ set(disp_group, 'selectedobject', disp_check(1))
     function narrow_cb(source, eventdata)
         if (get(cbfix_check2, 'value') && data_done)
             axes(ax_radar)
-            tmp4            = zeros(2);
-            tmp4(1, :)      = interp1(pk.dist_lin(ind_decim), 1:num_decim, [dist_min dist_max], 'nearest', 'extrap');
+            tmp1            = zeros(2);
+            tmp1(1, :)      = interp1(pk.dist_lin(ind_decim), 1:num_decim, [dist_min dist_max], 'nearest', 'extrap');
             switch disp_type
                 case 'amplitude'
-                    tmp4(2, :) = interp1(elev, 1:num_sample, [elev_min elev_max], 'nearest', 'extrap');
-                    tmp4(2, :) = flipud(tmp4(2, :));
-                    tmp4    = amp_mean(tmp4(2, 1):tmp4(2, 2), tmp4(1, 1):tmp4(1, 2));
+                    tmp1(2, :) = interp1(elev, 1:num_sample, [elev_min elev_max], 'nearest', 'extrap');
+                    tmp1(2, :) = flipud(tmp1(2, :));
+                    tmp1    = amp_mean(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
                 case 'flattened'
-                    tmp4(2, :) = interp1(depth, 1:(num_sample - max(ind_corr)), [depth_min depth_max], 'nearest', 'extrap');
-                    tmp4    = amp_flat(tmp4(2, 1):tmp4(2, 2), tmp4(1, 1):tmp4(1, 2));
+                    tmp1(2, :) = interp1(depth, 1:(num_sample - max(ind_corr)), [depth_min depth_max], 'nearest', 'extrap');
+                    tmp1    = amp_flat(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
             end
-            [tmp5(1), tmp5(2)] ...
-                            = deal(nanmean(tmp4(:)), nanstd(tmp4(:)));
-            if any(isnan(tmp5))
+            tmp2            = NaN(1, 2);
+            [tmp2(1), tmp2(2)] ...
+                            = deal(nanmean(tmp1(~isinf(tmp1))), nanstd(tmp1(~isinf(tmp1))));
+            if any(isnan(tmp2))
                 return
             end
-            tmp4            = zeros(1, 2);
-            if ((tmp5(1) - (2 * tmp5(2))) < db_min_ref)
-                tmp4(1)     = db_min_ref;
+            tmp1            = zeros(1, 2);
+            if ((tmp2(1) - (2 * tmp2(2))) < db_min_ref)
+                tmp1(1)     = db_min_ref;
             else
-                tmp4(1)     = tmp5(1) - (2 * tmp5(2));
+                tmp1(1)     = tmp2(1) - (2 * tmp2(2));
             end
-            if ((tmp5(1) + (2 * tmp5(2))) > db_max_ref)
-                tmp4(2)     = db_max_ref;
+            if ((tmp2(1) + (2 * tmp2(2))) > db_max_ref)
+                tmp1(2)     = db_max_ref;
             else
-                tmp4(2)     = tmp5(1) + (2 * tmp5(2));
+                tmp1(2)     = tmp2(1) + (2 * tmp2(2));
             end
-            [db_min, db_max]= deal(tmp4(1), tmp4(2));
+            [db_min, db_max]= deal(tmp1(1), tmp1(2));
             if (db_min < get(cb_min_slide, 'min'))
                 set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
             else

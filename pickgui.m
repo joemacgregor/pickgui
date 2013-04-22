@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 04/03/13
+% Last updated: 04/17/13
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -54,8 +54,7 @@ pk.keep_or_flat             = 'keep';
                             = deal(phase_diff_min_ref, phase_diff_max_ref);
 
 % specularity default
-[spec_min_ref, spec_max_ref] ...
-                            = deal(0, 1);
+[spec_min_ref, spec_max_ref]= deal(0, 1);
 [spec_min, spec_max]        = deal(0, 0.2);
 
 % ARESP default
@@ -678,7 +677,6 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = deal(block.twtt(1), block.twtt(end));
         set(twtt_min_slide, 'min', (1e6 * twtt_min_ref), 'max', (1e6 * twtt_max_ref), 'value', (1e6 * twtt_max_ref))
         set(twtt_max_slide, 'min', (1e6 * twtt_min_ref), 'max', (1e6 * twtt_max_ref), 'value', (1e6 * twtt_min_ref))
-        update_twtt_range
         
         if trim_done
             pk.ind_trim_start ...
@@ -687,6 +685,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             trim_done       = true;
         end
         
+        update_twtt_range
     end
 
 %% Load existing layer picks for this block
@@ -1876,7 +1875,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             p_man           = zeros(0, 2);
         end
         
-        tmp5                = 0;
+        tmp4                = 0;
         
         set(pkgui, 'keypressfcn', [])
         while true
@@ -1901,7 +1900,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 p_man((pk.num_man + 1), 1) ...
                             = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'wx', 'markersize', 12); % original picks
                 ii          = ii + 1;
-                tmp5        = button;
+                tmp4        = button;
                 
             elseif (strcmpi(char(button), 'U') && (ii > 1))
                 
@@ -1913,11 +1912,11 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'wx', 'markersize', 12); % original picks
                 end
                 ii          = ii - 1;
-                tmp5        = button;
+                tmp4        = button;
                 
             elseif strcmpi(char(button), 'D') % delete a manual layer
                 
-                if (tmp5 == 1)
+                if (tmp4 == 1)
                     set(status_box, 'string', 'Cannot delete a manual layer in the middle of picking one...')
                     pause(time_pause)
                     continue
@@ -1988,7 +1987,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = deal([]);
                 set(status_box, 'string', 'Manual layer successfully picked. Now on to another...')
                 pause(time_pause)
-                tmp5        = button;
+                tmp4        = button;
                 
             elseif strcmpi(char(button), 'Q')
                 
@@ -2040,8 +2039,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             delete(p_surfflat)
         end
         
-        [flat_done, pk_done] ...
-                            = deal(false);
+        [flat_done, pk_done]= deal(false);
         
         set(status_box, 'string', 'Starting polynomial fits...')
         pause(time_pause)
@@ -5603,44 +5601,45 @@ set(disp_group, 'selectedobject', disp_check(1))
     function narrow_cb(source, eventdata)
         if get(cbfix_check2, 'value')
             axes(ax_radar)
-            tmp4            = zeros(2);
-            tmp4(1, :)      = interp1(block.dist_lin(ind_decim), 1:length(ind_decim), [dist_min dist_max], 'nearest', 'extrap');
-            tmp4(2, :)      = interp1(block.twtt, 1:num_sample_trim, [twtt_min twtt_max], 'nearest', 'extrap');
+            tmp1            = zeros(2);
+            tmp1(1, :)      = interp1(block.dist_lin(ind_decim), 1:length(ind_decim), [dist_min dist_max], 'nearest', 'extrap');
+            tmp1(2, :)      = interp1(block.twtt, 1:num_sample_trim, [twtt_min twtt_max], 'nearest', 'extrap');
             switch disp_type
                 case 'amp.'
-                    tmp4    = amp_mean(tmp4(2, 1):tmp4(2, 2), tmp4(1, 1):tmp4(1, 2));
+                    tmp1    = amp_mean(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
                 case 'phase'
-                    tmp4    = block.phase_diff_filt(tmp4(2, 1):tmp4(2, 2), tmp4(1, 1):decim:tmp4(1, 2));
+                    tmp1    = block.phase_diff_filt(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):decim:tmp1(1, 2));
                 case 'ARESP'
-                    tmp4    = block.slope_aresp(tmp4(2, 1):tmp4(2, 2), tmp4(1, 1):decim:tmp4(1, 2));
+                    tmp1    = block.slope_aresp(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):decim:tmp1(1, 2));
                 case 'spec.'
-                    tmp4    = block.specularity(tmp4(2, 1):tmp4(2, 2), tmp4(1, 1):decim:tmp4(1, 2));
+                    tmp1    = block.specularity(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):decim:tmp1(1, 2));
                 case 'flat'
                     switch flat_switch
                         case 'full'
-                            tmp4 = amp_flat(tmp4(2, 1):tmp4(2, 2), tmp4(1, 1):tmp4(1, 2));
+                            tmp1 = amp_flat(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
                         case 'mean'
-                            tmp4(1, :) = interp1(block.dist_lin(pk.ind_x_mean), 1:num_mean, [dist_min dist_max], 'nearest', 'extrap');
-                            tmp4 = amp_flat_mean(tmp4(2, 1):tmp4(2, 2), tmp4(1, 1):tmp4(1, 2));
+                            tmp1(1, :) = interp1(block.dist_lin(pk.ind_x_mean), 1:num_mean, [dist_min dist_max], 'nearest', 'extrap');
+                            tmp1 = amp_flat_mean(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
                     end
             end
-            [tmp5(1), tmp5(2)] ...
-                            = deal(nanmean(tmp4(:)), nanstd(tmp4(:)));
-            tmp4            = zeros(1, 2);
+            tmp2            = NaN(1, 2);
+            [tmp2(1), tmp2(2)] ...
+                            = deal(nanmean(tmp1(~isinf(tmp1))), nanstd(tmp1(~isinf(tmp1))));
+            tmp1            = zeros(1, 2);
             switch disp_type
                 case {'amp.' 'flat'}
-                    if ((tmp5(1) - (2 * tmp5(2))) < db_min_ref)
-                        tmp4(1) = db_min_ref;
+                    if ((tmp2(1) - (2 * tmp2(2))) < db_min_ref)
+                        tmp1(1) = db_min_ref;
                     else
-                        tmp4(1) = tmp5(1) - (2 * tmp5(2));
+                        tmp1(1) = tmp2(1) - (2 * tmp2(2));
                     end
-                    if ((tmp5(1) + (2 * tmp5(2))) > db_max_ref)
-                        tmp4(2) = db_max_ref;
+                    if ((tmp2(1) + (2 * tmp2(2))) > db_max_ref)
+                        tmp1(2) = db_max_ref;
                     else
-                        tmp4(2) = tmp5(1) + (2 * tmp5(2));
+                        tmp1(2) = tmp2(1) + (2 * tmp2(2));
                     end
                     [db_min, db_max] ...
-                            = deal(tmp4(1), tmp4(2));
+                            = deal(tmp1(1), tmp1(2));
                     if (db_min < get(cb_min_slide, 'min'))
                         set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
                     else
@@ -5655,18 +5654,18 @@ set(disp_group, 'selectedobject', disp_check(1))
                     set(cb_max_edit, 'string', sprintf('%3.0f', db_max))
                     caxis([db_min db_max])
                 case 'phase'
-                    if ((tmp5(1) - (2 * tmp5(2))) < phase_diff_min_ref)
-                        tmp4(1) = phase_diff_min_ref;
+                    if ((tmp2(1) - (2 * tmp2(2))) < phase_diff_min_ref)
+                        tmp1(1) = phase_diff_min_ref;
                     else
-                        tmp4(1) = tmp5(1) - (2 * tmp5(2));
+                        tmp1(1) = tmp2(1) - (2 * tmp2(2));
                     end
-                    if ((tmp5(1) + (2 * tmp5(2))) > phase_diff_max_ref)
-                        tmp4(2) = phase_diff_max_ref;
+                    if ((tmp2(1) + (2 * tmp2(2))) > phase_diff_max_ref)
+                        tmp1(2) = phase_diff_max_ref;
                     else
-                        tmp4(2) = tmp5(1) + (2 * tmp5(2));
+                        tmp1(2) = tmp2(1) + (2 * tmp2(2));
                     end
                     [phase_diff_min, phase_diff_max] ...
-                            = deal(tmp4(1), tmp4(2));
+                            = deal(tmp1(1), tmp1(2));
                     if (phase_diff_min < get(cb_min_slide, 'min'))
                         set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
                     else
@@ -5681,18 +5680,18 @@ set(disp_group, 'selectedobject', disp_check(1))
                     set(cb_max_edit, 'string', sprintf('%3.2f', phase_diff_max))
                     caxis([phase_diff_min phase_diff_max])
                 case 'ARESP'
-                    if ((tmp5(1) - (2 * tmp5(2))) < aresp_min_ref)
-                        tmp4(1) = aresp_min_ref;
+                    if ((tmp2(1) - (2 * tmp2(2))) < aresp_min_ref)
+                        tmp1(1) = aresp_min_ref;
                     else
-                        tmp4(1) = tmp5(1) - (2 * tmp5(2));
+                        tmp1(1) = tmp2(1) - (2 * tmp2(2));
                     end
-                    if ((tmp5(1) + (2 * tmp5(2))) > aresp_max_ref)
-                        tmp4(2) = aresp_max_ref;
+                    if ((tmp2(1) + (2 * tmp2(2))) > aresp_max_ref)
+                        tmp1(2) = aresp_max_ref;
                     else
-                        tmp4(2) = tmp5(1) + (2 * tmp5(2));
+                        tmp1(2) = tmp2(1) + (2 * tmp2(2));
                     end
                     [aresp_min, aresp_max] ...
-                            = deal(tmp4(1), tmp4(2));
+                            = deal(tmp1(1), tmp1(2));
                     if (aresp_min < get(cb_min_slide, 'min'))
                         set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
                     else
@@ -5707,18 +5706,18 @@ set(disp_group, 'selectedobject', disp_check(1))
                     set(cb_max_edit, 'string', sprintf('%3.2f', aresp_max))
                     caxis([aresp_min aresp_max])
                 case 'spec.'
-                    if ((tmp5(1) - (2 * tmp5(2))) < spec_min_ref)
-                        tmp4(1) = spec_min_ref;
+                    if ((tmp2(1) - (2 * tmp2(2))) < spec_min_ref)
+                        tmp1(1) = spec_min_ref;
                     else
-                        tmp4(1) = tmp5(1) - (2 * tmp5(2));
+                        tmp1(1) = tmp2(1) - (2 * tmp2(2));
                     end
-                    if ((tmp5(1) + (2 * tmp5(2))) > spec_max_ref)
-                        tmp4(2) = spec_max_ref;
+                    if ((tmp2(1) + (2 * tmp2(2))) > spec_max_ref)
+                        tmp1(2) = spec_max_ref;
                     else
-                        tmp4(2) = tmp5(1) + (2 * tmp5(2));
+                        tmp1(2) = tmp2(1) + (2 * tmp2(2));
                     end
                     [spec_min, spec_max] ...
-                            = deal(tmp4(1), tmp4(2));
+                            = deal(tmp1(1), tmp1(2));
                     if (spec_min < get(cb_min_slide, 'min'))
                         set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
                     else
@@ -6005,7 +6004,7 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Test something
 
     function misctest(source, eventdata)
-        
+        pk.ind_trim_start
     end
 
 %%

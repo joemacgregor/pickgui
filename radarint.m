@@ -7,14 +7,14 @@
 %   transect.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 02/01/13
+% Last updated: 04/14/13
 
 clear
 
 dir_save                    = 'mat/';
 do_xy                       = false;
 do_self                     = false;
-do_int                      = true;
+do_int                      = false;
 dist_density                = 1; % maximum intersection density in km
 angle_threshold             = 10; % minimum intersection angle in degrees
 decim                       = 25;
@@ -24,7 +24,7 @@ plotting                    = false;
 
 if do_xy
     
-    name_year               = dir(dir_in); %#ok<*UNRCH>
+    name_year               = dir; %#ok<*UNRCH>
     ind_dir                 = false(1, length(name_year));
     for ii = 1:length(name_year)
         if name_year(ii).isdir
@@ -37,6 +37,8 @@ if do_xy
     name_year               = name_year(~strcmp(name_year, '.'));
     name_year               = name_year(~strcmp(name_year, '..'));
     name_year               = name_year(~strcmp(name_year, 'mat'));
+    name_year               = name_year(~strcmp(name_year, 'AGAP'));
+    name_year               = name_year(~strcmp(name_year, 'for_ldeo'));
     name_year               = name_year(~strcmp(name_year, 'Alex_Phi'));
     num_year                = length(name_year);
     
@@ -55,7 +57,7 @@ if do_xy
         
         disp(['Campaign ' name_year{ii} ' (' num2str(ii) ' / ' num2str(num_year) ')...'])
         
-        name_trans{ii}      = dir([dir_in name_year{ii} '/data/']);
+        name_trans{ii}      = dir([name_year{ii} '/data/']);
         ind_dir             = false(1, length(name_trans{ii}));
         for jj = 1:length(name_trans{ii})
             if name_trans{ii}(jj).isdir
@@ -76,14 +78,14 @@ if do_xy
             
             disp([ name_trans{ii}{jj} ' (' num2str(jj) ' / ' num2str(num_trans(ii)) ')...'])
             
-            dir_curr        = dir([dir_in name_year{ii} '/data/' name_trans{ii}{jj} '/*.mat']);
+            dir_curr        = dir([name_year{ii} '/data/' name_trans{ii}{jj} '/*.mat']);
             dir_curr        = {dir_curr.name};
             num_frame{ii}(jj) ...
                             = length(dir_curr);
             
             for kk = 1:num_frame{ii}(jj)
                 
-                tmp         = load([dir_in name_year{ii} '/data/' name_trans{ii}{jj} '/' dir_curr{kk}], 'Latitude', 'Longitude', 'GPS_time');
+                tmp         = load([name_year{ii} '/data/' name_trans{ii}{jj} '/' dir_curr{kk}], 'Latitude', 'Longitude', 'GPS_time');
                 [lat_curr, lon_curr, time_curr] ...
                             = deal(tmp.Latitude, tmp.Longitude, tmp.GPS_time);
                 if any(isnan(lat_curr))
@@ -137,9 +139,11 @@ if do_self
     disp('Finding transect intersections with themselves...')
     
     dist_threshold          = 0.2; % km, distance threshold within which an intersection is considered
-    [int_self, num_self]    = deal(cell(1, num_year));
+%     [int_self, num_self]    = deal(cell(1, num_year));
     
-    for ii = 1:num_year
+    load mat/int_self
+
+    for ii = 19%:num_year
         
         disp(['Campaign ' name_year{ii} ' (' num2str(ii) ' / ' num2str(num_year) ')...'])
         
@@ -162,7 +166,7 @@ if do_self
                 if (ind_tmp > 2)
                     
                     [dist_close, ind_close]         = min(sqrt(((x{ii}{jj}(decim_vec(1:(ind_tmp - 1))) - x{ii}{jj}(kk)) .^ 2) + ...
-                                                               ((y{ii}{jj}(decim_vec(1:(ind_tmp - 1))) - y{ii}{jj}(kk)) .^ 2))) % finding the closest index below ind_tmp and the closest distance
+                                                               ((y{ii}{jj}(decim_vec(1:(ind_tmp - 1))) - y{ii}{jj}(kk)) .^ 2))); % finding the closest index below ind_tmp and the closest distance
                     
                     if (dist_close < sqrt(((x{ii}{jj}(decim_vec(ind_tmp - 1)) - x{ii}{jj}(decim_vec(ind_tmp))) ^ 2) + ...
                                           ((y{ii}{jj}(decim_vec(ind_tmp - 1)) - y{ii}{jj}(decim_vec(ind_tmp))) ^ 2))) % pass test if dist less than decim_vec for x/y
@@ -278,7 +282,7 @@ else
     disp(['Loaded self intersections from ' dir_save '.'])
 end
 
-%% calculate intersections between each transect all others (all others in that campaign and all other years)
+%% Calculate intersections between each transect all others (all others in that campaign and all other years)
 
 if do_int
     
@@ -470,12 +474,25 @@ else
 end
 
 %%
+% populate fence log
+fence                       = cell(size(int_all, 1), 4);
+for ii = 1:size(int_all, 1)
+    fence{ii, 1}            = name_year{int_all(ii, 1)};
+    fence{ii, 2}            = name_trans{int_all(ii, 1)}{int_all(ii, 2)};
+    fence{ii, 3}            = name_year{int_all(ii, 5)};
+    fence{ii, 4}            = name_trans{int_all(ii, 5)}{int_all(ii, 6)};
+end
+
+[~, ind_unique]             = unique(int_all(:, [1 2 5 6]), 'rows');
+fence                       = fence(ind_unique, :);
+
+%%
 if plotting
 %% greenland outline
     h                       = figure(1);
     worldmap('greenland'); % displays empty map
-    gl_outline              = shaperead('landareas', 'UseGeoCoords', true, 'Selector', {@(name) strcmp(name, 'Greenland'), 'Name'}); % creat Greenland outline
-    wgs84                   = almanac('earth', 'wgs84', 'meters');  % Parameters for Earth
+    gl_outline              = shaperead('landareas', 'UseGeoCoords', true, 'Selector', {@(name) strcmp(name, 'Greenland'), 'Name'}); % create Greenland outline
+    wgs84                   = almanac('earth', 'wgs84', 'meters'); % parameters for Earth
     ps_struct               = defaultm('ups'); %  initializes a map projection structure
     [ps_struct.geoid, ps_struct.mapparallels, ps_struct.falsenorthing, ps_struct.falseeasting, ps_struct.origin] ...
                             = deal(wgs84, 70, 0, 0, [90 -45 0]); % assigns ps_struct to variables
