@@ -13,7 +13,7 @@ function fencegui
 %   flattening will be parallelized.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 04/22/13
+% Last updated: 04/25/13
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -25,12 +25,14 @@ end
 %% Intialize variables
 
 % elevation/depth defaults
-[elev_min_ref, depth_min, depth_min_ref] ...
+[elev_min_ref, depth_min_ref] ...
                             = deal(0);
-[elev_max_ref, depth_max, depth_max_ref] ...
+[elev_max_ref, depth_max_ref] ...
                             = deal(1);
-elev_min                    = zeros(1, 2);
-elev_max                    = ones(1, 2);
+elev_min                    = zeros(1, 3);
+elev_max                    = ones(1, 3);
+depth_min                   = zeros(1, 2);
+depth_max                   = ones(1, 2);
 
 % x/y defaults
 [x_min_ref, x_max_ref]      = deal(0, 1);
@@ -390,6 +392,7 @@ b(27)                       = annotation('textbox', [0.56 0.88 0.08 0.03], 'stri
 b(28)                       = annotation('textbox', [0.635 0.88 0.08 0.03], 'string', 'Core', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
 b(29)                       = annotation('textbox', [0.74 0.925 0.08 0.03], 'string', 'Nearest', 'fontsize', size_font, 'color', 'm', 'edgecolor', 'none');
 b(30)                       = annotation('textbox', [0.79 0.925 0.08 0.03], 'string', 'Match', 'fontsize', size_font, 'color', 'm', 'edgecolor', 'none');
+b(31)                       = annotation('textbox', [0.28 0.925 0.04 0.03], 'string', 'link z', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
 if ~ispc
     set(b, 'fontweight', 'bold')
 end
@@ -455,7 +458,8 @@ int_check(3)                = uicontrol(fgui(2), 'style', 'checkbox', 'units', '
 core_check(2)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.175 0.88 0.01 0.03], 'callback', @show_core2, 'fontsize', size_font, 'value', 0);
 core_check(3)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.66 0.88 0.01 0.03], 'callback', @show_core3, 'fontsize', size_font, 'value', 0);
 nearest_check               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.775 0.925 0.01 0.03], 'fontsize', size_font, 'value', 1);
-match_check                 = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.825 0.925 0.01 0.03], 'fontsize', size_font, 'value', 0);
+match_check                 = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.825 0.925 0.01 0.03], 'fontsize', size_font, 'value', 1);
+link_check                  = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.31 0.925 0.01 0.03], 'callback', @link_z, 'fontsize', size_font, 'value', 1);
 
 figure(fgui(1))
 
@@ -548,7 +552,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             end
         else
             if exist('/Volumes/icebridge/data/mat/', 'dir')
-                path_ref    = '/Volumes/melt/icebridge/data/mat/';
+                path_ref    = '/Volumes/icebridge/data/mat/';
             end
         end
         if (~isempty(path_ref) && exist([path_ref 'xy_int.mat'], 'file'))
@@ -858,15 +862,6 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                     set(status_box(1), 'string', 'Load merged picks files only.')
                     return
                 end
-                % check to see if surface and bed picks are available
-                if isfield(pk{curr_rad}, 'elev_surf')
-                    surf_avail(curr_rad) ...
-                            = true;
-                end
-                if isfield(pk{curr_rad}, 'elev_bed')
-                    bed_avail(curr_rad) ...
-                            = true;
-                end
                 if isfield(pk{curr_rad}, 'poly_flat_merge')
                     flat_done(curr_rad) ...
                             = true;
@@ -877,10 +872,6 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             catch % give up, force restart
                 set(status_box(1), 'string', [file_pk{curr_rad} ' does not contain a pk structure. Try again.'])
                 return
-            end
-            
-            if ~any(surf_avail(curr_rad))
-                set(status_box(1), 'string', 'Surface pick not included in pick file, which will create problems.')
             end
             
             % add master picks matrix if not already present
@@ -922,6 +913,24 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             end
             num_decim(curr_rad) ...
                             = length(ind_decim{curr_rad});
+            
+            % check to see if surface and bed picks are available
+            if isfield(pk{curr_rad}, 'elev_surf')
+                if any(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))
+                    surf_avail(curr_rad) ...
+                            = true;
+                end
+            end
+            if isfield(pk{curr_rad}, 'elev_bed')
+                if any(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))                
+                    bed_avail(curr_rad) ...
+                            = true;
+                end
+            end
+            
+            if ~surf_avail(curr_rad)
+                set(status_box(1), 'string', 'Surface pick not included in pick file, which will create problems.')
+            end
             
             % determine current year/transect
             tmp1            = file_pk_short{curr_rad};
@@ -1139,43 +1148,49 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             
             if (curr_rad == 2)
                 [tmp1, tmp2, tmp3, tmp4, tmp5] ...
-                            = deal([pk{1}.x pk{2}.x], [pk{1}.y pk{2}.y], [pk{1}.elev_surf pk{2}.elev_surf], [pk{1}.elev_bed pk{2}.elev_bed], [pk{1}.elev_smooth(:); pk{2}.elev_smooth(:)]);
+                            = deal([pk{1}.x(~isinf(pk{1}.x)) pk{2}.x(~isinf(pk{2}.x))], [pk{1}.y(~isinf(pk{1}.y)) pk{2}.y(~isinf(pk{2}.y))], ...
+                                   [pk{1}.elev_surf(~isinf(pk{1}.elev_surf)) pk{2}.elev_surf(~isinf(pk{2}.elev_surf))], [pk{1}.elev_bed(~isinf(pk{1}.elev_bed)) pk{2}.elev_bed(~isinf(pk{2}.elev_bed))], ...
+                                   [pk{1}.elev_smooth(~isinf(pk{1}.elev_smooth(:))); pk{2}.elev_smooth(~isinf(pk{2}.elev_smooth(:)))]);
                 [x_min_ref, x_max_ref, x_min, x_max] ...
-                            = deal(min(tmp1), max(tmp1), min(tmp1), max(tmp1));
+                            = deal(nanmin(tmp1), nanmax(tmp1), nanmin(tmp1), nanmax(tmp1));
                 [y_min_ref, y_max_ref, y_min, y_max] ...
-                            = deal(min(tmp2), max(tmp2), min(tmp2), max(tmp2));
+                            = deal(nanmin(tmp2), nanmax(tmp2), nanmin(tmp2), nanmax(tmp2));
                 if all(surf_avail)
-                    [elev_max_ref, elev_max(1:2)] ...
+                    [elev_max_ref, elev_max(1:3)] ...
                             = deal(max(tmp3));
                 else
-                    [elev_max_ref, elev_max(1:2)] ...
-                            = deal(max(tmp5) + (0.1 * (max(tmp5) - min(tmp5))));
+                    [elev_max_ref, elev_max(1:3)] ...
+                            = deal(nanmax(tmp5) + (0.1 * (nanmax(tmp5) - nanmin(tmp5))));
                 end
                 if all(bed_avail)
-                    [elev_min_ref, elev_min(1:2)] ...
-                            = deal(min(tmp4));
+                    [elev_min_ref, elev_min(1:3)] ...
+                            = deal(nanmin(tmp4));
                 else
-                    [elev_min_ref, elev_min(1:2)] ...
-                            = deal(min(tmp5) - (0.1 * (max(tmp5) - min(tmp5))));
+                    [elev_min_ref, elev_min(1:3)] ...
+                            = deal(nanmin(tmp5) - (0.1 * (nanmax(tmp5) - nanmin(tmp5))));
                 end
             else
                 [x_min_ref, x_max_ref, x_min, x_max] ...
-                            = deal(min(pk{curr_rad}.x), max(pk{curr_rad}.x), min(pk{curr_rad}.x), max(pk{curr_rad}.x));
+                            = deal(nanmin(pk{curr_rad}.x(~isinf(pk{curr_rad}.x))), nanmax(pk{curr_rad}.x(~isinf(pk{curr_rad}.x))), nanmin(pk{curr_rad}.x(~isinf(pk{curr_rad}.x))), ...
+                                   nanmax(pk{curr_rad}.x(~isinf(pk{curr_rad}.x))));
                 [y_min_ref, y_max_ref, y_min, y_max] ...
-                            = deal(min(pk{curr_rad}.y), max(pk{curr_rad}.y), min(pk{curr_rad}.y), max(pk{curr_rad}.y));
+                            = deal(nanmin(pk{curr_rad}.y(~isinf(pk{curr_rad}.y))), nanmax(pk{curr_rad}.y(~isinf(pk{curr_rad}.y))), nanmin(pk{curr_rad}.y(~isinf(pk{curr_rad}.y))), ...
+                                   nanmax(pk{curr_rad}.y(~isinf(pk{curr_rad}.y))));
                 if surf_avail(curr_rad)
                     [elev_max_ref, elev_max(1:2)] ...
-                            = deal(max(pk{curr_rad}.elev_surf));
+                            = deal(nanmax(pk{curr_rad}.elev_surf(~isinf(pk{curr_rad}.elev_surf))));
                 else
                     [elev_max_ref, elev_max(1:2)] ...
-                            = deal(max(pk{curr_rad}.elev_smooth(:)) + (0.1 * (max(pk{curr_rad}.elev_smooth(:)) - min(pk{curr_rad}.elev_smooth(:)))));
+                            = deal(nanmax(pk{curr_rad}.elev_smooth(~isinf(pk{curr_rad}.elev_smooth(:)))) + (0.1 * (nanmax(pk{curr_rad}.elev_smooth(~isinf(pk{curr_rad}.elev_smooth(:)))) - ...
+                                   nanmin(pk{curr_rad}.elev_smooth(~isinf(pk{curr_rad}.elev_smooth(:)))))));
                 end
                 if bed_avail(curr_rad)
                     [elev_min_ref, elev_min(1:2)] ...
-                            = deal(min(pk{curr_rad}.elev_bed));
+                            = deal(nanmin(pk{curr_rad}.elev_bed(~isinf(pk{curr_rad}.elev_bed))));
                 else
                     [elev_min_ref, elev_min(1:2)] ...
-                            = deal(min(pk{curr_rad}.elev_smooth(:)) - (0.1 * (max(pk{curr_rad}.elev_smooth(:)) - min(pk{curr_rad}.elev_smooth(:)))));
+                            = deal(nanmin(pk{curr_rad}.elev_smooth(~isinf(pk{curr_rad}.elev_smooth(:)))) - (0.1 * (nanmax(pk{curr_rad}.elev_smooth(~isinf(pk{curr_rad}.elev_smooth(:)))) - ...
+                                   nanmin(pk{curr_rad}.elev_smooth(~isinf(pk{curr_rad}.elev_smooth(:)))))));
                 end
             end
             
@@ -1284,16 +1299,17 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             
             if ((curr_rad == 1) && strcmp(disp_type{2}, disp_type{3}))
                 linkaxes(ax(2:3), 'y')
-                h_link1   = linkprop(z_min_slide(2:3), {'value' 'min' 'max'});
-                h_link2   = linkprop(z_max_slide(2:3), {'value' 'min' 'max'});
-                h_link3   = linkprop(z_min_edit(2:3), 'string');
-                h_link4   = linkprop(z_max_edit(2:3), 'string');
+                h_link1     = linkprop(z_min_slide(2:3), {'value' 'min' 'max'});
+                h_link2     = linkprop(z_max_slide(2:3), {'value' 'min' 'max'});
+                h_link3     = linkprop(z_min_edit(2:3), 'string');
+                h_link4     = linkprop(z_max_edit(2:3), 'string');
             end
             
             if (curr_rad == 2)
                 reset_xz1
+                curr_rad    = 2;
             end
-            
+                        
             set(status_box(1), 'string', ['Loaded ' file_pk_short{curr_rad} '.'])
             
         else
@@ -1492,10 +1508,11 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         depth{curr_rad}     = depth{curr_rad}(1:(num_sample(curr_rad) - max(ind_corr{curr_rad})));
         
         % assign traveltime and distance reference values/sliders based on data
-        [elev_min_ref, db_min_ref(curr_ax), elev_max_ref, db_max_ref(curr_ax), elev_min(2), db_min(curr_ax), elev_max(2), db_max(curr_ax)] ...
-                            = deal(min([min(elev{curr_rad}) elev_min_ref]), min(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), max([max(elev{curr_rad}) elev_max_ref]), ...
-                                   max(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), min([min(elev{curr_rad}) elev_min_ref]), min(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), ...
-                                   max([max(elev{curr_rad}) elev_max_ref]), max(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))));
+        [elev_min_ref, db_min_ref(curr_ax), elev_max_ref, db_max_ref(curr_ax), elev_min(curr_ax), db_min(curr_ax), elev_max(curr_ax), db_max(curr_ax)] ...
+                            = deal(nanmin([nanmin(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_min_ref]), nanmin(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), ...
+                                   nanmax([nanmax(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_max_ref]), nanmax(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), ...
+                                   nanmin([nanmin(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_min_ref]), nanmin(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), ...
+                                   nanmax([max(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_max_ref]), nanmax(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))));
         set(cb_min_slide(curr_ax), 'min', db_min_ref(curr_ax), 'max', db_max_ref(curr_ax), 'value', db_min_ref(curr_ax))
         set(cb_max_slide(curr_ax), 'min', db_min_ref(curr_ax), 'max', db_max_ref(curr_ax), 'value', db_max_ref(curr_ax))
         set(cb_min_edit(curr_ax), 'string', sprintf('%3.0f', db_min_ref(curr_ax)))
@@ -1643,7 +1660,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 end
             end
             
-            [depth_min_ref, depth_max_ref, depth_min, depth_max] ...
+            [depth_min_ref, depth_max_ref, depth_min(curr_rad), depth_max(curr_rad)] ...
                             = deal(min([min(depth{curr_rad}) depth_min_ref]), max([max(depth{curr_rad}) depth_max_ref]), min([min(depth{curr_rad}) depth_min_ref]), max([  max(depth{curr_rad}) depth_max_ref]));
             
             if (curr_rad == 2)
@@ -1810,6 +1827,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 return
             end
         end
+        tmp1                = '';
         if (all(pk_done) && ~isempty(pk{2}.ind_layer) && get(match_check, 'value'))
             switch curr_rad
                 case 1
@@ -1845,8 +1863,6 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                             end
                         end
                         tmp1 = 'matched';
-                    else
-                        tmp1 = '';
                     end
                     set(layer_list(:, 2), 'value', curr_layer(2))
                 case 2
@@ -1882,13 +1898,11 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                             end
                         end
                         tmp1 = 'matched';
-                    else
-                        tmp1 = '';
                     end
                     set(layer_list(:, 1), 'value', curr_layer(1))
             end
         end
-        if (get(nearest_check, 'value') && all(pk_done) && ischar(tmp1) && isempty(tmp1))
+        if (get(nearest_check, 'value') && all(pk_done) && isempty(tmp1))
             if any(~isnan(pk{curr_rad_alt}.elev_smooth(:, curr_ind_int(curr_int, curr_rad_alt))))
                 [~, curr_layer(curr_rad_alt)] ...
                             = min(abs(pk{curr_rad}.elev_smooth(curr_layer(curr_rad), curr_ind_int(curr_int, curr_rad)) - pk{curr_rad_alt}.elev_smooth(:, curr_ind_int(curr_int, curr_rad_alt))));
@@ -2272,13 +2286,6 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             set(status_box(1), 'string', 'No new layers matched. No need to save intersecting picks.')
             return
         end
-        if ~master_done
-            set(status_box(1), 'string', 'Master layer ID list not yet located.')
-            return
-        else
-            set(status_box(1), 'string', 'Confirm that master layer ID list is not being accessed. Press any key...')
-            waitforbuttonpress
-        end
         
         if ~master_done
             set(status_box(1), 'string', 'Locate master layer ID list before saving picks.')
@@ -2295,6 +2302,40 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 master_done = false;
                 return
             end
+        end
+
+        set(status_box(1), 'string', 'Select locations to save picks...')
+        pause(0.1)
+        
+        if ~isempty(path_pk{1})
+            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_pk{1} file_pk{1}]);
+        elseif ~isempty(path_data{1})
+            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_data{1} file_pk{1}]);
+        elseif ~isempty(path_pk{2})
+            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_pk{2} file_pk{1}]);
+        elseif ~isempty(path_data{2})
+            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_data{2} file_pk{1}]);
+        else
+            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', file_pk{1});
+        end
+        
+        if ~isempty(path_pk{2})
+            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_pk{2} file_pk{2}]);
+        elseif ~isempty(path_data{2})
+            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_data{2} file_pk{2}]);
+        elseif ~isempty(path_pk{1})
+            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_pk{1} file_pk{2}]);
+        elseif ~isempty(path_data{1})
+            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_data{1} file_pk{2}]);
+        else
+            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', file_pk{2});
+        end        
+        
+        if (~ischar(file_pk{1}) || ~ischar(file_pk{2}))
+            [file_pk{1}, path_pk{1}, file_pk{2}, path_pk{2}] ...
+                            = deal('');
+            set(status_box(1), 'string', 'Picks locations not chosen. Saving cancelled.')
+            return
         end
         
         set(status_box(1), 'string', 'Preparing matches for saving...')
@@ -2409,60 +2450,20 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         
         set(status_box(1), 'string', 'Saving master picks...')
         pause(0.1)
-        
-        if ~isempty(path_pk{1})
-            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_pk{1} file_pk{1}]);
-        elseif ~isempty(path_data{1})
-            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_data{1} file_pk{1}]);
-        elseif ~isempty(path_pk{2})
-            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_pk{2} file_pk{1}]);
-        elseif ~isempty(path_data{2})
-            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_data{2} file_pk{1}]);
-        else
-            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', file_pk{1});
-        end
-        
-        if ~file_pk{1}
-            [file_pk{1}, path_pk{1}] ...
-                            = deal('');
-            set(status_box(1), 'string', 'Master picks location not chosen. Saving cancelled.')
-            return
-        else
-            tmp1            = pk;
-            pk              = pk{1};
-            save([path_pk{1} file_pk{1}], '-v7.3', 'pk')
-            pk              = tmp1;
-            set(status_box(1), 'string', ['Master picks saved as ' file_pk{1}(1:(end - 4)) ' in ' path_pk{1} '.'])
-        end
-        
+        tmp1                = pk;
+        pk                  = pk{1};
+        save([path_pk{1} file_pk{1}], '-v7.3', 'pk')
+        pk                  = tmp1;
+        set(status_box(1), 'string', ['Master picks saved as ' file_pk{1}(1:(end - 4)) ' in ' path_pk{1} '.'])
+        pause(0.1)
         set(status_box(1), 'string', 'Saving intersecting picks...')
         pause(0.1)
-        
-        if ~isempty(path_pk{2})
-            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_pk{2} file_pk{2}]);
-        elseif ~isempty(path_data{2})
-            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_data{2} file_pk{2}]);
-        elseif ~isempty(path_pk{1})
-            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_pk{1} file_pk{2}]);
-        elseif ~isempty(path_data{1})
-            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_data{1} file_pk{2}]);
-        else
-            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', file_pk{2});
-        end
-        
-        if ~file_pk{2}
-            [file_pk{2}, path_pk{2}] ...
-                            = deal('');
-            set(status_box(1), 'Intersecting picks location not chosen. Saving cancelled.')
-            return
-        else
-            tmp1            = pk;
-            pk              = pk{2};
-            save([path_pk{2} file_pk{2}], '-v7.3', 'pk')
-            pk              = tmp1;
-            set(status_box(1), 'string', ['Intersecting picks saved as ' file_pk{2}(1:(end - 4)) ' in ' path_pk{2} '.'])
-        end
-        
+        tmp1                = pk;
+        pk                  = pk{2};
+        save([path_pk{2} file_pk{2}], '-v7.3', 'pk')
+        pk                  = tmp1;
+        set(status_box(1), 'string', ['Intersecting picks saved as ' file_pk{2}(1:(end - 4)) ' in ' path_pk{2} '.'])
+        pause(0.1)
         set(status_box(1), 'string', 'Saving master layer ID list...')
         pause(0.1)
         save([path_master file_master], '-v7.3', 'id_layer_master_mat', 'id_layer_master_cell')
@@ -2687,106 +2688,106 @@ linkprop(layer_list(:, 2), {'value' 'string'});
     function slide_z_min(source, eventdata)
         switch disp_type{curr_ax}
             case 'amp.'
-                if (get(z_min_slide(curr_ax), 'value') < elev_max(curr_gui))
+                if (get(z_min_slide(curr_ax), 'value') < elev_max(curr_ax))
                     if (flat_done(curr_rad) && data_done(curr_rad))
-                        tmp2        = [elev_min(curr_gui) elev_max(curr_gui)];
+                        tmp2        = [elev_min(curr_ax) elev_max(curr_ax)];
                     end
                     if get(zfix_check(curr_ax), 'value')
-                        tmp1        = elev_max(curr_gui) - elev_min(curr_gui);
+                        tmp1        = elev_max(curr_ax) - elev_min(curr_ax);
                     end
-                    elev_min(curr_gui) = get(z_min_slide(curr_ax), 'value');
+                    elev_min(curr_ax) = get(z_min_slide(curr_ax), 'value');
                     if get(zfix_check(curr_ax), 'value')
-                        elev_max(curr_gui) = elev_min(curr_gui) + tmp1;
-                        if (elev_max(curr_gui) > elev_max_ref)
-                            elev_max(curr_gui) = elev_max_ref;
-                            elev_min(curr_gui) = elev_max(curr_gui) - tmp1;
-                            if (elev_min(curr_gui) < elev_min_ref)
-                                elev_min(curr_gui) = elev_min_ref;
+                        elev_max(curr_ax) = elev_min(curr_ax) + tmp1;
+                        if (elev_max(curr_ax) > elev_max_ref)
+                            elev_max(curr_ax) = elev_max_ref;
+                            elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
+                            if (elev_min(curr_ax) < elev_min_ref)
+                                elev_min(curr_ax) = elev_min_ref;
                             end
-                            if (elev_min(curr_gui) < get(z_min_slide(curr_ax), 'min'))
+                            if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
                                 set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
                             else
-                                set(z_min_slide(curr_ax), 'value', elev_min(curr_gui))
+                                set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
                             end
                         end
-                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_gui)))
-                        if (elev_max(curr_gui) > get(z_max_slide(curr_ax), 'max'))
+                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                        if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
                             set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
                         else
-                            set(z_max_slide(curr_ax), 'value', elev_max(curr_gui))
+                            set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
                         end
                     end
                     if (flat_done(curr_rad) && data_done(curr_rad))
                         if get(zfix_check(curr_ax), 'value')
-                            depth_min = depth_min - (elev_max(curr_gui) - tmp2(2));
-                            depth_max = depth_max - (elev_min(curr_gui) - tmp2(1));
-                            if (depth_min < depth_min_ref)
-                                depth_min = depth_min_ref;
+                            depth_min(curr_rad) = depth_min(curr_rad) - (elev_max(curr_ax) - tmp2(2));
+                            depth_max(curr_rad) = depth_max(curr_rad)- (elev_min(curr_ax) - tmp2(1));
+                            if (depth_min(curr_rad) < depth_min_ref)
+                                depth_min(curr_rad) = depth_min_ref;
                             end
-                            if (depth_max > depth_max_ref)
-                                depth_max = depth_max_ref;
+                            if (depth_max(curr_rad) > depth_max_ref)
+                                depth_max(curr_rad) = depth_max_ref;
                             end
-                        elseif ((depth_max - (elev_min(curr_gui) - tmp2(1))) > depth_min)
-                            depth_max   = (depth_max - (elev_min(curr_gui) - tmp2(1)));
+                        elseif ((depth_max(curr_rad) - (elev_min(curr_ax) - tmp2(1))) > depth_min(curr_rad))
+                            depth_max(curr_rad) = (depth_max(curr_rad) - (elev_min(curr_ax) - tmp2(1)));
                         end
                     end
-                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_gui)))
+                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
                     update_z_range
                 else
-                    if (elev_min(curr_gui) < get(z_min_slide(curr_ax), 'min'))
+                    if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
                         set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
                     else
-                        set(z_min_slide(curr_ax), 'value', elev_min(curr_gui))
+                        set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
                     end
                 end
             case 'flat'
-                if ((depth_max_ref - (get(z_min_slide(curr_ax), 'value') - depth_min_ref)) > depth_min)
-                    tmp2            = [depth_min depth_max];
+                if ((depth_max_ref - (get(z_min_slide(curr_ax), 'value') - depth_min_ref)) > depth_min(curr_rad))
+                    tmp2            = [depth_min(curr_rad) depth_max(curr_rad)];
                     if get(zfix_check(curr_ax), 'value')
-                        tmp1        = depth_max - depth_min;
+                        tmp1        = depth_max(curr_rad) - depth_min(curr_rad);
                     end
-                    depth_max = depth_max_ref - (get(z_min_slide(curr_ax), 'value') - depth_min_ref);
+                    depth_max(curr_rad) = depth_max_ref - (get(z_min_slide(curr_ax), 'value') - depth_min_ref);
                     if get(zfix_check(curr_ax), 'value')
-                        depth_min    = depth_max - tmp1;
-                        if (depth_min < depth_min_ref)
-                            depth_min = depth_min_ref;
-                            depth_max = depth_min + tmp1;
-                            if (depth_max > depth_max_ref)
-                                depth_max = depth_max_ref;
+                        depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
+                        if (depth_min(curr_rad) < depth_min_ref)
+                            depth_min(curr_rad) = depth_min_ref;
+                            depth_max(curr_rad) = depth_min(curr_rad) + tmp1;
+                            if (depth_max(curr_rad) > depth_max_ref)
+                                depth_max(curr_rad) = depth_max_ref;
                             end
-                            if ((depth_max_ref - (depth_max - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                            if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
                                 set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
                             else
-                                set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
+                                set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
                             end
-                            set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
+                            set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
                         end
-                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max))
-                        if ((depth_max_ref - (depth_min - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                        if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
                             set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
                         else
-                            set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
+                            set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
                         end
                     end
                     if get(zfix_check(curr_ax), 'value')
-                        elev_min(curr_gui) = elev_min(curr_gui) - (depth_max - tmp2(2));
-                        elev_max(curr_gui) = elev_max(curr_gui) - (depth_min - tmp2(1));
-                        if (elev_min(curr_gui) < elev_min_ref)
-                            elev_min(curr_gui) = elev_min_ref;
+                        elev_min(curr_ax) = elev_min(curr_ax) - (depth_max(curr_rad) - tmp2(2));
+                        elev_max(curr_ax) = elev_max(curr_ax) - (depth_min(curr_rad) - tmp2(1));
+                        if (elev_min(curr_ax) < elev_min_ref)
+                            elev_min(curr_ax) = elev_min_ref;
                         end
-                        if (elev_max(curr_gui) > elev_max_ref)
-                            elev_max(curr_gui) = elev_max_ref;
+                        if (elev_max(curr_ax) > elev_max_ref)
+                            elev_max(curr_ax) = elev_max_ref;
                         end
-                    elseif (elev_min(curr_gui) - (depth_max - tmp2(2)) < elev_max)
-                        elev_min        = elev_min(curr_gui) - (depth_max - tmp2(2));
+                    elseif (elev_min(curr_ax) - (depth_max(curr_rad) - tmp2(2)) < elev_max)
+                        elev_min        = elev_min(curr_ax) - (depth_max(curr_rad) - tmp2(2));
                     end
-                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max))
+                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
                     update_z_range
                 else
-                    if ((depth_max_ref - (depth_max - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                    if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
                         set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
                     else
-                        set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
+                        set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad)- depth_min_ref)))
                     end
                 end
         end
@@ -3013,99 +3014,99 @@ linkprop(layer_list(:, 2), {'value' 'string'});
     function slide_z_max(source, eventdata)
         switch disp_type{curr_ax}
             case 'amp.'
-                if (get(z_max_slide(curr_ax), 'value') > elev_min(curr_gui))
+                if (get(z_max_slide(curr_ax), 'value') > elev_min(curr_ax))
                     if (flat_done(curr_rad) && data_done(curr_rad))
-                        tmp2        = [elev_min(curr_gui) elev_max(curr_gui)];
+                        tmp2        = [elev_min(curr_ax) elev_max(curr_ax)];
                     end
                     if get(zfix_check(curr_ax), 'value')
-                        tmp1        = elev_max(curr_gui) - elev_min(curr_gui);
+                        tmp1        = elev_max(curr_ax) - elev_min(curr_ax);
                     end
-                    elev_max(curr_gui) = get(z_max_slide(curr_ax), 'value');
+                    elev_max(curr_ax) = get(z_max_slide(curr_ax), 'value');
                     if get(zfix_check(curr_ax), 'value')
-                        elev_min(curr_gui) = elev_max(curr_gui) - tmp1;
-                        if (elev_min(curr_gui) < elev_min_ref)
-                            elev_min(curr_gui) = elev_min_ref;
-                            elev_max(curr_gui) = elev_min(curr_gui) + tmp1;
-                            if (elev_max(curr_gui) > get(z_max_slide(curr_ax), 'max'))
+                        elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
+                        if (elev_min(curr_ax) < elev_min_ref)
+                            elev_min(curr_ax) = elev_min_ref;
+                            elev_max(curr_ax) = elev_min(curr_ax) + tmp1;
+                            if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
                                 set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
                             else
-                                set(z_max_slide(curr_ax), 'value', elev_max(curr_gui))
+                                set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
                             end
                         end
-                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_gui)))
-                        if (elev_min(curr_gui) < get(z_min_slide(curr_ax), 'min'))
+                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                        if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
                             set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
                         else
-                            set(z_min_slide(curr_ax), 'value', elev_min(curr_gui))
+                            set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
                         end
                     end
                     if (flat_done(curr_rad) && data_done(curr_rad))
                         if get(zfix_check(curr_gui), 'value')
-                            depth_min = depth_min - (elev_max(curr_gui) - tmp2(2));
-                            depth_max = depth_max - (elev_min(curr_gui) - tmp2(1));
-                            if (depth_min < depth_min_ref)
-                                depth_min = depth_min_ref;
+                            depth_min(curr_rad) = depth_min(curr_rad) - (elev_max(curr_ax) - tmp2(2));
+                            depth_max(curr_rad) = depth_max(curr_rad) - (elev_min(curr_ax) - tmp2(1));
+                            if (depth_min(curr_rad) < depth_min_ref)
+                                depth_min(curr_rad) = depth_min_ref;
                             end
-                            if (depth_max > depth_max_ref)
-                                depth_max = depth_max_ref;
+                            if (depth_max(curr_rad) > depth_max_ref)
+                                depth_max(curr_rad) = depth_max_ref;
                             end
-                        elseif (depth_min - (elev_max(curr_gui) - tmp2(2)) < depth_max)
-                            depth_min   = depth_min - (elev_max(curr_gui) - tmp2(2));
+                        elseif (depth_min(curr_rad) - (elev_max(curr_ax) - tmp2(2)) < depth_max(curr_rad))
+                            depth_min(curr_rad) = depth_min(curr_rad) - (elev_max(curr_ax) - tmp2(2));
                         end
                     end
-                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_gui)))
+                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
                     update_z_range
                 else
-                    if (elev_max(curr_gui) > get(z_max_slide(curr_ax), 'max'))
+                    if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
                         set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
                     else
-                        set(z_max_slide(curr_ax), 'value', elev_max(curr_gui))
+                        set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
                     end
                 end
             case 'flat'
-                if ((depth_max_ref - (get(z_max_slide(curr_ax), 'value') - depth_min_ref)) < depth_max)
-                    tmp2            = [depth_min depth_max];
+                if ((depth_max_ref - (get(z_max_slide(curr_ax), 'value') - depth_min_ref)) < depth_max(curr_rad))
+                    tmp2            = [depth_min(curr_rad) depth_max(curr_rad)];
                     if get(zfix_check(curr_ax), 'value')
-                        tmp1        = depth_max - depth_min;
+                        tmp1        = depth_max(curr_rad) - depth_min(curr_rad);
                     end
-                    depth_min = depth_max_ref - (get(z_max_slide(curr_ax), 'value') - depth_min_ref);
+                    depth_min(curr_rad) = depth_max_ref - (get(z_max_slide(curr_ax), 'value') - depth_min_ref);
                     if get(zfix_check(curr_ax), 'value')
-                        depth_max = depth_min + tmp1;
-                        if (depth_max > depth_max_ref)
-                            depth_max = depth_max_ref;
-                            depth_min = depth_max - tmp1;
-                            if ((depth_max_ref - (depth_min - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                        depth_max(curr_rad) = depth_min(curr_rad) + tmp1;
+                        if (depth_max(curr_rad) > depth_max_ref)
+                            depth_max(curr_rad) = depth_max_ref;
+                            depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
+                            if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
                                 set(z_max_slide(curr_ax), 'min', get(z_max_slide(curr_ax), 'max'))
                             else
-                                set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
+                                set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
                             end
                         end
-                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max))
-                        if ((depth_max_ref - (depth_max - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                        if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
                             set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
                         else
-                            set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
+                            set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
                         end
                     end
                     if get(zfix_check(curr_ax), 'value')
-                        elev_min(curr_gui) = elev_min(curr_gui) - (depth_max - tmp2(2));
-                        elev_max(curr_gui) = elev_max(curr_gui) - (depth_min - tmp2(1));
-                        if (elev_min(curr_gui) < elev_min_ref)
-                            elev_min(curr_gui) = elev_min_ref;
+                        elev_min(curr_ax) = elev_min(curr_ax) - (depth_max(curr_rad) - tmp2(2));
+                        elev_max(curr_ax) = elev_max(curr_ax) - (depth_min(curr_rad) - tmp2(1));
+                        if (elev_min(curr_ax) < elev_min_ref)
+                            elev_min(curr_ax) = elev_min_ref;
                         end
-                        if (elev_max(curr_gui) > elev_max_ref)
-                            elev_max(curr_gui) = elev_max_ref;
+                        if (elev_max(curr_ax) > elev_max_ref)
+                            elev_max(curr_ax) = elev_max_ref;
                         end
-                    elseif (elev_min(curr_gui) - (depth_max - tmp2(2)) < elev_max)
-                        elev_min = elev_min(curr_gui) - (depth_max - tmp2(2));
+                    elseif (elev_min(curr_ax) - (depth_max(curr_rad) - tmp2(2)) < elev_max)
+                        elev_min = elev_min(curr_ax) - (depth_max(curr_rad) - tmp2(2));
                     end
-                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min))
+                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
                     update_z_range
                 else
-                    if ((depth_max_ref - (depth_min - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                    if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
                         set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
                     else
-                        set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
+                        set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
                     end
                 end
         end
@@ -3211,8 +3212,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
     end
 
     function reset_z_min(source, eventdata)
-        elev_min(curr_gui)   = elev_min_ref;
-        depth_max = depth_max_ref;
+        elev_min(curr_ax)   = elev_min_ref;
+        depth_max(curr_rad)= depth_max_ref;
         switch disp_type{curr_ax}
             case 'amp.'
                 if (elev_min_ref < get(z_min_slide(curr_ax), 'min'))
@@ -3328,8 +3329,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
     end
 
     function reset_z_max(source, eventdata)
-        elev_max(curr_gui)  = elev_max_ref;
-        depth_min = depth_min_ref;
+        elev_max(curr_ax)  = elev_max_ref;
+        depth_min(curr_rad) = depth_min_ref;
         switch disp_type{curr_ax}
             case 'amp.'
                 if (elev_max_ref > get(z_max_slide(curr_ax), 'max'))
@@ -3424,24 +3425,40 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         switch disp_type{curr_ax}
             case 'amp.'
                 if (curr_gui == 1)
-                    zlim([elev_min(curr_gui) elev_max(curr_gui)])
+                    zlim([elev_min(curr_ax) elev_max(curr_ax)])
                 else
-                    ylim([elev_min(curr_gui) elev_max(curr_gui)])
+                    ylim([elev_min(curr_ax) elev_max(curr_ax)])
                 end
             case 'flat'
-                ylim([depth_min depth_max])
+                ylim([depth_min(curr_rad) depth_max(curr_rad)])
         end
         narrow_cb
         switch curr_ax
             case 2
                 [curr_ax, curr_rad] ...
                            = deal(3, 2);
+                if get(link_check, 'value')
+                    [elev_min(3), elev_max(3)] ...
+                            = deal(elev_min(2), elev_max(2));
+                    if (flat_done(2) && data_done(2))
+                        [depth_min(2), depth_max(2)] ...
+                            = deal(depth_min(1), depth_max(1));
+                    end
+                end
                 narrow_cb
                 [curr_ax, curr_rad] ...
                            = deal(2, 1);
             case 3
                 [curr_ax, curr_rad] ...
                            = deal(2, 1);
+                if get(link_check, 'value')
+                    [elev_min(2), elev_max(2)] ...
+                            = deal(elev_min(3), elev_max(3));
+                    if (flat_done(1) && data_done(1))
+                        [depth_min(1), depth_max(1)] ...
+                            = deal(depth_min(2), depth_max(2));
+                    end
+                end
                 narrow_cb
                 [curr_ax, curr_rad] ...
                            = deal(3, 2);
@@ -3491,7 +3508,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         switch disp_type(curr_ax)
             case 'amp.'
                 if (flat_done(curr_rad) && data_done(curr_rad))
-                    tmp2    = [elev_min(curr_gui) elev_max(curr_gui)];
+                    tmp2    = [elev_min(curr_ax) elev_max(curr_ax)];
                 end
                 if (tmp1(1) < elev_min_ref)
                     reset_y_min
@@ -3502,7 +3519,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                         set(z_min_slide(curr_ax), 'value', tmp1(1))
                     end
                     set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', tmp1(1)))
-                    elev_min(curr_gui) = tmp1(1);
+                    elev_min(curr_ax) = tmp1(1);
                 end
                 if (tmp1(2) > elev_max_ref)
                     reset_y_max
@@ -3513,20 +3530,20 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                         set(z_max_slide(curr_ax), 'value', tmp1(2))
                     end
                     set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', tmp1(2)))
-                    elev_max(curr_gui) = tmp1(2);
+                    elev_max(curr_ax) = tmp1(2);
                 end
                 if (flat_done(curr_rad) && data_done(curr_rad))
-                    depth_min = depth_min - (elev_max(curr_gui) - tmp2(2));
-                    depth_max = depth_max - (elev_min(curr_gui) - tmp2(1));
-                    if (depth_min < depth_min_ref)
-                        depth_min = depth_min_ref;
+                    depth_min(curr_rad)= depth_min(curr_rad)- (elev_max(curr_ax) - tmp2(2));
+                    depth_max(curr_rad)= depth_max(curr_rad)- (elev_min(curr_ax) - tmp2(1));
+                    if (depth_min(curr_rad)< depth_min_ref)
+                        depth_min(curr_rad)= depth_min_ref;
                     end
-                    if (depth_max > depth_max_ref)
-                        depth_max = depth_max_ref;
+                    if (depth_max(curr_rad)> depth_max_ref)
+                        depth_max(curr_rad)= depth_max_ref;
                     end
                 end
             case 'flat'
-                tmp2        = [depth_min depth_max];
+                tmp2        = [depth_min(curr_rad) depth_max(curr_rad)];
                 if (tmp1(1) < depth_min_ref)
                     reset_y_min
                 else
@@ -3538,7 +3555,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                         set(z_min_slide(curr_ax), 'value', tmp1(1))
                     end
                     set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', tmp1(1)))
-                    depth_min ...
+                    depth_min(curr_rad)...
                             = tmp1(1);
                 end
                 if (tmp1(2) > depth_max_ref)
@@ -3552,16 +3569,16 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                         set(z_max_slide(curr_ax), 'value', tmp1(2))
                     end
                     set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', tmp1(2)))
-                    depth_max ...
+                    depth_max(curr_rad)...
                             = tmp1(2);
                 end
-                elev_min(curr_gui) = elev_min(curr_gui) - (depth_max - tmp2(2));
-                elev_max(curr_gui) = elev_max(curr_gui) - (depth_min - tmp2(1));
-                if (elev_min(curr_gui) < elev_min_ref)
-                    elev_min(curr_gui) = elev_min_ref;
+                elev_min(curr_ax) = elev_min(curr_ax) - (depth_max(curr_rad)- tmp2(2));
+                elev_max(curr_ax) = elev_max(curr_ax) - (depth_min(curr_rad)- tmp2(1));
+                if (elev_min(curr_ax) < elev_min_ref)
+                    elev_min(curr_ax) = elev_min_ref;
                 end
-                if (elev_max(curr_gui) > elev_max_ref)
-                    elev_max(curr_gui) = elev_max_ref;
+                if (elev_max(curr_ax) > elev_max_ref)
+                    elev_max(curr_ax) = elev_max_ref;
                 end
         end
         narrow_cb
@@ -3578,41 +3595,25 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             delete(p_data(curr_gui, curr_rad))
         end
         axes(ax(curr_ax))
-        set(z_min_slide(curr_ax), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max(curr_gui))
-        set(z_max_slide(curr_ax), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min(curr_gui))
-        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_gui)))
-        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_gui)))
+        set(z_min_slide(curr_ax), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max(curr_ax))
+        set(z_max_slide(curr_ax), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min(curr_ax))
+        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
         disp_type{curr_ax}  = 'amp.';
         if (data_done(curr_rad) && data_check(curr_gui, curr_rad))
             switch curr_gui
                 case 1
                     set(status_box(1), 'string', 'Displaying radargram in 3D GUI...')
-                    zlim([elev_min(curr_gui) elev_max(curr_gui)])
+                    zlim([elev_min(curr_ax) elev_max(curr_ax)])
                     p_data(curr_gui, curr_rad) ...
                             = surf(repmat(pk{curr_rad}.x(ind_decim{curr_rad}), num_sample(curr_rad), 1), repmat(pk{curr_rad}.y(ind_decim{curr_rad}), num_sample(curr_rad), 1), ...
                                    repmat(elev{curr_rad}, 1, num_decim(curr_rad)), double(amp_mean{curr_rad}), 'facecolor', 'flat', 'edgecolor', 'none', 'facelighting', 'none');
                     set(status_box(1), 'string', 'Displayed. Changing view will be slower.')
                     reset_xyz
                 case 2
-                    if strcmp(disp_type{2}, disp_type{3})
-                        linkaxes(ax(2:3), 'y')
-                        h_link1 = linkprop(z_min_slide(2:3), {'value' 'min' 'max'});
-                        h_link2 = linkprop(z_max_slide(2:3), {'value' 'min' 'max'});
-                        h_link3 = linkprop(z_min_edit(2:3), 'string');
-                        h_link4 = linkprop(z_max_edit(2:3), 'string');
-                    else
-                        linkaxes(ax(2:3), 'off')
-                        removeprop(h_link1, 'value');
-                        removeprop(h_link1, 'min');
-                        removeprop(h_link1, 'max');
-                        removeprop(h_link2, 'value');
-                        removeprop(h_link2, 'min');
-                        removeprop(h_link2, 'max');
-                        removeprop(h_link3, 'string');
-                        removeprop(h_link4, 'string');
-                    end
+                    link_z
                     axis xy
-                    ylim([elev_min(curr_gui) elev_max(curr_gui)])
+                    ylim([elev_min(curr_ax) elev_max(curr_ax)])
                     p_data(curr_gui, curr_rad) ...
                             = imagesc(pk{curr_rad}.dist_lin(ind_decim{curr_rad}), elev{curr_rad}, amp_mean{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
                     reset_xz
@@ -3642,29 +3643,13 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             set(cmap_list(curr_gui), 'value', 1)
             change_cmap
         end
-        if strcmp(disp_type{2}, disp_type{3})
-            linkaxes(ax(2:3), 'y')
-            h_link1         = linkprop(z_min_slide(2:3), {'value' 'min' 'max'});
-            h_link2         = linkprop(z_max_slide(2:3), {'value' 'min' 'max'});
-            h_link3         = linkprop(z_min_edit(2:3), 'string');
-            h_link4         = linkprop(z_max_edit(2:3), 'string');
-        else
-            linkaxes(ax(2:3), 'off')
-            removeprop(h_link1, 'value');
-            removeprop(h_link1, 'min');
-            removeprop(h_link1, 'max');
-            removeprop(h_link2, 'value');
-            removeprop(h_link2, 'min');
-            removeprop(h_link2, 'max');
-            removeprop(h_link3, 'string');
-            removeprop(h_link4, 'string');
-        end
+        link_z
         axis ij
-        set(z_min_slide(curr_ax), 'min', depth_min_ref, 'max', depth_max_ref, 'value', (depth_max_ref - (depth_max - depth_min_ref)))
-        set(z_max_slide(curr_ax), 'min', depth_min_ref, 'max', depth_max_ref, 'value', (depth_max_ref - (depth_min - depth_min_ref)))
-        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max))
-        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min))
-        ylim([depth_min depth_max])
+        set(z_min_slide(curr_ax), 'min', depth_min_ref, 'max', depth_max_ref, 'value', (depth_max_ref - (depth_max(curr_rad)- depth_min_ref)))
+        set(z_max_slide(curr_ax), 'min', depth_min_ref, 'max', depth_max_ref, 'value', (depth_max_ref - (depth_min(curr_rad)- depth_min_ref)))
+        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+        ylim([depth_min(curr_rad) depth_max(curr_rad)])
         p_data(curr_gui, curr_rad) ...
                             = imagesc(pk{curr_rad}.dist_lin(ind_decim{curr_rad}), depth{curr_rad}, amp_flat{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
         disp_type{curr_ax}  = 'flat';
@@ -3992,10 +3977,16 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 ind_decim{curr_rad} ...
                             = 1:pk{curr_rad}.num_trace_tot;
             end
-            num_decim(curr_rad) ...
+                num_decim(curr_rad) ...
                             = length(ind_decim{curr_rad});
+            if (any(p_bed(:, curr_rad)) && any(ishandle(p_bed(:, curr_rad))))
+                delete(p_bed((logical(p_bed(:, curr_rad)) & ishandle(p_bed(:, curr_rad))), curr_rad))
+            end
             if (any(p_pk{curr_gui, curr_rad}) && any(ishandle(p_pk{curr_gui, curr_rad})))
                 delete(p_pk{curr_gui, curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pk{curr_gui, curr_rad})))
+            end
+            if (any(p_surf(:, curr_rad)) && any(ishandle(p_surf(:, curr_rad))))
+                delete(p_surf((logical(p_surf(:, curr_rad)) & ishandle(p_surf(:, curr_rad))), curr_rad))
             end
             layer_str{curr_rad} ...
                             = num2cell(1:pk{curr_rad}.num_layer);
@@ -4024,6 +4015,49 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                                                                 '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
                         end
                     end
+            end
+            % check to see if surface and bed picks are available
+            if isfield(pk{curr_rad}, 'elev_surf')
+                if any(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))
+                    surf_avail(curr_rad) ...
+                            = true;
+                    axes(ax(1))
+                    p_surf(1, curr_rad) ...
+                            = plot3(pk{curr_rad}.x(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))), ...
+                                    pk{curr_rad}.y(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))), ...
+                                    pk{curr_rad}.elev_surf(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
+                    axes(ax(1 + curr_rad))
+                    p_surf(2, curr_rad) ...
+                            = plot(pk{curr_rad}.dist_lin(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))), ...
+                                   pk{curr_rad}.elev_surf(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
+                    if any(isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad}))))))
+                        set(p_surf(2, curr_rad), 'marker', '.', 'linestyle', 'none', 'markersize', 12)
+                    end
+                else
+                    surf_avail(curr_rad) ...
+                            = false;
+                end
+            end
+            if isfield(pk{curr_rad}, 'elev_bed')
+                if any(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))
+                    bed_avail(curr_rad) ...
+                            = true;
+                    axes(ax(1))
+                    p_bed(1, curr_rad) ...
+                        = plot3(pk{curr_rad}.x(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))), ...
+                        pk{curr_rad}.y(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))), ...
+                        pk{curr_rad}.elev_bed(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
+                    axes(ax(1 + curr_rad))
+                    p_bed(2, curr_rad) ...
+                        = plot(pk{curr_rad}.dist_lin(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))), ...
+                        pk{curr_rad}.elev_bed(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
+                    if any(isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad}))))))
+                        set(p_bed(2, curr_rad), 'marker', '.', 'linestyle', 'none', 'markersize', 12)
+                    end
+                else
+                    bed_avail(curr_rad) ...
+                            = false;
+                end
             end
             % calculate bed depth (for flattened projection)
             if (surf_avail(curr_rad) && bed_avail(curr_rad))
@@ -4176,11 +4210,11 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             tmp1(1, :)      = interp1(pk{curr_rad}.dist_lin(ind_decim{curr_rad}), 1:num_decim(curr_rad), [dist_min(curr_rad) dist_max(curr_rad)], 'nearest', 'extrap');
             switch disp_type{curr_ax}
                 case 'amp.'
-                    tmp1(2, :) = interp1(elev{curr_rad}, 1:num_sample(curr_rad), [elev_min(curr_gui) elev_max(curr_gui)], 'nearest', 'extrap');
+                    tmp1(2, :) = interp1(elev{curr_rad}, 1:num_sample(curr_rad), [elev_min(curr_ax) elev_max(curr_ax)], 'nearest', 'extrap');
                     tmp1(2, :) = flipud(tmp1(2, :));
                     tmp1    = amp_mean{curr_rad}(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
                 case 'flat'
-                    tmp1(2, :) = interp1(depth{curr_rad}, 1:length(depth{curr_rad}), [depth_min depth_max], 'nearest', 'extrap');
+                    tmp1(2, :) = interp1(depth{curr_rad}, 1:length(depth{curr_rad}), [depth_min(curr_rad) depth_max(curr_rad)], 'nearest', 'extrap');
                     tmp1    = amp_flat{curr_rad}(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
             end
             tmp2            = NaN(1, 2);
@@ -4289,6 +4323,43 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(2, 3, 2, 1);
                 set(status_box(curr_gui), 'string', 'Intersecting transect now selected/active.')
+        end
+        axes(ax(curr_ax))
+    end
+
+%% Toggle linking of z axes in 2D
+
+    function link_z(source, eventdata)
+        if get(link_check, 'value')
+            if strcmp(disp_type{2}, disp_type{3})
+                linkaxes(ax(2:3), 'y')
+                h_link1 = linkprop(z_min_slide(2:3), {'value' 'min' 'max'});
+                h_link2 = linkprop(z_max_slide(2:3), {'value' 'min' 'max'});
+                h_link3 = linkprop(z_min_edit(2:3), 'string');
+                h_link4 = linkprop(z_max_edit(2:3), 'string');
+                [elev_min(2), elev_max(2), depth_min(1), depth_max(1)] ...
+                            = deal(elev_min(3), elev_max(3), depth_min(2), depth_max(2));
+            else
+                linkaxes(ax(2:3), 'off')
+                removeprop(h_link1, 'value');
+                removeprop(h_link1, 'min');
+                removeprop(h_link1, 'max');
+                removeprop(h_link2, 'value');
+                removeprop(h_link2, 'min');
+                removeprop(h_link2, 'max');
+                removeprop(h_link3, 'string');
+                removeprop(h_link4, 'string');
+            end
+        else
+            linkaxes(ax(2:3), 'off')
+            removeprop(h_link1, 'value');
+            removeprop(h_link1, 'min');
+            removeprop(h_link1, 'max');
+            removeprop(h_link2, 'value');
+            removeprop(h_link2, 'min');
+            removeprop(h_link2, 'max');
+            removeprop(h_link3, 'string');
+            removeprop(h_link4, 'string');
         end
     end
 
@@ -4446,13 +4517,17 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         curr_gui            = 2;
         switch eventdata.Key
             case '1'
-                [curr_ax, curr_rad, curr_rad_alt] ...
-                            = deal(2, 1, 2);
+                set(rad_group, 'selectedobject', rad_check(1))
+                [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+                            = deal(2, 2, 1, 2);
                 axes(ax(curr_ax))
+                set(status_box(curr_gui), 'string', 'Master transect now selected/active.')
             case '2'
-                [curr_ax, curr_rad, curr_rad_alt] ...
-                            = deal(3, 2, 1);
+                set(rad_group, 'selectedobject', rad_check(2))
+                [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+                            = deal(2, 3, 2, 1);
                 axes(ax(curr_ax))
+                set(status_box(curr_gui), 'string', 'Intersecting transect now selected/active.')
             case '3'
                 [curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(2, 1, 2);
@@ -4540,6 +4615,18 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                     set(grid_check(curr_ax), 'value', 1)
                 end
                 toggle_grid
+            case 'h'
+                if get(match_check, 'value')
+                    set(match_check, 'value', 0)
+                else
+                    set(match_check, 'value', 1)
+                end
+            case 'k'
+                if get(link_check, 'value')
+                    set(link_check, 'value', 0)
+                else
+                    set(link_check, 'value', 1)
+                end
             case 'l'
                 load_data
             case 'm'
@@ -4572,83 +4659,244 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             case 'z'
                 choose_pk1
             case 'downarrow'
-                if (curr_ax == 1)
-                    curr_ax = 2;
-                end
                 switch disp_type{curr_ax}
                     case 'amp.'
-                        tmp1        = elev_max(curr_gui) - elev_min(curr_gui);
-                        tmp2        = elev_min(curr_gui) - (0.25 * tmp1);
+                        tmp1        = elev_max(curr_ax) - elev_min(curr_ax);
+                        tmp2        = elev_min(curr_ax) - (0.25 * tmp1);
                         if (flat_done(curr_rad) && data_done(curr_rad))
-                            tmp3    = [elev_min(curr_gui) elev_max(curr_gui)];
+                            tmp3    = [elev_min(curr_ax) elev_max(curr_ax)];
                         end
                         if (tmp2 < elev_min_ref)
-                            elev_min(curr_gui) = elev_min_ref;
+                            elev_min(curr_ax) = elev_min_ref;
                         else
-                            elev_min(curr_gui) = tmp2;
+                            elev_min(curr_ax) = tmp2;
                         end
-                        elev_max(curr_gui)    = elev_min(curr_gui) + tmp1;
-                        if (elev_max(curr_gui) > elev_max_ref)
-                            elev_max(curr_gui) = elev_max_ref;
+                        elev_max(curr_ax)    = elev_min(curr_ax) + tmp1;
+                        if (elev_max(curr_ax) > elev_max_ref)
+                            elev_max(curr_ax) = elev_max_ref;
                         end
                         if (flat_done(curr_rad) && data_done(curr_rad))
-                            depth_min       = depth_min - (elev_max(curr_gui) - tmp3(2));
-                            depth_max       = depth_max - (elev_min(curr_gui)  - tmp3(1));
-                            if (depth_min < depth_min_ref)
-                                depth_min   = depth_min_ref;
+                            depth_min(curr_rad)      = depth_min(curr_rad) - (elev_max(curr_ax) - tmp3(2));
+                            depth_max(curr_rad)      = depth_max(curr_rad) - (elev_min(curr_ax) - tmp3(1));
+                            if (depth_min(curr_rad) < depth_min_ref)
+                                depth_min(curr_rad)  = depth_min_ref;
                             end
-                            if (depth_max > depth_max_ref)
-                                depth_max   = depth_max_ref;
+                            if (depth_max(curr_rad)> depth_max_ref)
+                                depth_max(curr_rad)  = depth_max_ref;
                             end
                         end
-                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_gui)))
-                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_gui)))
-                        if (elev_min(curr_gui) < get(z_min_slide(curr_ax), 'min'))
+                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                        if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
                             set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
                         else
-                            set(z_min_slide(curr_ax), 'value', elev_min(curr_gui))
+                            set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
                         end
-                        if (elev_max(curr_gui) > get(z_max_slide(curr_ax), 'max'))
+                        if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
                             set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
                         else
-                            set(z_max_slide(curr_ax), 'value', elev_max(curr_gui))
+                            set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                        end
+                        if ~get(link_check, 'value')
+                            switch curr_ax
+                                case 2
+                                    [curr_ax, curr_rad] = deal(3, 2);
+                                    tmp1        = elev_max(curr_ax) - elev_min(curr_ax);
+                                    tmp2        = elev_min(curr_ax) - (0.25 * tmp1);
+                                    if (flat_done(curr_rad) && data_done(curr_rad))
+                                        tmp3    = [elev_min(curr_ax) elev_max(curr_ax)];
+                                    end
+                                    if (tmp2 < elev_min_ref)
+                                        elev_min(curr_ax) = elev_min_ref;
+                                    else
+                                        elev_min(curr_ax) = tmp2;
+                                    end
+                                    elev_max(curr_ax)    = elev_min(curr_ax) + tmp1;
+                                    if (elev_max(curr_ax) > elev_max_ref)
+                                        elev_max(curr_ax) = elev_max_ref;
+                                    end
+                                    if (flat_done(curr_rad) && data_done(curr_rad))
+                                        depth_min(curr_rad)      = depth_min(curr_rad) - (elev_max(curr_ax) - tmp3(2));
+                                        depth_max(curr_rad)      = depth_max(curr_rad) - (elev_min(curr_ax) - tmp3(1));
+                                        if (depth_min(curr_rad) < depth_min_ref)
+                                            depth_min(curr_rad)  = depth_min_ref;
+                                        end
+                                        if (depth_max(curr_rad)> depth_max_ref)
+                                            depth_max(curr_rad)  = depth_max_ref;
+                                        end
+                                    end
+                                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                                    if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
+                                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                    else
+                                        set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                                    end
+                                    if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+                                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                    else
+                                        set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                                    end
+                                    [curr_ax, curr_rad] = deal(2, 1);
+                                case 3
+                                    [curr_ax, curr_rad] = deal(2, 1);
+                                    tmp1        = elev_max(curr_ax) - elev_min(curr_ax);
+                                    tmp2        = elev_min(curr_ax) - (0.25 * tmp1);
+                                    if (flat_done(curr_rad) && data_done(curr_rad))
+                                        tmp3    = [elev_min(curr_ax) elev_max(curr_ax)];
+                                    end
+                                    if (tmp2 < elev_min_ref)
+                                        elev_min(curr_ax) = elev_min_ref;
+                                    else
+                                        elev_min(curr_ax) = tmp2;
+                                    end
+                                    elev_max(curr_ax)    = elev_min(curr_ax) + tmp1;
+                                    if (elev_max(curr_ax) > elev_max_ref)
+                                        elev_max(curr_ax) = elev_max_ref;
+                                    end
+                                    if (flat_done(curr_rad) && data_done(curr_rad))
+                                        depth_min(curr_rad)      = depth_min(curr_rad) - (elev_max(curr_ax) - tmp3(2));
+                                        depth_max(curr_rad)      = depth_max(curr_rad) - (elev_min(curr_ax) - tmp3(1));
+                                        if (depth_min(curr_rad) < depth_min_ref)
+                                            depth_min(curr_rad)  = depth_min_ref;
+                                        end
+                                        if (depth_max(curr_rad)> depth_max_ref)
+                                            depth_max(curr_rad)  = depth_max_ref;
+                                        end
+                                    end
+                                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                                    if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
+                                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                    else
+                                        set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                                    end
+                                    if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+                                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                    else
+                                        set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                                    end
+                                    [curr_ax, curr_rad] = deal(3, 2);
+                            end
                         end
                     case 'flat'
-                        tmp1        = depth_max - depth_min;
-                        tmp2        = depth_max + (0.25 * tmp1);
-                        tmp3        = [depth_min depth_max];
+                        tmp1        = depth_max(curr_rad)- depth_min(curr_rad);
+                        tmp2        = depth_max(curr_rad)+ (0.25 * tmp1);
+                        tmp3        = [depth_min(curr_rad) depth_max(curr_rad)];
                         if (tmp2 > depth_max_ref)
-                            depth_max= depth_max_ref;
+                            depth_max(curr_rad) = depth_max_ref;
                         else
-                            depth_max= tmp2;
+                            depth_max(curr_rad)= tmp2;
                         end
-                        depth_min    = depth_max - tmp1;
-                        if (depth_min < depth_min_ref)
-                            depth_min=depth_min_ref;
+                        depth_min(curr_rad)   = depth_max(curr_rad)- tmp1;
+                        if (depth_min(curr_rad)< depth_min_ref)
+                            depth_min(curr_rad) = depth_min_ref;
                         end
-                        elev_min(curr_gui) = elev_min(curr_gui) - (depth_max - tmp3(2));
-                        elev_max(curr_gui) = elev_max(curr_gui) - (depth_min - tmp3(1));
-                        if (elev_min(curr_gui) < elev_min_ref)
-                            elev_min(curr_gui)   = elev_min_ref;
+                        elev_min(curr_ax) = elev_min(curr_ax) - (depth_max(curr_rad)- tmp3(2));
+                        elev_max(curr_ax) = elev_max(curr_ax) - (depth_min(curr_rad)- tmp3(1));
+                        if (elev_min(curr_ax) < elev_min_ref)
+                            elev_min(curr_ax)   = elev_min_ref;
                         end
-                        if (elev_max(curr_gui) > elev_max_ref)
-                            elev_max(curr_gui) = elev_max_ref;
+                        if (elev_max(curr_ax) > elev_max_ref)
+                            elev_max(curr_ax) = elev_max_ref;
                         end
-                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max))
-                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min))
-                        if ((depth_max_ref - (depth_max - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+                        if ((depth_max_ref - (depth_max(curr_rad)- depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
                             set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                        elseif ((depth_max_ref - (depth_max - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
+                        elseif ((depth_max_ref - (depth_max(curr_rad)- depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
                             set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
                         else
-                            set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
+                            set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad)- depth_min_ref)))
                         end
-                        if ((depth_max_ref - (depth_min - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
+                        if ((depth_max_ref - (depth_min(curr_rad)- depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
                             set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
-                        elseif ((depth_max_ref - (depth_min - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                        elseif ((depth_max_ref - (depth_min(curr_rad)- depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
                             set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
                         else
-                            set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
+                            set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad)- depth_min_ref)))
+                        end
+                        if ~get(link_check, 'value')
+                            switch curr_ax
+                                case 2
+                                    [curr_ax, curr_rad] = deal(3, 2);
+                                    tmp1        = depth_max(curr_rad)- depth_min(curr_rad);
+                                    tmp2        = depth_max(curr_rad)+ (0.25 * tmp1);
+                                    tmp3        = [depth_min(curr_rad) depth_max(curr_rad)];
+                                    if (tmp2 > depth_max_ref)
+                                        depth_max(curr_rad) = depth_max_ref;
+                                    else
+                                        depth_max(curr_rad)= tmp2;
+                                    end
+                                    depth_min(curr_rad)   = depth_max(curr_rad)- tmp1;
+                                    if (depth_min(curr_rad)< depth_min_ref)
+                                        depth_min(curr_rad) = depth_min_ref;
+                                    end
+                                    elev_min(curr_ax) = elev_min(curr_ax) - (depth_max(curr_rad)- tmp3(2));
+                                    elev_max(curr_ax) = elev_max(curr_ax) - (depth_min(curr_rad)- tmp3(1));
+                                    if (elev_min(curr_ax) < elev_min_ref)
+                                        elev_min(curr_ax)   = elev_min_ref;
+                                    end
+                                    if (elev_max(curr_ax) > elev_max_ref)
+                                        elev_max(curr_ax) = elev_max_ref;
+                                    end
+                                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+                                    if ((depth_max_ref - (depth_max(curr_rad)- depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                    elseif ((depth_max_ref - (depth_max(curr_rad)- depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
+                                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                                    else
+                                        set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad)- depth_min_ref)))
+                                    end
+                                    if ((depth_max_ref - (depth_min(curr_rad)- depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
+                                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+                                    elseif ((depth_max_ref - (depth_min(curr_rad)- depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                    else
+                                        set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad)- depth_min_ref)))
+                                    end
+                                    [curr_ax, curr_rad] = deal(2, 1);
+                                case 3
+                                    [curr_ax, curr_rad] = deal(2, 1);
+                                    tmp1        = depth_max(curr_rad)- depth_min(curr_rad);
+                                    tmp2        = depth_max(curr_rad)+ (0.25 * tmp1);
+                                    tmp3        = [depth_min(curr_rad) depth_max(curr_rad)];
+                                    if (tmp2 > depth_max_ref)
+                                        depth_max(curr_rad) = depth_max_ref;
+                                    else
+                                        depth_max(curr_rad)= tmp2;
+                                    end
+                                    depth_min(curr_rad)   = depth_max(curr_rad)- tmp1;
+                                    if (depth_min(curr_rad)< depth_min_ref)
+                                        depth_min(curr_rad) = depth_min_ref;
+                                    end
+                                    elev_min(curr_ax) = elev_min(curr_ax) - (depth_max(curr_rad)- tmp3(2));
+                                    elev_max(curr_ax) = elev_max(curr_ax) - (depth_min(curr_rad)- tmp3(1));
+                                    if (elev_min(curr_ax) < elev_min_ref)
+                                        elev_min(curr_ax)   = elev_min_ref;
+                                    end
+                                    if (elev_max(curr_ax) > elev_max_ref)
+                                        elev_max(curr_ax) = elev_max_ref;
+                                    end
+                                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+                                    if ((depth_max_ref - (depth_max(curr_rad)- depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                    elseif ((depth_max_ref - (depth_max(curr_rad)- depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
+                                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                                    else
+                                        set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad)- depth_min_ref)))
+                                    end
+                                    if ((depth_max_ref - (depth_min(curr_rad)- depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
+                                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+                                    elseif ((depth_max_ref - (depth_min(curr_rad)- depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                    else
+                                        set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad)- depth_min_ref)))
+                                    end
+                                    [curr_ax, curr_rad] = deal(3, 2);
+                            end
                         end
                 end
                 update_z_range
@@ -4720,81 +4968,238 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 end
                 update_dist_range
             case 'uparrow'
-                if (curr_ax == 1)
-                    curr_ax = 2;
-                end
                 switch disp_type{curr_ax}
                     case 'amp.'
-                        tmp1        = elev_max(curr_gui) - elev_min(curr_gui);
-                        tmp2        = elev_max(curr_gui) + (0.25 * tmp1);
+                        tmp1        = elev_max(curr_ax) - elev_min(curr_ax);
+                        tmp2        = elev_max(curr_ax) + (0.25 * tmp1);
                         if (flat_done(curr_rad) && data_done(curr_rad))
-                            tmp3    = [elev_min(curr_gui) elev_max(curr_gui)];
+                            tmp3    = [elev_min(curr_ax) elev_max(curr_ax)];
                         end
                         if (tmp2 > elev_max_ref)
-                            elev_max(curr_gui) = elev_max_ref;
+                            elev_max(curr_ax) = elev_max_ref;
                         else
-                            elev_max(curr_gui) = tmp2;
+                            elev_max(curr_ax) = tmp2;
                         end
-                        elev_min(curr_gui) = elev_max(curr_gui) - tmp1;
-                        if (elev_min(curr_gui) < elev_min_ref)
-                            elev_min(curr_gui) = elev_min_ref;
+                        elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
+                        if (elev_min(curr_ax) < elev_min_ref)
+                            elev_min(curr_ax) = elev_min_ref;
                         end
                         if (flat_done(curr_rad) && data_done(curr_rad))
-                            depth_min       = depth_min - (elev_max(curr_gui) - tmp3(2));
-                            depth_max       = depth_max - (elev_min(curr_gui) - tmp3(1));
-                            if (depth_min < depth_min_ref)
-                                depth_min   = depth_min_ref;
+                            depth_min(curr_rad)      = depth_min(curr_rad)- (elev_max(curr_ax) - tmp3(2));
+                            depth_max(curr_rad)      = depth_max(curr_rad)- (elev_min(curr_ax) - tmp3(1));
+                            if (depth_min(curr_rad)< depth_min_ref)
+                                depth_min(curr_rad)  = depth_min_ref;
                             end
-                            if (depth_max > depth_max_ref)
-                                depth_max   = depth_max_ref;
+                            if (depth_max(curr_rad)> depth_max_ref)
+                                depth_max(curr_rad)  = depth_max_ref;
                             end
                         end
-                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_gui)))
-                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_gui)))
-                        if (elev_min(curr_gui) < get(z_min_slide(curr_ax), 'min'))
+                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                        if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
                             set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
                         else
-                            set(z_min_slide(curr_ax), 'value', elev_min(curr_gui))
+                            set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
                         end
-                        if (elev_max(curr_gui) > get(z_max_slide(curr_ax), 'max'))
+                        if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
                             set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
                         else
-                            set(z_max_slide(curr_ax), 'value', elev_max(curr_gui))
+                            set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                        end
+                        if ~get(link_check, 'value')
+                            switch curr_ax
+                                case 2
+                                    [curr_ax, curr_rad] = deal(3, 2);
+                                    tmp1        = elev_max(curr_ax) - elev_min(curr_ax);
+                                    tmp2        = elev_max(curr_ax) + (0.25 * tmp1);
+                                    if (flat_done(curr_rad) && data_done(curr_rad))
+                                        tmp3    = [elev_min(curr_ax) elev_max(curr_ax)];
+                                    end
+                                    if (tmp2 > elev_max_ref)
+                                        elev_max(curr_ax) = elev_max_ref;
+                                    else
+                                        elev_max(curr_ax) = tmp2;
+                                    end
+                                    elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
+                                    if (elev_min(curr_ax) < elev_min_ref)
+                                        elev_min(curr_ax) = elev_min_ref;
+                                    end
+                                    if (flat_done(curr_rad) && data_done(curr_rad))
+                                        depth_min(curr_rad)      = depth_min(curr_rad)- (elev_max(curr_ax) - tmp3(2));
+                                        depth_max(curr_rad)      = depth_max(curr_rad)- (elev_min(curr_ax) - tmp3(1));
+                                        if (depth_min(curr_rad)< depth_min_ref)
+                                            depth_min(curr_rad)  = depth_min_ref;
+                                        end
+                                        if (depth_max(curr_rad)> depth_max_ref)
+                                            depth_max(curr_rad)  = depth_max_ref;
+                                        end
+                                    end
+                                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                                    if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
+                                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                    else
+                                        set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                                    end
+                                    if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+                                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                    else
+                                        set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                                    end
+                                    [curr_ax, curr_rad] = deal(2, 1);
+                                case 3
+                                    [curr_ax, curr_rad] = deal(2, 1);
+                                    tmp1        = elev_max(curr_ax) - elev_min(curr_ax);
+                                    tmp2        = elev_max(curr_ax) + (0.25 * tmp1);
+                                    if (flat_done(curr_rad) && data_done(curr_rad))
+                                        tmp3    = [elev_min(curr_ax) elev_max(curr_ax)];
+                                    end
+                                    if (tmp2 > elev_max_ref)
+                                        elev_max(curr_ax) = elev_max_ref;
+                                    else
+                                        elev_max(curr_ax) = tmp2;
+                                    end
+                                    elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
+                                    if (elev_min(curr_ax) < elev_min_ref)
+                                        elev_min(curr_ax) = elev_min_ref;
+                                    end
+                                    if (flat_done(curr_rad) && data_done(curr_rad))
+                                        depth_min(curr_rad)      = depth_min(curr_rad)- (elev_max(curr_ax) - tmp3(2));
+                                        depth_max(curr_rad)      = depth_max(curr_rad)- (elev_min(curr_ax) - tmp3(1));
+                                        if (depth_min(curr_rad)< depth_min_ref)
+                                            depth_min(curr_rad)  = depth_min_ref;
+                                        end
+                                        if (depth_max(curr_rad)> depth_max_ref)
+                                            depth_max(curr_rad)  = depth_max_ref;
+                                        end
+                                    end
+                                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                                    if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
+                                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                    else
+                                        set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                                    end
+                                    if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+                                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                    else
+                                        set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                                    end
+                                    [curr_ax, curr_rad] = deal(3, 2);
+                            end
                         end
                     case 'flat'
-                        tmp1        = depth_max - depth_min;
-                        tmp2        = depth_min - (0.25 * tmp1);
-                        tmp3        = [depth_min depth_max];
+                        tmp1        = depth_max(curr_rad) - depth_min(curr_rad);
+                        tmp2        = depth_min(curr_rad) - (0.25 * tmp1);
+                        tmp3        = [depth_min(curr_rad) depth_max(curr_rad)];
                         if (tmp2 < depth_min_ref)
-                            depth_min= depth_min_ref;
+                            depth_min(curr_rad) = depth_min_ref;
                         else
-                            depth_min= tmp2;
+                            depth_min(curr_rad) = tmp2;
                         end
-                        depth_max   = depth_min + tmp1;
-                        depth_min   = depth_max - tmp1;
-                        elev_min(curr_gui) = elev_min(curr_gui) - (depth_max - tmp3(2));
-                        elev_max(curr_gui) = elev_max(curr_gui) - (depth_min - tmp3(1));
-                        if (elev_min(curr_gui) < elev_min_ref)
-                            elev_min(curr_gui) = elev_min_ref;
+                        depth_max(curr_rad)  = depth_min(curr_rad)+ tmp1;
+                        depth_min(curr_rad)  = depth_max(curr_rad)- tmp1;
+                        elev_min(curr_ax) = elev_min(curr_ax) - (depth_max(curr_rad)- tmp3(2));
+                        elev_max(curr_ax) = elev_max(curr_ax) - (depth_min(curr_rad)- tmp3(1));
+                        if (elev_min(curr_ax) < elev_min_ref)
+                            elev_min(curr_ax) = elev_min_ref;
                         end
-                        if (elev_max(curr_gui) > elev_max_ref)
-                            elev_max(curr_gui) = elev_max_ref;
+                        if (elev_max(curr_ax) > elev_max_ref)
+                            elev_max(curr_ax) = elev_max_ref;
                         end
-                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max))
-                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min))
-                        if ((depth_max_ref - (depth_max - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+                        if ((depth_max_ref - (depth_max(curr_rad)- depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
                             set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                        elseif ((depth_max_ref - (depth_max - depth_min_ref)) > get(y_min_slide, 'max'))
+                        elseif ((depth_max_ref - (depth_max(curr_rad)- depth_min_ref)) > get(y_min_slide, 'max'))
                             set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
                         else
-                            set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
+                            set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad)- depth_min_ref)))
                         end
-                        if ((depth_max_ref - (depth_min - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
+                        if ((depth_max_ref - (depth_min(curr_rad)- depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
                             set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
-                        elseif ((depth_max_ref - (depth_min - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                        elseif ((depth_max_ref - (depth_min(curr_rad)- depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
                             set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
                         else
-                            set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
+                            set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad)- depth_min_ref)))
+                        end
+                        if ~get(link_check, 'value')
+                            switch curr_ax
+                                case 2
+                                    [curr_ax, curr_rad] = deal(3, 2);
+                                    tmp1        = depth_max(curr_rad) - depth_min(curr_rad);
+                                    tmp2        = depth_min(curr_rad) - (0.25 * tmp1);
+                                    tmp3        = [depth_min(curr_rad) depth_max(curr_rad)];
+                                    if (tmp2 < depth_min_ref)
+                                        depth_min(curr_rad) = depth_min_ref;
+                                    else
+                                        depth_min(curr_rad) = tmp2;
+                                    end
+                                    depth_max(curr_rad)  = depth_min(curr_rad)+ tmp1;
+                                    depth_min(curr_rad)  = depth_max(curr_rad)- tmp1;
+                                    elev_min(curr_ax) = elev_min(curr_ax) - (depth_max(curr_rad)- tmp3(2));
+                                    elev_max(curr_ax) = elev_max(curr_ax) - (depth_min(curr_rad)- tmp3(1));
+                                    if (elev_min(curr_ax) < elev_min_ref)
+                                        elev_min(curr_ax) = elev_min_ref;
+                                    end
+                                    if (elev_max(curr_ax) > elev_max_ref)
+                                        elev_max(curr_ax) = elev_max_ref;
+                                    end
+                                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+                                    if ((depth_max_ref - (depth_max(curr_rad)- depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                    elseif ((depth_max_ref - (depth_max(curr_rad)- depth_min_ref)) > get(y_min_slide, 'max'))
+                                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                                    else
+                                        set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad)- depth_min_ref)))
+                                    end
+                                    if ((depth_max_ref - (depth_min(curr_rad)- depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
+                                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+                                    elseif ((depth_max_ref - (depth_min(curr_rad)- depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                    else
+                                        set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad)- depth_min_ref)))
+                                    end
+                                    [curr_ax, curr_rad] = deal(2, 1);
+                                case 3
+                                    [curr_ax, curr_rad] = deal(2, 1);
+                                    tmp1        = depth_max(curr_rad) - depth_min(curr_rad);
+                                    tmp2        = depth_min(curr_rad) - (0.25 * tmp1);
+                                    tmp3        = [depth_min(curr_rad) depth_max(curr_rad)];
+                                    if (tmp2 < depth_min_ref)
+                                        depth_min(curr_rad) = depth_min_ref;
+                                    else
+                                        depth_min(curr_rad) = tmp2;
+                                    end
+                                    depth_max(curr_rad)  = depth_min(curr_rad)+ tmp1;
+                                    depth_min(curr_rad)  = depth_max(curr_rad)- tmp1;
+                                    elev_min(curr_ax) = elev_min(curr_ax) - (depth_max(curr_rad)- tmp3(2));
+                                    elev_max(curr_ax) = elev_max(curr_ax) - (depth_min(curr_rad)- tmp3(1));
+                                    if (elev_min(curr_ax) < elev_min_ref)
+                                        elev_min(curr_ax) = elev_min_ref;
+                                    end
+                                    if (elev_max(curr_ax) > elev_max_ref)
+                                        elev_max(curr_ax) = elev_max_ref;
+                                    end
+                                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+                                    if ((depth_max_ref - (depth_max(curr_rad)- depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                    elseif ((depth_max_ref - (depth_max(curr_rad)- depth_min_ref)) > get(y_min_slide, 'max'))
+                                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                                    else
+                                        set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad)- depth_min_ref)))
+                                    end
+                                    if ((depth_max_ref - (depth_min(curr_rad)- depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
+                                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+                                    elseif ((depth_max_ref - (depth_min(curr_rad)- depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                    else
+                                        set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad)- depth_min_ref)))
+                                    end
+                                    [curr_ax, curr_rad] = deal(3, 2);
+                            end
                         end
                 end
                 update_z_range
@@ -4834,7 +5239,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
 %% Test something
 
     function misctest(source, eventdata)
-        
+        get(match_check, 'value')
     end
 %%
 end

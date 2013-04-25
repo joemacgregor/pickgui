@@ -1,15 +1,16 @@
-% COREINT Determine which radar transects intersect ice-core sites.
+% CORE_INT Determine which radar transects intersect ice-core sites.
 % 
-%   COREINT determines whether each radar transect crosses near any of the
+%   CORE_INT determines whether each radar transect crosses near any of the
 %   deep ice-core sites and records this position if so.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 03/30/13
+% Last updated: 04/25/13
 
 clear
 
 dir_save                    = 'mat/';
 do_core                     = true;
+do_save                     = true;
 plotting                    = false;
 decim                       = 25;
 
@@ -23,9 +24,10 @@ if do_core
     
     rad_threshold           = 2.5; % km
     
-    name_core               = {'Camp Century' 'GISP2' 'GRIP' 'NEEM' 'NGRIP' 'Renland'};
-    lat_core                = [77.18          72.6    72.58  77.45  75.10   71.27];
-    lon_core                = [-61.13         -38.5   -37.64 -51.06 -42.32  -26.73];
+    name_core               = {'Camp Century' 'Dye 3' 'GISP2' 'GRIP' 'NEEM' 'NGRIP' 'Renland'};
+    name_core_short         = {'century' 'dye3' 'gisp2' 'grip' 'neem' 'ngrip' 'renland'};    
+    lat_core                = [77.18          65.18   72.6    72.58  77.45  75.10   71.27];
+    lon_core                = [-61.13         -43.49  -38.5   -37.64 -51.06 -42.32  -26.73];
     num_core                = length(name_core);
     
     wgs84                   = almanac('earth', 'wgs84', 'meters');
@@ -62,7 +64,7 @@ if do_core
         end
     end
     
-    save([dir_save 'core_int'], 'int_core', 'int_core_mat', 'lat_core', 'lon_core', 'name_core', 'name_trans', 'num_core', 'num_trans', 'num_year', 'rad_threshold', 'x_core', 'y_core')
+    save([dir_save 'core_int'], 'int_core', 'int_core_mat', 'lat_core', 'lon_core', 'name_core', 'name_core_short', 'name_trans', 'num_core', 'num_trans', 'num_year', 'rad_threshold', 'x_core', 'y_core')
     disp(['Done comparing transects to core sites and saved results in ' dir_save '.'])
     
 else

@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 04/17/13
+% Last updated: 04/24/13
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -4921,16 +4921,16 @@ set(disp_group, 'selectedobject', disp_check(1))
         switch flat_switch
             case 'full'
                 p_data      = imagesc(block.dist_lin(ind_decim), (1e6 .* block.twtt), amp_flat(:, ind_decim), [db_min db_max]);
-                if surf_avail
-                    if any(isnan(ind_surf_flat))
+                if (surf_avail && ~all(isnan(ind_surf_flat(ind_decim))))
+                    if any(isnan(ind_surf_flat(ind_decim)))
                         tmp1        = ind_surf_flat(ind_decim);
                         p_surfflat  = plot(block.dist_lin(ind_decim(~isnan(tmp1))), (1e6 .* block.twtt(tmp1(~isnan(tmp1)))), 'g.', 'markersize', 12);
                     else
                         p_surfflat  = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(ind_surf_flat(ind_decim))), 'g--', 'linewidth', 2);
                     end
                 end
-                if bed_avail
-                    if any(isnan(ind_bed_flat))
+                if (bed_avail && ~all(isnan(ind_bed_flat(ind_decim))))
+                    if any(isnan(ind_bed_flat(ind_decim)))
                         tmp1        = ind_bed_flat(ind_decim);
                         p_bedflat   = plot(block.dist_lin(ind_decim(~isnan(tmp1))), (1e6 .* block.twtt(tmp1(~isnan(tmp1)))), 'g.', 'markersize', 12);
                     else
@@ -4939,16 +4939,16 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
             case 'mean'
                 p_data  = imagesc(block.dist_lin(pk.ind_x_mean), (1e6 .* block.twtt), amp_flat_mean, [db_min db_max]);
-                if surf_avail
-                    if any(isnan(ind_surf_flat))
+                if (surf_avail  && ~all(isnan(ind_surf_flat(ind_decim))))
+                    if any(isnan(ind_surf_flat(ind_decim)))
                         tmp1        = ind_surf_flat(pk.ind_x_mean);
                         p_surfflat  = plot(block.dist_lin(pk.ind_x_mean(~isnan(tmp1))), (1e6 .* block.twtt(tmp1(~isnan(tmp1)))), 'g.', 'markersize', 12);
                     else
                         p_surfflat  = plot(block.dist_lin(pk.ind_x_mean), (1e6 .* block.twtt(ind_surf_flat(pk.ind_x_mean))), 'g--', 'linewidth', 2);
                     end
                 end
-                if bed_avail
-                    if any(isnan(ind_bed_flat))
+                if (bed_avail && ~all(isnan(ind_bed_flat(ind_decim))))
+                    if any(isnan(ind_bed_flat(ind_decim)))
                         tmp1        = ind_bed_flat(pk.ind_x_mean);
                         p_bedflat   = plot(block.dist_lin(pk.ind_x_mean(~isnan(tmp1))), (1e6 .* block.twtt(tmp1(~isnan(tmp1)))), 'g.', 'markersize', 12);
                     else
@@ -6004,7 +6004,7 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Test something
 
     function misctest(source, eventdata)
-        pk.ind_trim_start
+        
     end
 
 %%

@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 04/18/13
+% Last updated: 04/24/13
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -791,7 +791,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
         end
         
-        if (~isempty(path_data) && all(tmp1)) % get data filenames automatically if path found
+        if (~isempty(path_data) && all(tmp1) && ~isempty(dir([path_data '*.mat']))) % get data filenames automatically if path found
             if (merge_file && exist([path_data pk.file_block{1} '.mat'], 'file'))
                 file_data   = pk.file_block;
                 for ii = 1:num_pk
