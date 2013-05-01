@@ -13,7 +13,7 @@ function fencegui
 %   flattening will be parallelized.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 04/25/13
+% Last updated: 05/01/13
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -863,9 +863,11 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                     return
                 end
                 if isfield(pk{curr_rad}, 'poly_flat_merge')
-                    flat_done(curr_rad) ...
+                    if (all(size(pk{curr_rad}.poly_flat_merge)))
+                        flat_done(curr_rad) ...
                             = true;
-                    set(disp_check(curr_rad, 2), 'visible', 'on')
+                        set(disp_check(curr_rad, 2), 'visible', 'on')
+                    end
                 else
                     set(disp_check(curr_rad, 2), 'visible', 'off')
                 end
@@ -2139,18 +2141,17 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         
         set(status_box(2), 'string', ['Matching master transect layer #' num2str(curr_layer(1)) ' with intersecting transect layer # ' num2str(curr_layer(2)) '...'])
         pause(0.1)
-        
         % reassign master color to first master color if a master layer is matched to multiple intersecting transects
         if ~isempty(pk{1}.ind_layer)
             if ~isempty(find(((pk{1}.ind_layer(:, 2) == curr_year(2)) & (pk{1}.ind_layer(:, 3) == curr_trans(2)) & (pk{1}.ind_layer(:, 4) == curr_subtrans(2)) & (pk{1}.ind_layer(:, 5) == curr_layer(2))), 1))
                 colors{1}(pk{1}.ind_layer(tmp1, 1), :) ...
                             = repmat(tmp2, length(tmp1), 1);
                 for ii = 1:2
-                    if (any(p_pk{ii, 1}(tmp1)) && any(ishandle(p_pk{ii, 1}(tmp1))))
-                        set(p_pk{ii, 1}(tmp1), 'color', tmp2)
+                    if (any(p_pk{ii, 1}(pk{1}.ind_layer(tmp1, 1))) && any(ishandle(p_pk{ii, 1}(pk{1}.ind_layer(tmp1, 1)))))
+                        set(p_pk{ii, 1}(pk{1}.ind_layer(tmp1, 1)), 'color', tmp2)
                     end
-                    if (any(p_int2{ii, 2}(tmp1)) && any(ishandle(p_int2{ii, 2}(tmp1))))
-                        set(p_int2{ii, 2}(tmp1), 'markerfacecolor', tmp2)
+                    if (any(p_int2{ii, 2}(pk{1}.ind_layer(tmp1, 1))) && any(ishandle(p_int2{ii, 2}(pk{1}.ind_layer(tmp1, 1)))))
+                        set(p_int2{ii, 2}(pk{1}.ind_layer(tmp1, 1)), 'markerfacecolor', tmp2)
                     end
                 end
             end
@@ -4451,14 +4452,16 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                     set(grid_check(1), 'value', 1)
                 end
                 toggle_grid
+            case 'i'
+                load_int
             case 'l'
                 pk_last
+            case 'm'
+                locate_master
             case 'n'
                 pk_next
             case 'p'
                 load_pk1
-            case 'r'
-                load_int
             case 't'
                 misctest
             case 'v'
@@ -4606,8 +4609,6 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 end
             case 'e'
                 reset_xz
-            case 'f'
-                flatten
             case 'g'
                 if get(grid_check(curr_ax), 'value')
                     set(grid_check(curr_ax), 'value', 0)
@@ -5239,7 +5240,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
 %% Test something
 
     function misctest(source, eventdata)
-        get(match_check, 'value')
+        
     end
 %%
 end

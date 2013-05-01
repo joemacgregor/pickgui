@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 04/24/13
+% Last updated: 04/30/13
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -5401,7 +5401,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 if get(aresp_check, 'value')
                     for ii = 1:pk.num_aresp
-                        tmp1= plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(ind_y_aresp(ii, ind_decim)))), 'b', 'linewidth', 1);
+                        tmp1= plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(ind_y_aresp(ii, ind_decim)))), 'c', 'linewidth', 1);
                         if any(ii == pk.num_keep_aresp)
                             set(tmp1, 'linewidth', 2, 'color', 'w')
                         end
