@@ -13,7 +13,7 @@ function fencegui
 %   flattening will be parallelized.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 05/03/13
+% Last updated: 07/29/13
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -73,10 +73,11 @@ colors_def                  = [0    0       0.75;
 % allocate a bunch of variables
 [core_done, int_done, master_done] ...
                             = deal(false);
-[bed_avail, data_done, flat_done, pk_done, surf_avail] ...
+[bed_avail, data_done, flat_done, gimp_avail, pk_done, surf_avail] ...
                             = deal(false(1, 2));
-[amp_mean, amp_flat, colors, depth, depth_bed, depth_bed_flat, depth_flat, depth_layer_flat, depth_mat, elev, file_data, file_pk, file_pk_short, ind_corr, ind_decim, ind_int_core, layer_str, path_data, path_pk, ...
- pk, p_pkflat, twtt]        = deal(cell(1, 2));
+[amp_mean, amp_flat, colors, depth, depth_bed, depth_bed_flat, depth_flat, depth_layer_flat, depth_mat, dist_lin, elev, elev_bed, elev_smooth, elev_surf, file_data, file_pk, file_pk_short, ind_corr, ...
+ ind_decim, ind_int_core, layer_str, path_data, path_pk, pk, p_pkflat, twtt, x, y] ...
+                            = deal(cell(1, 2));
 p_int1                      = cell(2, 3);
 [p_core, p_corename, p_coreflat, p_corenameflat, p_int2, p_pk] ...
                             = deal(cell(2));
@@ -84,8 +85,8 @@ p_int1                      = cell(2, 3);
                             = deal(zeros(1, 2));
 [decim_edit, layer_list, p_bed, p_data, pk_check, p_surf] ...
                             = deal(zeros(2));
-[curr_az2, curr_el2, curr_ind_int, h_link1, h_link2, h_link3, h_link4, id_layer_master_mat, id_layer_master_cell, ii, ind_x_pk, ind_y_pk, int_all, int_core, jj, kk, name_core, name_trans, num_int, num_trans, ...
- num_year, rad_threshold, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8, x_core, y_core] ...
+[curr_az2, curr_el2, curr_ind_int, h_link1, h_link2, h_link3, h_link4, id_layer_master_mat, id_layer_master_cell, ii, ind_x_pk, ind_y_pk, int_all, int_core, int_year, jj, kk, name_core, name_trans, name_year, ...
+ num_int, num_trans, num_year, rad_threshold, tmp1, tmp2, tmp3, tmp4, tmp5, x_core_gimp, y_core_gimp] ...
                             = deal(0);
 [curr_ax, curr_gui, curr_int, curr_rad] ...
                             = deal(1);
@@ -94,6 +95,7 @@ disp_type                   = {'amp.' 'amp.' 'amp.'};
 curr_dim                    = '3D';
 [file_core, file_master, file_ref, path_core, path_master, path_ref] ...
                             = deal('');
+letters                     = 'a':'m';
 
 if license('checkout', 'distrib_computing_toolbox')
     if ~matlabpool('size')
@@ -210,7 +212,7 @@ if ~ispc
 end
 
 % variable text annotations
-file_box(1)                 = annotation('textbox', [0.005 0.925 0.16 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none');
+file_box(1)                 = annotation('textbox', [0.005 0.925 0.10 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none');
 status_box(1)               = annotation('textbox', [0.545 0.925 0.35 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none');
 
 dim_group                   = uibuttongroup('position', [0.90 0.965 0.06 0.03], 'selectionchangefcn', @choose_dim);
@@ -235,7 +237,7 @@ layer_list(1, 2)            = uicontrol(fgui(1), 'style', 'popupmenu', 'string',
 int_list                    = uicontrol(fgui(1), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.28 0.915 0.10 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', ...
                                                  'callback', @load_pk2);
 cmap_list(1)                = uicontrol(fgui(1), 'style', 'popupmenu', 'string', cmaps, 'value', 1, 'units', 'normalized', 'position', [0.945 0.005 0.05 0.03], 'callback', @change_cmap1, 'fontsize', size_font);
-subtrans_list               = uicontrol(fgui(1), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.385 0.915 0.05 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', ...
+subtrans_list               = uicontrol(fgui(1), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.11 0.915 0.05 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', ...
                                                  'callback', @load_subtrans);
 
 % check boxes
@@ -250,7 +252,7 @@ core_check(1)               = uicontrol(fgui(1), 'style', 'checkbox', 'units', '
 data_check(1, 1)            = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.20 0.925 0.01 0.03], 'callback', @show_data1, 'fontsize', size_font, 'value', 0);
 data_check(1, 2)            = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.465 0.925 0.01 0.03], 'callback', @show_data2, 'fontsize', size_font, 'value', 0);
 cbfix_check1(1)             = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.97 0.88 0.01 0.03], 'fontsize', size_font, 'value', 0);
-cbfix_check2(1)             = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.985 0.88 0.01 0.03], 'callback', @narrow_cb1, 'fontsize', size_font, 'value', 0);
+cbfix_check2(1)             = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.985 0.88 0.01 0.03], 'callback', @narrow_cb1, 'fontsize', size_font, 'value', 1);
 master_check                = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.79 0.965 0.01 0.03], 'fontsize', size_font, 'value', 0);
 
 %% draw second GUI
@@ -447,8 +449,8 @@ zfix_check(2)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', '
 zfix_check(3)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.54 0.88 0.01 0.03], 'fontsize', size_font, 'value', 0);
 cbfix_check1(2)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.485 0.88 0.01 0.03], 'fontsize', size_font, 'value', 0);
 cbfix_check1(3)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.97 0.88 0.01 0.03], 'fontsize', size_font, 'value', 0);
-cbfix_check2(2)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.50 0.88 0.01 0.03], 'callback', @narrow_cb2, 'fontsize', size_font, 'value', 0);
-cbfix_check2(3)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.985 0.88 0.01 0.03], 'callback', @narrow_cb3, 'fontsize', size_font, 'value', 0);
+cbfix_check2(2)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.50 0.88 0.01 0.03], 'callback', @narrow_cb2, 'fontsize', size_font, 'value', 1);
+cbfix_check2(3)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.985 0.88 0.01 0.03], 'callback', @narrow_cb3, 'fontsize', size_font, 'value', 1);
 grid_check(2)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.39 0.88 0.01 0.03], 'callback', @toggle_grid2, 'fontsize', size_font, 'value', 0);
 grid_check(3)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.88 0.88 0.01 0.03], 'callback', @toggle_grid3, 'fontsize', size_font, 'value', 0);
 pk_check(2, 1)              = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.17 0.965 0.01 0.03], 'callback', @show_pk3, 'fontsize', size_font, 'value', 0);
@@ -526,17 +528,17 @@ linkprop(layer_list(:, 2), {'value' 'string'});
 %% Clear data and picks
 
     function clear_data(source, eventdata)
-        [bed_avail(curr_rad), data_done(curr_rad), flat_done(curr_rad), pk_done(curr_rad), surf_avail(curr_rad)] ...
+        [bed_avail(curr_rad), data_done(curr_rad), flat_done(curr_rad), gimp_avail(curr_rad), pk_done(curr_rad), surf_avail(curr_rad)] ...
                             = deal(false);
-        [amp_mean{curr_rad}, colors{curr_rad}, depth{curr_rad}, depth_bed{curr_rad}, depth_bed_flat{curr_rad}, depth_flat{curr_rad}, depth_layer_flat{curr_rad}, depth_mat{curr_rad}, elev{curr_rad}, ...
-            file_pk_short{curr_rad}, ind_decim{curr_rad}, ind_corr{curr_rad}, ind_int_core{curr_rad}, layer_str{curr_rad}, pk{curr_rad}, p_core{1, curr_rad}, p_core{2, curr_rad}, p_corename{1, curr_rad}, ...
-            p_corename{2, curr_rad}, p_coreflat{curr_rad}, p_corenameflat{curr_rad}, p_int1{1, 1}, p_int1{1, 2}, p_int1{1, 3}, p_int1{2, 1}, p_int1{2, 2}, p_int1{2, 3}, p_int2{1, curr_rad}, p_int2{2, curr_rad}, ...
-            p_pk{1, curr_rad}, p_pk{2, curr_rad}, p_pkflat{curr_rad}, twtt{curr_rad}] ...
+        [amp_mean{curr_rad}, colors{curr_rad}, depth{curr_rad}, depth_bed{curr_rad}, depth_bed_flat{curr_rad}, depth_flat{curr_rad}, depth_layer_flat{curr_rad}, depth_mat{curr_rad}, dist_lin{curr_rad}, ...
+         elev{curr_rad}, elev_bed{curr_rad}, elev_smooth{curr_rad}, elev_surf{curr_rad}, file_pk_short{curr_rad}, ind_decim{curr_rad}, ind_corr{curr_rad}, ind_int_core{curr_rad}, layer_str{curr_rad}, ...
+         pk{curr_rad}, p_core{1, curr_rad}, p_core{2, curr_rad}, p_corename{1, curr_rad}, p_corename{2, curr_rad}, p_coreflat{curr_rad}, p_corenameflat{curr_rad}, p_int1{1, 1}, p_int1{1, 2}, p_int1{1, 3}, ...
+         p_int1{2, 1}, p_int1{2, 2}, p_int1{2, 3}, p_int2{1, curr_rad}, p_int2{2, curr_rad}, p_pk{1, curr_rad}, p_pk{2, curr_rad}, p_pkflat{curr_rad}, twtt{curr_rad}, x{curr_rad}, y{curr_rad}] ...
                             = deal([]);
         [curr_layer(curr_rad), curr_trans(curr_rad), curr_subtrans(curr_rad), curr_year(curr_rad), dt(curr_rad), num_data(curr_rad), num_decim(curr_rad), num_sample(curr_rad), p_bed(1, curr_rad), ...
             p_bed(2, curr_rad), p_bedflat(curr_rad), p_data(1, curr_rad), p_data(2, curr_rad), p_surf(1, curr_rad), p_surf(2, curr_rad)] ...
                             = deal(0);
-        [curr_ind_int, ii, ind_x_pk, ind_y_pk, jj, num_int, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8] ...
+        [curr_ind_int, ii, ind_x_pk, ind_y_pk, jj, num_int, tmp1, tmp2, tmp3, tmp4, tmp5] ...
                             = deal(0);
     end
 
@@ -557,28 +559,32 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 path_ref    = '/Volumes/icebridge/data/mat/';
             end
         end
-        if (~isempty(path_ref) && exist([path_ref 'xy_int.mat'], 'file'))
-            file_ref       = 'xy_int.mat';
+        if (~isempty(path_ref) && exist([path_ref 'merge_xy_int.mat'], 'file'))
+            file_ref       = 'merge_xy_int.mat';
+%         if (~isempty(path_ref) && exist([path_ref 'xy_int.mat'], 'file'))
+%             file_ref       = 'xy_int.mat';
         else
             % Dialog box to choose picks file to load
             if ~isempty(path_ref)
-                [file_ref, path_ref] = uigetfile('*.mat', 'Load intersection data (xy_int.mat):', path_ref);
+                [file_ref, path_ref] = uigetfile('*.mat', 'Load intersection data (merge_xy_int.mat):', path_ref);
             elseif ~isempty(path_pk{curr_rad})
-                [file_ref, path_ref] = uigetfile('*.mat', 'Load intersection data (xy_int.mat):', path_pk{curr_rad});
+                [file_ref, path_ref] = uigetfile('*.mat', 'Load intersection data (merge_xy_int.mat):', path_pk{curr_rad});
             elseif ~isempty(path_data{curr_rad})
-                [file_ref, path_ref] = uigetfile('*.mat', 'Load intersection data (xy_int.mat):', path_data{curr_rad});
+                [file_ref, path_ref] = uigetfile('*.mat', 'Load intersection data (merge_xy_int.mat):', path_data{curr_rad});
             else
-                [file_ref, path_ref] = uigetfile('*.mat', 'Load intersection data (xy_int.mat):');
+                [file_ref, path_ref] = uigetfile('*.mat', 'Load intersection data (merge_xy_int.mat):');
             end
             if isnumeric(file_ref)
                 [file_ref, path_ref] = deal('');
             end
         end
         if ~isempty(file_ref)
+            set(status_box(1), 'string', 'Loading transect intersection data...')
+            pause(0.1)
             tmp1            = load([path_ref file_ref]);
             try
-                [name_trans, int_all, num_year, num_trans] ...
-                            = deal(tmp1.name_trans, tmp1.int_all, tmp1.num_year, tmp1.num_trans);
+                [name_trans, name_year, int_all, num_year, num_trans] ...
+                            = deal(tmp1.name_trans, tmp1.name_year, tmp1.int_all, tmp1.num_year, tmp1.num_trans);
             catch
                set(status_box(1), 'string', 'Chosen file does not contain expected intersection data.')
                return
@@ -631,8 +637,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             % load core intersection file
             tmp1        = load([path_core file_core]);
             try
-                [int_core, name_core, rad_threshold, x_core, y_core] ...
-                        = deal(tmp1.int_core, tmp1.name_core, tmp1.rad_threshold, tmp1.x_core, tmp1.y_core);
+                [int_core, name_core, rad_threshold, x_core_gimp, y_core_gimp] ...
+                        = deal(tmp1.int_core, tmp1.name_core, tmp1.rad_threshold, tmp1.x_core_gimp, tmp1.y_core_gimp);
             catch % give up, force restart
                 set(status_box(1), 'string', [file_core ' does not contain the expected variables. Try again.'])
                 return
@@ -650,6 +656,10 @@ linkprop(layer_list(:, 2), {'value' 'string'});
 %% Load core breakout
 
     function load_core_breakout(source, eventdata)
+        
+        if ~gimp_avail(curr_rad)
+            set(status_box(1), 'string', 'GIMP-corrected elevations must be available to show core intersections.')
+        end
         
         for ii = 1:2
             for jj = 1:2
@@ -674,7 +684,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 ind_int_core{ii}    = [];
                 for jj = 1:size(int_core{curr_year(ii)}{curr_trans(ii)}, 1)
                     try %#ok<TRYNC>
-                        [tmp1, tmp2]= min(sqrt(((pk{ii}.x - int_core{curr_year(ii)}{curr_trans(ii)}(jj, 4)) .^ 2) + ((pk{ii}.y - int_core{curr_year(ii)}{curr_trans(ii)}(jj, 5)) .^ 2)));
+                        [tmp1, tmp2]= min(sqrt(((pk{ii}.x_gimp - int_core{curr_year(ii)}{curr_trans(ii)}(jj, 4)) .^ 2) + ((pk{ii}.y_gimp - int_core{curr_year(ii)}{curr_trans(ii)}(jj, 5)) .^ 2)));
                         if (tmp1 < rad_threshold)
                             ind_int_core{ii} ...
                                     = [ind_int_core{ii} tmp2];
@@ -693,14 +703,14 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                     for kk = 1:num_int_core(ii)
                         if (jj == 1)
                             axes(ax(1)) %#ok<LAXES>
-                            p_core{jj, ii}(kk) = plot3(repmat(x_core(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)), 1, 2), repmat(y_core(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)), 1, 2), ...
+                            p_core{jj, ii}(kk) = plot3(repmat(x_core_gimp(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)), 1, 2), repmat(y_core_gimp(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)), 1, 2), ...
                                                        [elev_min_ref elev_max_ref], 'color', 'k', 'linewidth', 2, 'visible', 'off');
-                            p_corename{jj, ii}(kk) = text((x_core(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)) + 1), (y_core(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)) + 1), (elev_max_ref - 50), ...
-                                                          name_core{int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)}, 'color', 'k', 'fontsize', size_font, 'visible', 'off');
+                            p_corename{jj, ii}(kk) = text(double(x_core_gimp(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)) + 1), double(y_core_gimp(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)) + 1), ...
+                                                          double(elev_max_ref - 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)}, 'color', 'k', 'fontsize', size_font, 'visible', 'off');
                         else
                             axes(ax(ii + 1)) %#ok<LAXES>
-                            p_core{jj, ii}(kk) = plot(repmat(pk{ii}.dist_lin(ind_int_core{ii}(kk)), 1, 2), [elev_min_ref elev_max_ref], 'color', [0.5 0.5 0.5], 'linewidth', 2, 'visible', 'off');
-                            p_corename{jj, ii}(kk) = text((pk{ii}.dist_lin(ind_int_core{ii}(kk)) + 1), (elev_max_ref - 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)}, ...
+                            p_core{jj, ii}(kk) = plot(repmat(double(pk{ii}.dist_lin_gimp(ind_int_core{ii}(kk))), 1, 2), [elev_min_ref elev_max_ref], 'color', [0.5 0.5 0.5], 'linewidth', 2, 'visible', 'off');
+                            p_corename{jj, ii}(kk) = text(double(pk{ii}.dist_lin_gimp(ind_int_core{ii}(kk)) + 1), double(elev_max_ref - 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)}, ...
                                                           'color', [0.5 0.5 0.5], 'fontsize', size_font, 'visible', 'off');
                         end
                     end
@@ -710,9 +720,9 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                     [p_coreflat{ii}, p_corenameflat{ii}] = deal(zeros(1, num_int_core(ii)));
                     axes(ax(ii + 1)) %#ok<LAXES>
                     for jj = 1:num_int_core(ii)
-                        p_coreflat{ii}(jj) = plot(repmat(pk{ii}.dist_lin(ind_int_core{ii}(jj)), 1, 2), [depth_min_ref depth_max_ref], 'color', [0.5 0.5 0.5], 'linewidth', 2, 'visible', 'off');
-                        p_corenameflat{ii}(jj) = text((pk{ii}.dist_lin(ind_int_core{ii}(jj)) + 1), (depth_min_ref + 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(jj, 3)}, ...
-                                                       'color', [0.5 0.5 0.5], 'fontsize', size_font, 'visible', 'off');
+                        p_coreflat{ii}(jj) = plot(repmat(double(pk{ii}.dist_lin_gimp(ind_int_core{ii}(jj))), 1, 2), [depth_min_ref depth_max_ref], 'color', [0.5 0.5 0.5], 'linewidth', 2, 'visible', 'off');
+                        p_corenameflat{ii}(jj) = text(double(pk{ii}.dist_lin_gimp(ind_int_core{ii}(jj)) + 1), double(depth_min_ref + 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(jj, 3)}, ...
+                                                      'color', [0.5 0.5 0.5], 'fontsize', size_font, 'visible', 'off');
                     end
                 end
             end
@@ -780,22 +790,23 @@ linkprop(layer_list(:, 2), {'value' 'string'});
     function load_pk2(source, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(1, 1, 2, 1);
-        tmp5                = 'trans';
+        tmp1                = 'trans';
+        tmp2                = get(int_list, 'string');
+        file_pk{2}          = [tmp2{get(int_list, 'value')} '_pk_merge.mat'];
         load_pk
     end
 
     function load_subtrans(source, eventdata)
         if ~strcmp(get(subtrans_list, 'string'), 'N/A')
             [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
-                            = deal(1, 1, 2, 1);
+                            = deal(1, 1, 1, 2);
             tmp1            = get(subtrans_list, 'string');
-            file_pk{curr_rad} ...
-                            = [file_pk{curr_rad}(1:11) tmp1{get(subtrans_list, 'value')} file_pk{curr_rad}(13:end)];
+            file_pk{1}      = [file_pk{1}(1:11) tmp1{get(subtrans_list, 'value')} file_pk{1}(13:end)];
             tmp1            = 'subtrans';
             load_pk
         end
     end
-        
+
     function load_pk(source, eventdata)
         
         set(rad_group, 'selectedobject', rad_check(curr_rad))
@@ -814,39 +825,104 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         end
         
         if strcmp(tmp1, 'trans')
-            % Dialog box to choose picks file to load
-            if ~isempty(path_pk{curr_rad})
-                [file_pk{curr_rad}, path_pk{curr_rad}] ...
-                            = uigetfile('*.mat', 'Load merged picks:', path_pk{curr_rad});
-            elseif ~isempty(path_pk{curr_rad_alt})
-                [file_pk{curr_rad}, path_pk{curr_rad}] ...
-                            = uigetfile('*.mat', 'Load merged picks:', path_pk{curr_rad_alt});
-            elseif ~isempty(path_data{curr_rad})
-                [file_pk{curr_rad}, path_pk{curr_rad}] ...
-                            = uigetfile('*.mat', 'Load merged picks:', path_data{curr_rad});
-            elseif ~isempty(path_data{curr_rad_alt})
-                [file_pk{curr_rad}, path_pk{curr_rad}] ...
-                            = uigetfile('*.mat', 'Load merged picks:', path_data{curr_rad_alt});
-            elseif ~isempty(path_ref)
-                [file_pk{curr_rad}, path_pk{curr_rad}] ...
-                            = uigetfile('*.mat', 'Load merged picks:', path_ref);
-            else
-                [file_pk{curr_rad}, path_pk{curr_rad}] ...
-                            = uigetfile('*.mat', 'Load merged picks:');
-            end
-            if isnumeric(file_pk{curr_rad})
-                [file_pk{curr_rad}, path_pk{curr_rad}] ...
-                            = deal('');
-            end
-            
-            if isempty(file_pk{curr_rad})
-                set(status_box(1), 'string', 'No picks loaded.')
-                return
-            end
             
             if (curr_rad == 2)
+                if ispc
+                    if exist([path_core '..\' name_year{int_year(get(int_list, 'value'))} '\merge\' file_pk{2}], 'file')
+                        clear_plots
+                        clear_data
+                        path_pk{2} ...
+                            = [path_core '..\' name_year{int_year(get(int_list, 'value'))} '\merge\'];
+                        tmp1= 'skip';
+                    elseif exist([path_core '..\' name_year{int_year(get(int_list, 'value'))} '\merge\' file_pk{2}(1:11) 'a' file_pk{2}(12:end)], 'file')
+                        clear_plots
+                        clear_data
+                        [file_pk{2}, path_pk{2}] ...
+                            = deal([file_pk{2}(1:11) 'a' file_pk{2}(12:end)], [path_core '..\' name_year{int_year(get(int_list, 'value'))} '\merge\']);
+                        tmp1= 'skip';
+                    end
+                else
+                    if exist([path_core '../' name_year{int_year(get(int_list, 'value'))} '/merge/' file_pk{2}], 'file')
+                        clear_plots
+                        clear_data
+                        path_pk{2} ...
+                            = [path_core '../' name_year{int_year(get(int_list, 'value'))} '/merge/'];
+                        tmp1= 'skip';
+                    elseif exist([path_core '../' name_year{int_year(get(int_list, 'value'))} '/merge/' file_pk{2}(1:11) 'a' file_pk{2}(12:end)], 'file')
+                        clear_plots
+                        clear_data
+                        [file_pk{2}, path_pk{2}] ...
+                            = deal([file_pk{2}(1:11) 'a' file_pk{2}(12:end)], [path_core '../' name_year{int_year(get(int_list, 'value'))} '/merge/']);
+                        tmp1= 'skip';
+                    end
+                end
+            end
+            
+            if ~strcmp(tmp1, 'skip')
+                % Dialog box to choose picks file to load
+                if ~isempty(path_pk{curr_rad})
+                    [file_pk{curr_rad}, path_pk{curr_rad}] ...
+                            = uigetfile('*.mat', 'Load merged picks:', path_pk{curr_rad});
+                elseif ~isempty(path_pk{curr_rad_alt})
+                    [file_pk{curr_rad}, path_pk{curr_rad}] ...
+                            = uigetfile('*.mat', 'Load merged picks:', path_pk{curr_rad_alt});
+                elseif ~isempty(path_data{curr_rad})
+                    [file_pk{curr_rad}, path_pk{curr_rad}] ...
+                            = uigetfile('*.mat', 'Load merged picks:', path_data{curr_rad});
+                elseif ~isempty(path_data{curr_rad_alt})
+                    [file_pk{curr_rad}, path_pk{curr_rad}] ...
+                            = uigetfile('*.mat', 'Load merged picks:', path_data{curr_rad_alt});
+                elseif ~isempty(path_ref)
+                    [file_pk{curr_rad}, path_pk{curr_rad}] ...
+                            = uigetfile('*.mat', 'Load merged picks:', path_ref);
+                else
+                    [file_pk{curr_rad}, path_pk{curr_rad}] ...
+                            = uigetfile('*.mat', 'Load merged picks:');
+                end
+                if isnumeric(file_pk{curr_rad})
+                    [file_pk{curr_rad}, path_pk{curr_rad}] ...
+                            = deal('');
+                end
+                
+                if isempty(file_pk{curr_rad})
+                    set(status_box(1), 'string', 'No picks loaded.')
+                    return
+                end
+                
+                % get rid of radargrams if present
+                clear_plots
+                clear_data
+                set(subtrans_list, 'string', 'N/A', 'value', 1)
+                if ((curr_rad == 1) && pk_done(2))
+                    curr_rad    = 2;
+                    clear_plots
+                    clear_data
+                    set(int_list, 'string', 'N/A', 'value', 1)
+                    set(int_list, 'string', 'N/A', 'value', 1)
+                    curr_rad    = 1;
+                end
+            end
+            
+            if (curr_rad == 1)
+                set(subtrans_list, 'value', 1, 'string', 'N/A')
+                % check for sub-transects, populate list if present
+                if (length(dir([path_pk{curr_rad} file_pk{curr_rad}(1:11) '*.mat'])) > 1)
+                    tmp1    = dir([path_pk{curr_rad} file_pk{curr_rad}(1:11) '*.mat']);
+                    tmp2    = cell(length(tmp1), 1);
+                    for ii = 1:length(tmp1)
+                        tmp2{ii} = tmp1(ii).name(12);
+                        if (tmp2{ii} == file_pk{1}(12))
+                            tmp3 = ii;
+                        end
+                    end
+                    set(subtrans_list, 'string', tmp2, 'value', tmp3)
+                    set(status_box(1), 'string', ['Multiple sub-transects (' num2str(length(tmp1)) ' present for this transect.'])
+                end
+            end
+            
+            if ((curr_rad == 1) && pk_done(1))
                 tmp1        = get(int_list, 'string');
-                if ~strcmp(tmp1{get(int_list, 'value')}, file_pk{curr_rad}(1:11))
+                if ~strcmp(tmp1{get(int_list, 'value')}, file_pk{1}(1:11))
                     set(status_box(1), 'string', 'Chosen picks filename does not match selected transect. Continue loading? Y: yes; otherwise: no...')
                     waitforbuttonpress
                     if ~strcmpi(get(fgui(1), 'currentcharacter'), 'Y')
@@ -855,28 +931,27 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                     end
                 end
                 % check for sub-transects, populate list if present
-                if (length(dir([path_pk{curr_rad} tmp1{get(int_list, 'value')} '*.mat'])) > 1)
-                    tmp1    = dir([path_pk{curr_rad} tmp1{get(int_list, 'value')} '*.mat']);
-                    tmp2    = cell(length(tmp1), 1);
+                if (length(dir([path_pk{1} tmp1{get(int_list, 'value')} '*.mat'])) > 1)
+                    tmp1   = dir([path_pk{1} tmp1{get(int_list, 'value')} '*.mat']);
+                    tmp2   = cell(length(tmp1), 1);
                     for ii = 1:length(tmp1)
-                        tmp2{ii} ...
-                            = tmp1(ii).name(12);
+                        tmp2{ii}= tmp1(ii).name(12);
                     end
-                    set(subtrans_list, 'string', tmp2, 'value', 1)
                     set(status_box(1), 'string', ['Multiple sub-transects (' num2str(length(tmp1)) ' present for this transect.'])
                 end
             end
-        end
-        
-        % get rid of radargrams if present
-        clear_plots
-        clear_data
-        if ((curr_rad == 1) && pk_done(2))
-            curr_rad        = 2;
+            
+        else
+            % get rid of radargrams if present
             clear_plots
             clear_data
-            set(int_list, 'string', 'N/A', 'value', 1)
-            curr_rad        = 1;
+            if ((curr_rad == 1) && pk_done(2))
+                curr_rad    = 2;
+                clear_plots
+                clear_data
+                set(int_list, 'string', 'N/A', 'value', 1)
+                curr_rad    = 1;
+            end
         end
         
         axes(ax(curr_ax))
@@ -894,14 +969,15 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 set(status_box(1), 'string', 'Load merged picks files only.')
                 return
             end
-            if isfield(pk{curr_rad}, 'poly_flat_merge')
-                if (all(size(pk{curr_rad}.poly_flat_merge)))
-                    flat_done(curr_rad) ...
+            set(disp_check(curr_rad, 2), 'visible', 'off')
+            if isfield(pk{curr_rad}, 'elev_smooth_gimp')
+                gimp_avail(curr_rad) ...
                             = true;
-                    set(disp_check(curr_rad, 2), 'visible', 'on')
-                end
+                [dist_lin{curr_rad}, elev_bed{curr_rad}, elev_smooth{curr_rad}, elev_surf{curr_rad}, x{curr_rad}, y{curr_rad}] ...
+                            = deal(pk{curr_rad}.dist_lin_gimp, pk{curr_rad}.elev_bed_gimp, pk{curr_rad}.elev_smooth_gimp, pk{curr_rad}.elev_surf_gimp, pk{curr_rad}.x_gimp, pk{curr_rad}.y_gimp);
             else
-                set(disp_check(curr_rad, 2), 'visible', 'off')
+                [dist_lin{curr_rad}, elev_bed{curr_rad}, elev_smooth{curr_rad}, elev_surf{curr_rad}, x{curr_rad}, y{curr_rad}] ...
+                            = deal(pk{curr_rad}.dist_lin, pk{curr_rad}.elev_bed, pk{curr_rad}.elev_smooth, pk{curr_rad}.elev_surf, pk{curr_rad}.x, pk{curr_rad}.y);
             end
         catch % give up, force restart
             set(status_box(1), 'string', [file_pk{curr_rad} ' does not contain a pk structure. Try again.'])
@@ -923,7 +999,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                             = [file_pk_short{curr_rad} tmp2(4)];
         end
         if (curr_rad == 1)
-            set(file_box([1 2]), 'string', file_pk_short{curr_rad})
+            set(file_box(1), 'string', file_pk_short{curr_rad}(1:11))
+            set(file_box(2), 'string', file_pk_short{curr_rad})
         else
             set(file_box(3), 'string', file_pk_short{curr_rad})
         end
@@ -948,13 +1025,13 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         
         % check to see if surface and bed picks are available
         if isfield(pk{curr_rad}, 'elev_surf')
-            if any(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))
+            if any(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))
                 surf_avail(curr_rad) ...
                             = true;
             end
         end
         if isfield(pk{curr_rad}, 'elev_bed')
-            if any(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))
+            if any(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))
                 bed_avail(curr_rad) ...
                             = true;
             end
@@ -966,6 +1043,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         
         % determine current year/transect
         tmp1                = file_pk_short{curr_rad};
+        tmp2                = 'fail';
         if isnan(str2double(tmp1(end)))
             tmp1            = tmp1(1:(end - 1));
         end
@@ -976,14 +1054,48 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 end
             end
             if strcmp(tmp1, name_trans{ii}{jj})
+                tmp2        = 'success';
                 break
             end
         end
-        [curr_year(curr_rad), curr_trans(curr_rad)] ...
-                            = deal(ii, jj);
-        tmp1                = 'a':'z';
+        
+        if strcmp(tmp2, 'fail')
+            set(status_box(1), 'string', 'Transect not identified. Try again.')
+            clear_data
+            return
+        end
+        
+        % fix for 2011 P3/TO ambiguity
+        if (ii == 17)
+            set(status_box(1), 'string', '2011 TO (press T)?')
+            waitforbuttonpress
+            if strcmpi(get(fgui(1), 'currentcharacter'), 'T')
+                tmp2        = 'fail';
+                ii          = 18;
+                for jj = 1:num_trans(ii)
+                    if strcmp(tmp1, name_trans{ii}{jj})
+                        tmp2= 'success';
+                        break
+                    end
+                end
+                if strcmp(tmp2, 'fail')
+                    set(status_box(1), 'string', 'Transect incorrectly identified as 2011 TO. Try again.')
+                    clear_data
+                    return
+                end
+            end
+        end
+        
+        switch curr_rad
+            case 1
+                curr_year   = ii;
+            case 2
+                curr_year(curr_rad) ...
+                            = int_year(get(int_list, 'value'));
+        end
+        curr_trans(curr_rad)= jj;
         for ii = 1:length(tmp1)
-            if strcmp(file_pk{curr_rad}(12), tmp1(ii))
+            if strcmp(file_pk{curr_rad}(12), letters(ii))
                 curr_subtrans(curr_rad) ...
                             = ii;
                 break
@@ -992,104 +1104,43 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         
         % find intersections for primary transect
         if (curr_rad == 1)
-            tmp1            = find((int_all(:, 1) == curr_year(curr_rad)) & (int_all(:, 2) == curr_trans(curr_rad)));
-            tmp2            = find((int_all(:, 5) == curr_year(curr_rad)) & (int_all(:, 6) == curr_trans(curr_rad)));
-            tmp3            = [];
-            for ii = 1:length(tmp1)
-                tmp3        = [tmp3; name_trans{int_all(tmp1(ii), 5)}(int_all(tmp1(ii), 6))]; %#ok<AGROW>
+            tmp1            = find((int_all(:, 1) == curr_year(1)) & (int_all(:, 2) == curr_trans(1))  & (int_all(:, 3) == curr_subtrans(1)));
+            tmp2            = find((int_all(:, 6) == curr_year(1)) & (int_all(:, 7) == curr_trans(1))  & (int_all(:, 8) == curr_subtrans(1)));
+            tmp3            = cell((length(tmp1) + length(tmp2)), 1);
+            if ~isempty(tmp1)
+                for ii = 1:length(tmp1)
+                    if ~int_all(tmp1(ii), 8)
+                        tmp3{ii}= [name_trans{int_all(tmp1(ii), 6)}{int_all(tmp1(ii), 7)}];
+                    else
+                        tmp3{ii}= [name_trans{int_all(tmp1(ii), 6)}{int_all(tmp1(ii), 7)} letters(int_all(tmp1(ii), 8))];
+                    end
+                end
             end
-            for ii = 1:length(tmp2)
-                tmp3        = [tmp3; name_trans{int_all(tmp2(ii), 1)}(int_all(tmp2(ii), 2))]; %#ok<AGROW>
+            if ~isempty(tmp2)
+                for ii = 1:length(tmp2)
+                    if ~int_all(tmp2(ii), 3)
+                        tmp3{ii + length(tmp1)} ...
+                                = [name_trans{int_all(tmp2(ii), 1)}{int_all(tmp2(ii), 2)}];
+                    else
+                        tmp3{ii + length(tmp1)} ...
+                                = [name_trans{int_all(tmp2(ii), 1)}{int_all(tmp2(ii), 2)} letters(int_all(tmp2(ii), 3))];
+                    end
+                end
             end
-            tmp4            = unique(tmp3);
-            for ii = 1:length(tmp4)
-                tmp4{ii}    = tmp4{ii};
-            end
-            set(int_list, 'string', tmp4, 'value', 1)
+            [tmp3, tmp4]    = unique(tmp3);
+            int_year        = [int_all(tmp1, 6); int_all(tmp2, 1)];
+            int_year        = int_year(tmp4);
+            set(int_list, 'string', tmp3, 'value', 1)
         end
         
         % figure out intersections
-        if (curr_rad == 2)
-            
-            curr_ind_int    = [];
-            
-            tmp1            = 1:(decim(1) * 5):pk{1}.num_trace_tot;
-            tmp1(end)       = pk{1}.num_trace_tot;
-            tmp2            = 1:(decim(2) * 5):pk{2}.num_trace_tot;
-            tmp2(end)       = pk{2}.num_trace_tot;
-            
-            [~, ~, tmp3, tmp4] ...
-                            = intersecti(pk{1}.x(tmp1), pk{1}.y(tmp1), pk{2}.x(tmp2), pk{2}.y(tmp2)); % intersection of two vectors using linear interpolation
-            for ii = 1:length(tmp3)
-                if (tmp3(ii) == 1)
-                    tmp5= 1:tmp1(2);
-                elseif (tmp3(ii) == length(tmp1))
-                    tmp5= tmp1(end - 1):tmp1(end);
-                else
-                    tmp5= tmp1(tmp3(ii) - 1):tmp1(tmp3(ii) + 1);
-                end
-                if (tmp4(ii) == 1)
-                    tmp6= 1:tmp2(2);
-                elseif (tmp4(ii) == length(tmp2))
-                    tmp6= tmp2(end - 1):tmp2(end);
-                else
-                    tmp6= tmp2(tmp4(ii) - 1):tmp2(tmp4(ii) + 1);
-                end
-                [~, ~, tmp7, tmp8] ...
-                    = intersecti(pk{1}.x(tmp5), pk{1}.y(tmp5), pk{2}.x(tmp6), pk{2}.y(tmp6));
-                if ~isempty(tmp3)
-                    [tmp7, tmp8] ...
-                        = deal((tmp7 + tmp5(1) - 1), (tmp8 + tmp6(1) - 1));
-                    if ~isempty(find((diff(pk{1}.dist(tmp7)) < 1), 1))
-                        tmp7 = tmp7(diff(pk{1}.dist(tmp7)) >= 1); % ensure density of consecutive intersections is not too great
-                    end
-                    if ~isempty(find((diff(pk{2}.dist(tmp8)) < 1), 1))
-                        tmp8 = tmp8(diff(pk{2}.dist(tmp8)) >= 1);
-                    end
-                    curr_ind_int ...
-                        = [curr_ind_int; tmp7 tmp8]; %#ok<AGROW>
-                end
-            end
-            
-            tmp1            = [];
-            
-            % ensure density of consecutive intersections is not too great (1 per 2.5 km)
-            if ~isempty(curr_ind_int)
-                if ~isempty(find(((abs(diff(pk{1}.dist(curr_ind_int(:, 1)))) < 2.5) & (abs(diff(pk{2}.dist(curr_ind_int(:, 2)))) < 2.5)), 1))
-                    tmp1    = [tmp1 find(((abs(diff(pk{1}.dist(curr_ind_int(:, 1)))) < 2.5) & (abs(diff(pk{2}.dist(curr_ind_int(:, 2)))) < 2.5)))];
-                end
-            end
-            
-            for ii = 1:size(curr_ind_int, 1)
-                % check for large jumps in transects (>5 times median distance change per trace
-                tmp2        = (curr_ind_int(ii, 1) - 1):(curr_ind_int(ii, 1) + 1);
-                tmp2        = tmp2((tmp2 > 0) & (tmp2 <= (pk{1}.num_trace_tot - 1)));
-                if any(diff(pk{1}.dist(tmp2)) > (5 * median(diff(pk{1}.dist))))
-                    tmp1    = [tmp1 ii]; %#ok<AGROW>
-                end
-                tmp3        = (curr_ind_int(ii, 2) - 1):(curr_ind_int(ii, 2) + 1);
-                tmp3        = tmp3((tmp3 > 0) & (tmp3 <= (pk{2}.num_trace_tot - 1)));
-                if any(diff(pk{2}.dist(tmp3)) > (5 * median(diff(pk{2}.dist))))
-                    tmp1    = [tmp1 ii]; %#ok<AGROW>
-                end
-                % transect intersection angle must be greater than 2.5 degrees
-                if (abs(atand(diff(pk{1}.y(tmp2([1 end]))) ./ diff(pk{1}.x(tmp2([1 end])))) - atand(diff(pk{2}.y(tmp3([1 end]))) ./ diff(pk{2}.x(tmp3([1 end]))))) < 2.5)
-                    tmp1    = [tmp1 ii]; %#ok<AGROW>
-                end
-            end
-            
-            % trim intersections
-            if ~isempty(unique(tmp1))
-                curr_ind_int ...
-                            = curr_ind_int(setdiff(1:size(curr_ind_int, 1), unique(tmp1)), :); % the transect intersection where data actually exist
-            end
+        if (curr_rad == 2)            
+            tmp1            = find((int_all(:, 1) == curr_year(1)) & (int_all(:, 2) == curr_trans(1))  & (int_all(:, 3) == curr_subtrans(1)) & ...
+                                   (int_all(:, 6) == curr_year(2)) & (int_all(:, 7) == curr_trans(2))  & (int_all(:, 8) == curr_subtrans(2)));
+            tmp2            = find((int_all(:, 1) == curr_year(2)) & (int_all(:, 2) == curr_trans(2))  & (int_all(:, 3) == curr_subtrans(2)) & ...
+                                   (int_all(:, 6) == curr_year(1)) & (int_all(:, 7) == curr_trans(1))  & (int_all(:, 8) == curr_subtrans(1)));
+            curr_ind_int    = [int_all(tmp1, 4) int_all(tmp1, 9); int_all(tmp2, 9) int_all(tmp2, 4)];
             num_int         = size(curr_ind_int, 1);
-            
-            if isempty(curr_ind_int)
-                set(status_box(1), 'string', 'Selected merged picks file does not intersect primary transect.')
-                return
-            end
-            
             set(intnum_list, 'string', num2cell(1:num_int), 'value', 1)
         end
         
@@ -1103,16 +1154,16 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                             = deal(zeros(1, pk{curr_rad}.num_layer));
         layer_str{curr_rad} = num2cell(1:pk{curr_rad}.num_layer);
         for ii = 1:pk{curr_rad}.num_layer %#ok<*FXUP>
-            if ~any(~isnan(pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad})))
+            if ~any(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))
                 p_pk{1, curr_rad}(ii) ...
                             = plot3(0, 0, 0, 'w.', 'markersize', 1, 'visible', 'off');
                 layer_str{curr_rad}{ii} ...
                             = [num2str(ii) ' H'];
             else
                 p_pk{1, curr_rad}(ii) ...
-                            = plot3(pk{curr_rad}.x(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad})))), ...
-                                    pk{curr_rad}.y(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad})))), ...
-                                    pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad})))), ...
+                            = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
+                                    y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
+                                    elev_smooth{curr_rad}(ii, ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
                                     '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
             end
         end
@@ -1124,49 +1175,49 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         % calculate bed depth (for flattened projection)
         if (surf_avail(curr_rad) && bed_avail(curr_rad))
             depth_bed{curr_rad} ...
-                            = pk{curr_rad}.elev_surf(ind_decim{curr_rad}) - pk{curr_rad}.elev_bed(ind_decim{curr_rad});
+                            = elev_surf{curr_rad}(ind_decim{curr_rad}) - elev_bed{curr_rad}(ind_decim{curr_rad});
         end
         
         % display surface and bed
         if surf_avail(curr_rad)
             p_surf(curr_gui, curr_rad) ...
-                            = plot3(pk{curr_rad}.x(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))), ...
-                                    pk{curr_rad}.y(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))), ...
-                                    pk{curr_rad}.elev_surf(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
+                            = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), ...
+                                    y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), ...
+                                    elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
         end
         if bed_avail(curr_rad)
             p_bed(curr_gui, curr_rad) ...
-                            = plot3(pk{curr_rad}.x(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))), ...
-                                    pk{curr_rad}.y(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))), ...
-                                    pk{curr_rad}.elev_bed(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
+                            = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), ...
+                                    y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), ...
+                                    elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
         end
         
         % display picks, surface and bed in 2D GUI
         axes(ax(curr_ax + curr_rad))
         for ii = 1:pk{curr_rad}.num_layer
-            if ~any(~isnan(pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad})))
+            if ~any(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))
                 p_pk{2, curr_rad}(ii) ...
                             = plot(0, 0, 'w.', 'markersize', 1, 'visible', 'off');
             else
                 p_pk{2, curr_rad}(ii) ...
-                            = plot(pk{curr_rad}.dist_lin(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad})))), ...
-                                   pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad})))), ...
+                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
+                                   elev_smooth{curr_rad}(ii, ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
                                    '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
             end
         end
         if surf_avail(curr_rad)
             p_surf(2, curr_rad) ...
-                            = plot(pk{curr_rad}.dist_lin(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))), ...
-                                   pk{curr_rad}.elev_surf(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
-            if any(isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad}))))))
+                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), ...
+                                   elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
+            if any(isnan(elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad}))))))
                 set(p_surf(2, curr_rad), 'marker', '.', 'linestyle', 'none', 'markersize', 12)
             end
         end
         if bed_avail(curr_rad)
             p_bed(2, curr_rad) ...
-                            = plot(pk{curr_rad}.dist_lin(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))), ...
-                                   pk{curr_rad}.elev_bed(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
-            if any(isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad}))))))
+                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), ...
+                                   elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
+            if any(isnan(elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad}))))))
                 set(p_bed(2, curr_rad), 'marker', '.', 'linestyle', 'none', 'markersize', 12)
             end
         end
@@ -1174,13 +1225,13 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         
         % get new min/max limits for 3D display
         [dist_min_ref(curr_rad), dist_max_ref(curr_rad), dist_min(curr_rad), dist_max(curr_rad)] ...
-                            = deal(min(pk{curr_rad}.dist_lin), max(pk{curr_rad}.dist_lin), min(pk{curr_rad}.dist_lin), max(pk{curr_rad}.dist_lin));
+                            = deal(min(dist_lin{curr_rad}), max(dist_lin{curr_rad}), min(dist_lin{curr_rad}), max(dist_lin{curr_rad}));
         
         if (curr_rad == 2)
             [tmp1, tmp2, tmp3, tmp4, tmp5] ...
-                            = deal([pk{1}.x(~isinf(pk{1}.x)) pk{2}.x(~isinf(pk{2}.x))], [pk{1}.y(~isinf(pk{1}.y)) pk{2}.y(~isinf(pk{2}.y))], ...
-                                   [pk{1}.elev_surf(~isinf(pk{1}.elev_surf)) pk{2}.elev_surf(~isinf(pk{2}.elev_surf))], [pk{1}.elev_bed(~isinf(pk{1}.elev_bed)) pk{2}.elev_bed(~isinf(pk{2}.elev_bed))], ...
-                                   [pk{1}.elev_smooth(~isinf(pk{1}.elev_smooth(:))); pk{2}.elev_smooth(~isinf(pk{2}.elev_smooth(:)))]);
+                            = deal([x{1}(~isinf(x{1})) x{2}(~isinf(x{2}))], [y{1}(~isinf(y{1})) y{2}(~isinf(y{2}))], ...
+                                   [elev_surf{1}(~isinf(elev_surf{1})) elev_surf{2}(~isinf(elev_surf{2}))], [elev_bed{1}(~isinf(elev_bed{1})) elev_bed{2}(~isinf(elev_bed{2}))], ...
+                                   [elev_smooth{1}(~isinf(elev_smooth{1}(:))); elev_smooth{2}(~isinf(elev_smooth{2}(:)))]);
             [x_min_ref, x_max_ref, x_min, x_max] ...
                             = deal(nanmin(tmp1), nanmax(tmp1), nanmin(tmp1), nanmax(tmp1));
             [y_min_ref, y_max_ref, y_min, y_max] ...
@@ -1201,26 +1252,26 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             end
         else
             [x_min_ref, x_max_ref, x_min, x_max] ...
-                            = deal(nanmin(pk{curr_rad}.x(~isinf(pk{curr_rad}.x))), nanmax(pk{curr_rad}.x(~isinf(pk{curr_rad}.x))), nanmin(pk{curr_rad}.x(~isinf(pk{curr_rad}.x))), ...
-                                   nanmax(pk{curr_rad}.x(~isinf(pk{curr_rad}.x))));
+                            = deal(nanmin(x{curr_rad}(~isinf(x{curr_rad}))), nanmax(x{curr_rad}(~isinf(x{curr_rad}))), nanmin(x{curr_rad}(~isinf(x{curr_rad}))), ...
+                                   nanmax(x{curr_rad}(~isinf(x{curr_rad}))));
             [y_min_ref, y_max_ref, y_min, y_max] ...
-                            = deal(nanmin(pk{curr_rad}.y(~isinf(pk{curr_rad}.y))), nanmax(pk{curr_rad}.y(~isinf(pk{curr_rad}.y))), nanmin(pk{curr_rad}.y(~isinf(pk{curr_rad}.y))), ...
-                                   nanmax(pk{curr_rad}.y(~isinf(pk{curr_rad}.y))));
+                            = deal(nanmin(y{curr_rad}(~isinf(y{curr_rad}))), nanmax(y{curr_rad}(~isinf(y{curr_rad}))), nanmin(y{curr_rad}(~isinf(y{curr_rad}))), ...
+                                   nanmax(y{curr_rad}(~isinf(y{curr_rad}))));
             if surf_avail(curr_rad)
                 [elev_max_ref, elev_max(1:2)] ...
-                            = deal(nanmax(pk{curr_rad}.elev_surf(~isinf(pk{curr_rad}.elev_surf))));
+                            = deal(nanmax(elev_surf{curr_rad}(~isinf(elev_surf{curr_rad}))));
             else
                 [elev_max_ref, elev_max(1:2)] ...
-                            = deal(nanmax(pk{curr_rad}.elev_smooth(~isinf(pk{curr_rad}.elev_smooth(:)))) + (0.1 * (nanmax(pk{curr_rad}.elev_smooth(~isinf(pk{curr_rad}.elev_smooth(:)))) - ...
-                                   nanmin(pk{curr_rad}.elev_smooth(~isinf(pk{curr_rad}.elev_smooth(:)))))));
+                            = deal(nanmax(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))) + (0.1 * (nanmax(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))) - ...
+                                   nanmin(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))))));
             end
             if bed_avail(curr_rad)
                 [elev_min_ref, elev_min(1:2)] ...
-                            = deal(nanmin(pk{curr_rad}.elev_bed(~isinf(pk{curr_rad}.elev_bed))));
+                            = deal(nanmin(elev_bed{curr_rad}(~isinf(elev_bed{curr_rad}))));
             else
                 [elev_min_ref, elev_min(1:2)] ...
-                            = deal(nanmin(pk{curr_rad}.elev_smooth(~isinf(pk{curr_rad}.elev_smooth(:)))) - (0.1 * (nanmax(pk{curr_rad}.elev_smooth(~isinf(pk{curr_rad}.elev_smooth(:)))) - ...
-                                   nanmin(pk{curr_rad}.elev_smooth(~isinf(pk{curr_rad}.elev_smooth(:)))))));
+                            = deal(nanmin(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))) - (0.1 * (nanmax(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))) - ...
+                                   nanmin(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))))));
             end
         end
         
@@ -1258,26 +1309,26 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             end
             axes(ax(1))
             for ii = 1:num_int
-                p_int1{1, 1}(ii) = plot3(repmat(pk{1}.x(curr_ind_int(ii, 1)), 1, 2), repmat(pk{1}.y(curr_ind_int(ii, 1)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
+                p_int1{1, 1}(ii) = plot3(repmat(x{1}(curr_ind_int(ii, 1)), 1, 2), repmat(y{1}(curr_ind_int(ii, 1)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
             end
             axes(ax(2))
             for ii = 1:num_int
-                p_int1{1, 2}(ii) = plot(repmat(pk{1}.dist_lin(curr_ind_int(ii, 1)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
+                p_int1{1, 2}(ii) = plot(repmat(dist_lin{1}(curr_ind_int(ii, 1)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
             end
             for ii = 1:pk{2}.num_layer
-                p_int2{1, 1}(ii) = plot(pk{1}.dist_lin(curr_ind_int(:, 1)), pk{2}.elev_smooth(ii, curr_ind_int(:, 2)), 'ko', 'markersize', 8, 'markerfacecolor', colors{2}(ii, :), 'visible', 'off');
+                p_int2{1, 1}(ii) = plot(dist_lin{1}(curr_ind_int(:, 1)), elev_smooth{2}(ii, curr_ind_int(:, 2)), 'ko', 'markersize', 8, 'markerfacecolor', colors{2}(ii, :), 'visible', 'off');
             end
             axes(ax(3))
             for ii = 1:num_int
-                p_int1{1, 3}(ii) = plot(repmat(pk{2}.dist_lin(curr_ind_int(ii, 2)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
+                p_int1{1, 3}(ii) = plot(repmat(dist_lin{2}(curr_ind_int(ii, 2)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
             end
             for ii = 1:pk{1}.num_layer
-                p_int2{1, 2}(ii) = plot(pk{2}.dist_lin(curr_ind_int(:, 2)), pk{1}.elev_smooth(ii, curr_ind_int(:, 1)), 'ko', 'markersize', 8, 'markerfacecolor', colors{1}(ii, :), 'visible', 'off');
+                p_int2{1, 2}(ii) = plot(dist_lin{2}(curr_ind_int(:, 2)), elev_smooth{1}(ii, curr_ind_int(:, 1)), 'ko', 'markersize', 8, 'markerfacecolor', colors{1}(ii, :), 'visible', 'off');
             end
-            for ii = 1:size(pk{1}.ind_layer, 1)
+            for ii = 1:size(pk{1}.ind_layer)
                 set(p_int2{1, 2}(pk{1}.ind_layer(ii, 1)), 'marker', 's')
             end
-            for ii = 1:size(pk{2}.ind_layer, 1)
+            for ii = 1:size(pk{2}.ind_layer)
                 set(p_int2{1, 1}(pk{2}.ind_layer(ii, 1)), 'marker', 's')
             end
             for ii = 1:size(pk{1}.ind_layer, 1)
@@ -1288,8 +1339,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                         set(p_pk{1, 1}(pk{1}.ind_layer(ii, 1)), 'color', colors{1}(pk{1}.ind_layer(tmp1(1), 1), :))
                         set(p_pk{2, 1}(pk{1}.ind_layer(ii, 1)), 'color', colors{1}(pk{1}.ind_layer(tmp1(1), 1), :))
                     end
-                    set(p_int2{1, 2}(pk{1}.ind_layer(ii, 1)), 'marker', '^', 'markerfacecolor', colors{1}(pk{1}.ind_layer(ii, 1), :))
                     set(p_int2{1, 1}(pk{1}.ind_layer(ii, 5)), 'marker', '^', 'markerfacecolor', colors{1}(pk{1}.ind_layer(ii, 1), :))
+                    set(p_int2{1, 2}(pk{1}.ind_layer(ii, 1)), 'marker', '^', 'markerfacecolor', colors{1}(pk{1}.ind_layer(ii, 1), :))
                     set(p_pk{1, 2}(pk{1}.ind_layer(ii, 5)), 'color', colors{1}(pk{1}.ind_layer(ii, 1), :))
                     set(p_pk{2, 2}(pk{1}.ind_layer(ii, 5)), 'color', colors{1}(pk{1}.ind_layer(ii, 1), :))
                 end
@@ -1365,19 +1416,33 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             return
         end
         
-        % check if data are in expected location based on picks' path
+        % check if data are in expected location based on picks' filename
         tmp1                = file_pk_short{curr_rad};
         if isnan(str2double(tmp1(end))) % check for a/b/c/etc in file_pk_short
-            tmp1            = tmp1(1:(end - 1));
+            tmp2            = tmp1(1:(end - 1));
+        else
+            tmp2            = tmp1;
         end
         
         if ispc
-            if (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '..\block\' tmp1], 'dir'))
-                path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '\merge')) 'block\' tmp1 '\'];
+            if ~strcmp(tmp1, tmp2)
+                if (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '..\block\' tmp2 '\' tmp1(end) '\'], 'dir'))
+                    path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '\merge')) 'block\' tmp2 '\' tmp1(end) '\'];
+                elseif (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '..\block\' tmp2 '\'], 'dir'))
+                    path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '\merge')) 'block\' tmp2 '\'];
+                end
+            elseif (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '..\block\' tmp2 '\'], 'dir'))
+                path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '\merge')) 'block\' tmp2 '\'];
             end
         else
-            if (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '../block/' tmp1], 'dir'))
-                path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '/merge')) 'block/' tmp1 '/'];
+            if ~strcmp(tmp1, tmp2)
+                if (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '../block/' tmp2 '/' tmp1(end) '/'], 'dir'))
+                    path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '/merge')) 'block/' tmp2 '/' tmp1(end) '/'];
+                elseif (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '../block/' tmp2 '/'], 'dir'))
+                    path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '/merge')) 'block/' tmp2 '/'];                    
+                end
+            elseif (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '../block/' tmp2 '/'], 'dir'))
+                path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '/merge')) 'block/' tmp2 '/'];
             end
         end
         
@@ -1489,11 +1554,22 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                             = 1;
                 tmp5(tmp5 > pk{curr_rad}.num_trace(ii)) ...
                             = pk{curr_rad}.num_trace(ii);
-                for jj = 1:length(tmp3)
-                    amp_mean{curr_rad}(:, tmp3(jj)) ...
+                if (size(amp_mean{curr_rad}, 1) > size(tmp1.amp, 1))
+                    for jj = 1:length(tmp3)
+                        amp_mean{curr_rad}(:, tmp3(jj)) ...
+                            = [nanmean(tmp1.amp(:, tmp4(jj):tmp5(jj)), 2); NaN((size(amp_mean{curr_rad}, 1) - size(tmp1.amp, 1)), 1)];
+                    end
+                elseif (size(amp_mean{curr_rad}, 1) < size(tmp1.amp, 1))
+                    for jj = 1:length(tmp3)
+                        amp_mean{curr_rad}(:, tmp3(jj)) ...
+                            = nanmean(tmp1.amp(1:size(amp_mean{curr_rad}, 1), tmp4(jj):tmp5(jj)), 2);
+                    end
+                else
+                    for jj = 1:length(tmp3)
+                        amp_mean{curr_rad}(:, tmp3(jj)) ...
                             = nanmean(tmp1.amp(:, tmp4(jj):tmp5(jj)), 2);
+                    end
                 end
-                
             end
             
             tmp1            = 0;
@@ -1501,6 +1577,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         end
         
         % convert to dB
+        amp_mean{curr_rad}(isinf(amp_mean{curr_rad})) ...
+                            = NaN;
         amp_mean{curr_rad}  = 10 .* log10(abs(amp_mean{curr_rad}));
         num_sample(curr_rad)= size(amp_mean{curr_rad}, 1);
         depth{curr_rad}     = ((speed_ice / 2) .* twtt{curr_rad}); % simple monotonically increasing depth vector
@@ -1514,7 +1592,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         else
             tmp2            = ones(1, num_decim(curr_rad));
         end
-        tmp3                = pk{curr_rad}.elev_surf(ind_decim{curr_rad});
+        tmp3                = elev_surf{curr_rad}(ind_decim{curr_rad});
         if any(isnan(tmp3))
             tmp3(isnan(tmp3)) ...
                             = interp1(find(~isnan(tmp3)), tmp3(~isnan(tmp3)), find(isnan(tmp3)), 'linear', 'extrap');
@@ -1529,7 +1607,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         amp_mean{curr_rad}  = flipud(amp_mean{curr_rad}); % flip for axes
         ind_corr{curr_rad}  = max(ind_corr{curr_rad}) - ind_corr{curr_rad} + 1;
         depth{curr_rad}     = (speed_ice / 2) .* (0:dt(curr_rad):((num_sample(curr_rad) - 1) * dt(curr_rad)))'; % simple monotonically increasing depth vector
-        elev{curr_rad}      = flipud(max(pk{curr_rad}.elev_surf(ind_decim{curr_rad})) - depth{curr_rad}); % elevation vector
+        elev{curr_rad}      = flipud(max(elev_surf{curr_rad}(ind_decim{curr_rad})) - depth{curr_rad}); % elevation vector
         depth{curr_rad}     = depth{curr_rad}(1:(num_sample(curr_rad) - max(ind_corr{curr_rad})));
         
         % assign traveltime and distance reference values/sliders based on data
@@ -1647,10 +1725,10 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             if (bed_avail(curr_rad) && any(~isnan(depth_bed_flat{curr_rad})))
                 if any(isnan(depth_bed_flat{curr_rad}))
                     p_bedflat(curr_rad) ...
-                            = plot(pk{curr_rad}.dist_lin(ind_decim{curr_rad}(~isnan(depth_bed_flat{curr_rad}))), depth_bed_flat{curr_rad}(~isnan(depth_bed_flat{curr_rad})), 'g.', 'markersize', 12, 'visible', 'off');
+                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(depth_bed_flat{curr_rad}))), depth_bed_flat{curr_rad}(~isnan(depth_bed_flat{curr_rad})), 'g.', 'markersize', 12, 'visible', 'off');
                 else
                     p_bedflat(curr_rad) ...
-                            = plot(pk{curr_rad}.dist_lin(ind_decim{curr_rad}), depth_bed_flat{curr_rad}, 'g--', 'linewidth', 2, 'visible', 'off');
+                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}), depth_bed_flat{curr_rad}, 'g--', 'linewidth', 2, 'visible', 'off');
                 end
             end
             
@@ -1677,7 +1755,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             for ii = 1:pk{curr_rad}.num_layer
                 if ~isempty(find(~isnan(depth_layer_flat{curr_rad}(ii, :)), 1))
                     p_pkflat{curr_rad}(ii) ...
-                            = plot(pk{curr_rad}.dist_lin(ind_decim{curr_rad}(~isnan(depth_layer_flat{curr_rad}(ii, :)))), depth_layer_flat{curr_rad}(ii, ~isnan(depth_layer_flat{curr_rad}(ii, :))), '.', ...
+                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(depth_layer_flat{curr_rad}(ii, :)))), depth_layer_flat{curr_rad}(ii, ~isnan(depth_layer_flat{curr_rad}(ii, :))), '.', ...
                                    'markersize', 12, 'color', colors{curr_rad}(ii, :), 'visible', 'off');
                 else
                     p_pkflat{curr_rad}(ii) ...
@@ -1691,11 +1769,11 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             if (curr_rad == 2)
                 axes(ax(2))
                 for ii = 1:num_int
-                    p_int1{2, 2}(ii) = plot(repmat(pk{1}.dist_lin(curr_ind_int(ii, 1)), 1, 2), [depth_min_ref depth_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
+                    p_int1{2, 2}(ii) = plot(repmat(dist_lin{1}(curr_ind_int(ii, 1)), 1, 2), [depth_min_ref depth_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
                 end
                 axes(ax(3))
                 for ii = 1:num_int
-                    p_int1{2, 3}(ii) = plot(repmat(pk{2}.dist_lin(curr_ind_int(ii, 2)), 1, 2), [depth_min_ref depth_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
+                    p_int1{2, 3}(ii) = plot(repmat(dist_lin{2}(curr_ind_int(ii, 2)), 1, 2), [depth_min_ref depth_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
                 end
                 for ii = 1:2
                     if (any(p_int2{2, ii}) && any(ishandle(p_int2{2, ii})))
@@ -1704,23 +1782,27 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 end
                 axes(ax(2))
                 for ii = 1:pk{2}.num_layer
-                    p_int2{2, 1}(ii) = plot(pk{1}.dist_lin(curr_ind_int(:, 1)), pk{2}.depth_smooth(ii, curr_ind_int(:, 2)), 'ko', 'markersize', 8, 'markerfacecolor', colors{2}(ii, :), 'visible', 'off');
+                    p_int2{2, 1}(ii) = plot(dist_lin{1}(curr_ind_int(:, 1)), pk{2}.depth_smooth(ii, curr_ind_int(:, 2)), 'ko', 'markersize', 8, 'markerfacecolor', colors{2}(ii, :), 'visible', 'off');
                 end
                 axes(ax(3))
                 for ii = 1:pk{1}.num_layer
-                    p_int2{2, 2}(ii) = plot(pk{2}.dist_lin(curr_ind_int(:, 2)), pk{1}.depth_smooth(ii, curr_ind_int(:, 1)), 'ko', 'markersize', 8, 'markerfacecolor', colors{1}(ii, :), 'visible', 'off');
+                    p_int2{2, 2}(ii) = plot(dist_lin{2}(curr_ind_int(:, 2)), pk{1}.depth_smooth(ii, curr_ind_int(:, 1)), 'ko', 'markersize', 8, 'markerfacecolor', colors{1}(ii, :), 'visible', 'off');
                 end
-                for ii = 1:size(pk{1}.ind_layer, 1)
+                for ii = 1:size(pk{1}.ind_layer)
                     set(p_int2{2, 2}(pk{1}.ind_layer(ii, 1)), 'marker', 's')
                 end
-                for ii = 1:size(pk{2}.ind_layer, 1)
+                for ii = 1:size(pk{2}.ind_layer)
                     set(p_int2{2, 1}(pk{2}.ind_layer(ii, 1)), 'marker', 's')
                 end
-                for ii = 1:size(pk{2}.ind_layer, 1)
-                    if ((pk{2}.ind_layer(ii, 2) == curr_year(1)) && (pk{2}.ind_layer(ii, 3) == curr_trans(1)) && (pk{2}.ind_layer(ii, 4) == curr_subtrans(1))) % match to current transect
-                        set(p_int2{2, 1}(pk{2}.ind_layer(ii, 1)), 'marker', '^', 'markerfacecolor', colors{1}(pk{2}.ind_layer(ii, 5), :))
-                        set(p_int2{2, 2}(pk{2}.ind_layer(ii, 5)), 'marker', '^', 'markerfacecolor', colors{1}(pk{2}.ind_layer(ii, 5), :))
-                        set(p_pkflat{2}(pk{2}.ind_layer(ii, 1)), 'color', colors{1}(pk{2}.ind_layer(ii, 5), :))
+                for ii = 1:size(pk{1}.ind_layer, 1)
+                    if ((pk{1}.ind_layer(ii, 2) == curr_year(2)) && (pk{1}.ind_layer(ii, 3) == curr_trans(2)) && (pk{1}.ind_layer(ii, 4) == curr_subtrans(2))) % match to current transect
+                        if (length(find((pk{1}.ind_layer(:, end) == pk{1}.ind_layer(ii, end)))) > 1)
+                            tmp1 = find((pk{1}.ind_layer(:, end) == pk{1}.ind_layer(ii, end)));
+                            set(p_pkflat{1}(pk{1}.ind_layer(ii, 1)), 'color', colors{1}(pk{1}.ind_layer(tmp1(1), 1), :))
+                        end
+                        set(p_int2{2, 1}(pk{1}.ind_layer(ii, 5)), 'marker', '^', 'markerfacecolor', colors{1}(pk{1}.ind_layer(ii, 1), :))
+                        set(p_int2{2, 2}(pk{1}.ind_layer(ii, 1)), 'marker', '^', 'markerfacecolor', colors{1}(pk{1}.ind_layer(ii, 1), :))
+                        set(p_pkflat{2}(pk{1}.ind_layer(ii, 5)), 'color', colors{1}(pk{1}.ind_layer(ii, 1), :))
                     end
                 end
                 set(int_check, 'value', 1)
@@ -1778,6 +1860,10 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         data_done(curr_rad) = true;
         set(data_check(curr_gui, curr_rad), 'value', 1)
         plot_db
+        if (curr_rad == 2)
+            set(intnum_list, 'value', 1)
+            change_int
+        end
         set(status_box(2), 'string', 'Transect radar data loaded.')
     end
 
@@ -1812,30 +1898,20 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         curr_layer(curr_rad)= get(layer_list(curr_gui, curr_rad), 'value');
         if pk_done(curr_rad)
             set(layer_list(:, curr_rad), 'value', curr_layer(curr_rad))
-            if (any(p_pk{1, curr_rad}) && any(ishandle(p_pk{1, curr_rad})))
-                set(p_pk{1, curr_rad}(logical(p_pk{1, curr_rad}) & ishandle(p_pk{1, curr_rad})), 'markersize', 12)
-            end
-            if (any(p_pk{2, curr_rad}) && any(ishandle(p_pk{2, curr_rad})))
-                set(p_pk{2, curr_rad}(logical(p_pk{2, curr_rad}) & ishandle(p_pk{2, curr_rad})), 'markersize', 12)
-            end
-            if (any(p_int2{1, curr_rad_alt}) && any(ishandle(p_int2{1, curr_rad_alt})))
-                set(p_int2{1, curr_rad_alt}(logical(p_int2{1, curr_rad_alt}) & ishandle(p_int2{1, curr_rad_alt})), 'markersize', 8)
-            end
-            if (any(p_int2{2, curr_rad_alt}) && any(ishandle(p_int2{2, curr_rad_alt})))
-                set(p_int2{2, curr_rad_alt}(logical(p_int2{2, curr_rad_alt}) & ishandle(p_int2{2, curr_rad_alt})), 'markersize', 8)
-            end
-            if (logical(p_pk{1, curr_rad}(curr_layer(curr_rad))) && ishandle(p_pk{1, curr_rad}(curr_layer(curr_rad))))
-                set(p_pk{1, curr_rad}(curr_layer(curr_rad)), 'markersize', 24)
-            end
-            if (logical(p_pk{2, curr_rad}(curr_layer(curr_rad))) && ishandle(p_pk{2, curr_rad}(curr_layer(curr_rad))))
-                set(p_pk{2, curr_rad}(curr_layer(curr_rad)), 'markersize', 24)
-            end
-            if all(pk_done)
-                if (logical(p_int2{1, curr_rad_alt}(curr_layer(curr_rad))) && ishandle(p_int2{1, curr_rad_alt}(curr_layer(curr_rad))))
-                    set(p_int2{1, curr_rad_alt}(curr_layer(curr_rad)), 'markersize', 16)
+            for ii = 1:2
+                if (any(p_pk{ii, curr_rad}) && any(ishandle(p_pk{ii, curr_rad})))
+                    set(p_pk{ii, curr_rad}(logical(p_pk{ii, curr_rad}) & ishandle(p_pk{ii, curr_rad})), 'markersize', 12)
                 end
-                if (logical(p_int2{2, curr_rad_alt}(curr_layer(curr_rad))) && ishandle(p_int2{2, curr_rad_alt}(curr_layer(curr_rad))))
-                    set(p_int2{2, curr_rad_alt}(curr_layer(curr_rad)), 'markersize', 16)
+                if (any(p_int2{ii, curr_rad_alt}) && any(ishandle(p_int2{ii, curr_rad_alt})))
+                    set(p_int2{ii, curr_rad_alt}(logical(p_int2{ii, curr_rad_alt}) & ishandle(p_int2{ii, curr_rad_alt})), 'markersize', 8)
+                end
+                if (logical(p_pk{ii, curr_rad}(curr_layer(curr_rad))) && ishandle(p_pk{ii, curr_rad}(curr_layer(curr_rad))))
+                    set(p_pk{ii, curr_rad}(curr_layer(curr_rad)), 'markersize', 24)
+                end
+                if all(pk_done)
+                    if (logical(p_int2{ii, curr_rad_alt}(curr_layer(curr_rad))) && ishandle(p_int2{ii, curr_rad_alt}(curr_layer(curr_rad))))
+                        set(p_int2{ii, curr_rad_alt}(curr_layer(curr_rad)), 'markersize', 16)
+                    end
                 end
             end
             if (flat_done(curr_rad) && data_done(curr_rad))
@@ -1895,7 +1971,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                         curr_layer(1) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & ...
                                                               (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1), 5);
                         for ii = 1:2
-                            if (any(p_pk{ii, 1}) && any(ishandle(p_pk{ii, 2})))
+                            if (any(p_pk{ii, 1}) && any(ishandle(p_pk{ii, 1})))
                                 set(p_pk{ii, 1}(logical(p_pk{ii, 1}) & ishandle(p_pk{ii, 1})), 'markersize', 12)
                             end
                             if (logical(p_pk{ii, 1}(curr_layer(1))) && ishandle(p_pk{ii, 1}(curr_layer(1))))
@@ -1928,9 +2004,9 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             end
         end
         if (get(nearest_check, 'value') && all(pk_done) && isempty(tmp1))
-            if any(~isnan(pk{curr_rad_alt}.elev_smooth(:, curr_ind_int(curr_int, curr_rad_alt))))
+            if any(~isnan(elev_smooth{curr_rad_alt}(:, curr_ind_int(curr_int, curr_rad_alt))))
                 [~, curr_layer(curr_rad_alt)] ...
-                            = min(abs(pk{curr_rad}.elev_smooth(curr_layer(curr_rad), curr_ind_int(curr_int, curr_rad)) - pk{curr_rad_alt}.elev_smooth(:, curr_ind_int(curr_int, curr_rad_alt))));
+                            = min(abs(elev_smooth{curr_rad}(curr_layer(curr_rad), curr_ind_int(curr_int, curr_rad)) - elev_smooth{curr_rad_alt}(:, curr_ind_int(curr_int, curr_rad_alt))));
                 [curr_rad, curr_rad_alt] ...
                             = deal(curr_rad_alt, curr_rad);
                 set(layer_list(curr_gui, curr_rad), 'value', curr_layer(curr_rad))
@@ -1968,16 +2044,19 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         [ind_x_pk, ind_y_pk]= ginput(1);
         switch disp_type{curr_ax}
             case 'amp.'
-                [tmp1, tmp2]= unique(pk{curr_rad}.elev_smooth(:, interp1(pk{curr_rad}.dist_lin(ind_decim{curr_rad}), ind_decim{curr_rad}, ind_x_pk, 'nearest', 'extrap')));
+                [tmp1, tmp2]= unique(elev_smooth{curr_rad}(:, interp1(dist_lin{curr_rad}(ind_decim{curr_rad}), ind_decim{curr_rad}, ind_x_pk, 'nearest', 'extrap')));
             case 'flat'
-                [tmp1, tmp2]= unique(pk{curr_rad}.depth_smooth(:, interp1(pk{curr_rad}.dist_lin(ind_decim{curr_rad}), ind_decim{curr_rad}, ind_x_pk, 'nearest', 'extrap')));
+                [tmp1, tmp2]= unique(pk{curr_rad}.depth_smooth(:, interp1(dist_lin{curr_rad}(ind_decim{curr_rad}), ind_decim{curr_rad}, ind_x_pk, 'nearest', 'extrap')));
         end
         if (length(tmp1(~isnan(tmp1))) > 1)
             curr_layer(curr_rad) ...
                             = interp1(tmp1(~isnan(tmp1)), tmp2(~isnan(tmp1)), ind_y_pk, 'nearest', 'extrap');
-        else
+        elseif (length(tmp1(~isnan(tmp1))) == 1)
             curr_layer(curr_rad) ...
-                            = tmp2(1);
+                            = tmp2(find(~isnan(tmp1), 1));
+        else
+            set(status_box(2), 'string', 'Layer choice unclear.')
+            return
         end
         set(layer_list(:, curr_rad), 'value', curr_layer(curr_rad))
         choose_layer
@@ -2117,6 +2196,14 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             tmp2            = colors{1}(curr_layer(1), :);
         end
         
+        if ~isempty(pk{2}.ind_layer)
+            if ~isempty(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1)) & ...
+                              (pk{2}.ind_layer(:, 5) == curr_layer(1))), 1))
+                set(status_box(2), 'string', 'This layer pair is already matched.')
+                return
+            end
+        end
+        
         % colorize then verify
         for ii = 1:2
             if (logical(p_pk{ii, 2}(curr_layer(2))) && ishandle(p_pk{ii, 2}(curr_layer(2))))
@@ -2134,7 +2221,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 set(p_pkflat{2}(curr_layer(2)), 'color', tmp2)
             end
         end
-
+        
         pause(0.1)
         
         set(status_box(2), 'string', 'Matching correct? (Y: yes; otherwise: cancel)...')
@@ -2158,7 +2245,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                     set(p_pkflat{2}(curr_layer(2)), 'color', colors{2}(curr_layer(2), :))
                 end
             end
-            set(status_box(2), 'string', 'Layer matching cancelled by user.')
+            set(status_box(2), 'string', 'Layer matching cancelled.')
             return
         end
         
@@ -2285,7 +2372,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             set(status_box(2), 'string', ['Intersecting layer # ' num2str(curr_layer(2)) ' unmatched from master layer #' num2str(curr_layer(1)) '.'])
             
         else
-            set(statux_box(2), 'string', 'Unmatching cancelled by user.')
+            set(status_box(2), 'string', 'Unmatching cancelled by user.')
             return
         end
     end
@@ -2327,9 +2414,12 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 return
             end
         end
-
+        
         set(status_box(1), 'string', 'Select locations to save picks...')
         pause(0.1)
+        
+        [tmp1, tmp2, tmp3, tmp4] ...
+                            = deal(file_pk{1}, path_pk{1}, file_pk{2}, path_pk{2});
         
         if ~isempty(path_pk{1})
             [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_pk{1} file_pk{1}]);
@@ -2353,11 +2443,11 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_data{1} file_pk{2}]);
         else
             [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', file_pk{2});
-        end        
+        end
         
         if (~ischar(file_pk{1}) || ~ischar(file_pk{2}))
             [file_pk{1}, path_pk{1}, file_pk{2}, path_pk{2}] ...
-                            = deal('');
+                            = deal(tmp1, tmp2, tmp3, tmp4);
             set(status_box(1), 'string', 'Picks locations not chosen. Saving cancelled.')
             return
         end
@@ -2365,15 +2455,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         set(status_box(1), 'string', 'Preparing matches for saving...')
         pause(0.1)
         
-        % remove repeated matches
-        [~, tmp1]           = unique(pk{1}.ind_layer(:, 1:5), 'rows', 'stable'); 
-        pk{1}.ind_layer     = pk{1}.ind_layer(tmp1, :);
-        
-        [~, tmp1]           = unique(pk{2}.ind_layer(:, 1:5), 'rows', 'stable');
-        pk{2}.ind_layer     = pk{2}.ind_layer(tmp1, :);
-        
         if (isempty(find(isnan(pk{1}.ind_layer(:, end)), 1)) && isempty(find(isnan(pk{2}.ind_layer(:, end)), 1)))
-            set(status_box(1), 'string', 'No new layers matched. No need to save intersecting picks.')
+            set(status_box(1), 'string', 'No new layers matched. No need to save picks.')
             return
         end
         
@@ -3630,7 +3713,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                     set(status_box(1), 'string', 'Displaying radargram in 3D GUI...')
                     zlim([elev_min(curr_ax) elev_max(curr_ax)])
                     p_data(curr_gui, curr_rad) ...
-                            = surf(repmat(pk{curr_rad}.x(ind_decim{curr_rad}), num_sample(curr_rad), 1), repmat(pk{curr_rad}.y(ind_decim{curr_rad}), num_sample(curr_rad), 1), ...
+                            = surf(repmat(x{curr_rad}(ind_decim{curr_rad}), num_sample(curr_rad), 1), repmat(y{curr_rad}(ind_decim{curr_rad}), num_sample(curr_rad), 1), ...
                                    repmat(elev{curr_rad}, 1, num_decim(curr_rad)), double(amp_mean{curr_rad}), 'facecolor', 'flat', 'edgecolor', 'none', 'facelighting', 'none');
                     set(status_box(1), 'string', 'Displayed. Changing view will be slower.')
                     reset_xyz
@@ -3639,7 +3722,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                     axis xy
                     ylim([elev_min(curr_ax) elev_max(curr_ax)])
                     p_data(curr_gui, curr_rad) ...
-                            = imagesc(pk{curr_rad}.dist_lin(ind_decim{curr_rad}), elev{curr_rad}, amp_mean{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
+                            = imagesc(dist_lin{curr_rad}(ind_decim{curr_rad}), elev{curr_rad}, amp_mean{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
                     reset_xz
             end
         end
@@ -3675,7 +3758,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
         ylim([depth_min(curr_rad) depth_max(curr_rad)])
         p_data(curr_gui, curr_rad) ...
-                            = imagesc(pk{curr_rad}.dist_lin(ind_decim{curr_rad}), depth{curr_rad}, amp_flat{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
+                            = imagesc(dist_lin{curr_rad}(ind_decim{curr_rad}), depth{curr_rad}, amp_flat{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
         disp_type{curr_ax}  = 'flat';
         reset_xz
         narrow_cb
@@ -4018,43 +4101,43 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             switch curr_gui
                 case 1
                     for ii = 1:pk{curr_rad}.num_layer
-                        if ~any(~isnan(pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad})))
+                        if ~any(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))
                             p_pk{curr_gui, curr_rad}(ii) = plot(0, 0, 'w.', 'markersize', 1);
                             layer_str{curr_rad}{ii} = [num2str(ii) ' H'];
                         else
-                            p_pk{curr_gui, curr_rad}(ii) = plot3(pk{curr_rad}.x(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad})))), ...
-                                                                 pk{curr_rad}.y(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad})))), ...
-                                                                 pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad})))), ...
+                            p_pk{curr_gui, curr_rad}(ii) = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
+                                                                 y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
+                                                                 elev_smooth{curr_rad}(ii, ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
                                                                  '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
                         end
                     end
                 case 2
                     for ii = 1:pk{curr_rad}.num_layer
-                        if ~any(~isnan(pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad})))
+                        if ~any(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))
                             p_pk{curr_gui, curr_rad}(ii) = plot(0, 0, 'w.', 'markersize', 1);
                             layer_str{curr_rad}{ii} = [num2str(ii) ' H'];
                         else
-                            p_pk{curr_gui, curr_rad}(ii) = plot(pk{curr_rad}.dist_lin(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad})))), ...
-                                                                pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_smooth(ii, ind_decim{curr_rad})))), ...
+                            p_pk{curr_gui, curr_rad}(ii) = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
+                                                                elev_smooth{curr_rad}(ii, ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
                                                                 '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
                         end
                     end
             end
             % check to see if surface and bed picks are available
             if isfield(pk{curr_rad}, 'elev_surf')
-                if any(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))
+                if any(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))
                     surf_avail(curr_rad) ...
                             = true;
                     axes(ax(1))
                     p_surf(1, curr_rad) ...
-                            = plot3(pk{curr_rad}.x(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))), ...
-                                    pk{curr_rad}.y(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))), ...
-                                    pk{curr_rad}.elev_surf(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
+                            = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), ...
+                                    y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), ...
+                                    elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
                     axes(ax(1 + curr_rad))
                     p_surf(2, curr_rad) ...
-                            = plot(pk{curr_rad}.dist_lin(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))), ...
-                                   pk{curr_rad}.elev_surf(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
-                    if any(isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_surf(ind_decim{curr_rad}))))))
+                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), ...
+                                   elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
+                    if any(isnan(elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad}))))))
                         set(p_surf(2, curr_rad), 'marker', '.', 'linestyle', 'none', 'markersize', 12)
                     end
                 else
@@ -4063,19 +4146,19 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 end
             end
             if isfield(pk{curr_rad}, 'elev_bed')
-                if any(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))
+                if any(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))
                     bed_avail(curr_rad) ...
                             = true;
                     axes(ax(1))
                     p_bed(1, curr_rad) ...
-                        = plot3(pk{curr_rad}.x(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))), ...
-                        pk{curr_rad}.y(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))), ...
-                        pk{curr_rad}.elev_bed(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
+                        = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), ...
+                        y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), ...
+                        elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
                     axes(ax(1 + curr_rad))
                     p_bed(2, curr_rad) ...
-                        = plot(pk{curr_rad}.dist_lin(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))), ...
-                        pk{curr_rad}.elev_bed(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
-                    if any(isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad}(~isnan(pk{curr_rad}.elev_bed(ind_decim{curr_rad}))))))
+                        = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), ...
+                        elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
+                    if any(isnan(elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad}))))))
                         set(p_bed(2, curr_rad), 'marker', '.', 'linestyle', 'none', 'markersize', 12)
                     end
                 else
@@ -4086,7 +4169,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
             % calculate bed depth (for flattened projection)
             if (surf_avail(curr_rad) && bed_avail(curr_rad))
                 depth_bed{curr_rad} ...
-                            = pk{curr_rad}.elev_surf(ind_decim{curr_rad}) - pk{curr_rad}.elev_bed(ind_decim{curr_rad});
+                            = elev_surf{curr_rad}(ind_decim{curr_rad}) - elev_bed{curr_rad}(ind_decim{curr_rad});
             end
             if curr_layer(curr_rad)
                 set(layer_list(:, curr_rad), 'string', layer_str{curr_rad}, 'value', curr_layer(curr_rad))
@@ -4147,8 +4230,8 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 end
             end
             [dist_min(1), dist_max(1), dist_min(2), dist_max(2)] ...
-                            = deal((pk{1}.dist_lin(curr_ind_int(curr_int, 1)) - 10), (pk{1}.dist_lin(curr_ind_int(curr_int, 1)) + 10), ...
-                                   (pk{2}.dist_lin(curr_ind_int(curr_int, 2)) - 10), (pk{2}.dist_lin(curr_ind_int(curr_int, 2)) + 10));
+                            = deal((dist_lin{1}(curr_ind_int(curr_int, 1)) - 10), (dist_lin{1}(curr_ind_int(curr_int, 1)) + 10), ...
+                                   (dist_lin{2}(curr_ind_int(curr_int, 2)) - 10), (dist_lin{2}(curr_ind_int(curr_int, 2)) + 10));
             if (dist_min(1) < dist_min_ref(1))
                 dist_min(1) = dist_min_ref(1);
             end
@@ -4231,7 +4314,7 @@ linkprop(layer_list(:, 2), {'value' 'string'});
         if (get(cbfix_check2(curr_ax), 'value') && data_done(curr_rad))
             axes(ax(curr_ax))
             tmp1            = zeros(2);
-            tmp1(1, :)      = interp1(pk{curr_rad}.dist_lin(ind_decim{curr_rad}), 1:num_decim(curr_rad), [dist_min(curr_rad) dist_max(curr_rad)], 'nearest', 'extrap');
+            tmp1(1, :)      = interp1(dist_lin{curr_rad}(ind_decim{curr_rad}), 1:num_decim(curr_rad), [dist_min(curr_rad) dist_max(curr_rad)], 'nearest', 'extrap');
             switch disp_type{curr_ax}
                 case 'amp.'
                     tmp1(2, :) = interp1(elev{curr_rad}, 1:num_sample(curr_rad), [elev_min(curr_ax) elev_max(curr_ax)], 'nearest', 'extrap');
@@ -4674,12 +4757,6 @@ linkprop(layer_list(:, 2), {'value' 'string'});
                 change_cmap
             case 'x'
                 choose_pk2
-            case 'y'
-                if get(zfix_check(curr_ax), 'value')
-                    set(zfix_check(curr_ax), 'value', 0)
-                else
-                    set(zfix_check(curr_ax), 'value', 1)
-                end
             case 'z'
                 choose_pk1
             case 'downarrow'
