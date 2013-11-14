@@ -1,6 +1,6 @@
 function pickgui
 % PICKGUI Interactive radar-layer picker.
-%   
+%
 %   PICKGUI loads a GUI for tracing layers in CReSIS radar data, either the
 %   original data files or those that have been pre-processed by
 %   RADBLOCKPROC. This GUI includes semi-automatic tracing of layers and
@@ -9,18 +9,18 @@ function pickgui
 %   PHASEINTERP or ARESP, respectively. Layers from separate data blocks
 %   can be merged later using MERGEGUI and compared between transects using
 %   FENCEGUI.
-%   
+%
 %   Refer to manual for operation (pickgui_man.docx).
-%   
+%
 %   PICKGUI requires that the function SMOOTH_LOWESS be available within
 %   the user's path. If original CReSIS data blocks are to be loaded, then
 %   it also requires that either the function LL2PS be available within the
 %   user's path or the Mapping Toolbox be licensed and available. If the
 %   Parallel Computing Toolbox is licensed and available, then several
 %   calculations related to data flattening will be parallelized.
-% 
+%
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 07/03/13
+% Last updated: 09/26/13
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -3775,6 +3775,8 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = (1:pk.num_layer)';
                 match_done  = true;
                 set(status_box, 'string', 'Layer numbers set.')
+                pk.ind_match_max ...
+                            = pk.num_layer;
                 return
             else
                 set(status_box, 'string', 'No reference layers loaded to match to.')
@@ -3831,9 +3833,18 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         % add new layer numbers for those that didn't match any reference layers
         if any(isnan(pk.ind_match))
+            tmp1            = nanmax(pk.ind_match);
+            if isfield(pk_ref, 'ind_match_max') % if available, take care not to repeat layer numbers
+                if (pk_ref.ind_match_max > tmp1)
+                    tmp1    = pk_ref.ind_match_max;
+                end
+            end
             pk.ind_match(isnan(pk.ind_match)) ...
-                            = (max(pk_ref.ind_match) + 1):(max(pk_ref.ind_match) + length(find(isnan(pk.ind_match))));
+                            = (tmp1 + 1):(tmp1 + length(find(isnan(pk.ind_match))));
         end
+        
+        pk.ind_match_max    = max(pk.ind_match);
+        
         match_done          = true;
     end
 

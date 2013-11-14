@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 07/03/13
+% Last updated: 11/06/13
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -34,6 +34,8 @@ pk                          = struct;
 [dist_min, dist_max]        = deal(dist_min_ref, dist_max_ref);
 [db_min_ref, db_max_ref]    = deal(-130, 0);
 [db_min, db_max]            = deal(-80, -20);
+[age_min_ref, age_max_ref]  = deal(0, 130);
+[age_min, age_max]          = deal(age_min_ref, age_max_ref);
 
 % more default values
 speed_vacuum                = 299792458; % m/s
@@ -72,16 +74,17 @@ colors_def                  = [0    0       0.75;
                                1    0.25    0;
                                1    0       0;
                                0.75 0       0];
+letters                     = 'a':'z';
 
 % allocate a bunch of variables
-[bed_avail, core_done, data_done, edit_flag, flat_done, gimp_avail, merge_done, merge_file, surf_avail] ...
+[age_done, bed_avail, core_done, data_done, edit_flag, flat_done, gimp_avail, merge_done, merge_file, surf_avail] ...
                             = deal(false);
-[amp_flat, amp_mean, button, colors, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, ...
- dist_chunk, dt, elev, ii, ind_corr, ind_decim, ind_int, ind_x_pk, ind_x_ref, ind_y_pk, int_core, jj, kk, name_core, name_trans, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, num_trans, num_year, ...
- p_bed, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, pk_all, p_pk, p_pkflat, p_snr, p_surf, pkfig, p_refflat, rad_threshold, snr_all, snrgui, ...
- snrlist, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
+[age, age_curr, amp_flat, amp_mean, button, colors, colors_age, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, ...
+ depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_corr, ind_decim, ind_int, ind_x_pk, ind_x_ref, ind_y_pk, int_core, jj, kk, name_core, name_trans, num_chunk, num_core, num_data, num_decim, num_int, ...
+ num_pk, num_sample, num_trans, num_year, p_bed, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, pk_all, p_pk, p_pkflat, p_snr, p_surf, pkfig, ...
+ p_refflat, rad_threshold, snr_all, snrgui, snrlist, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
                             = deal(0);
-[file_data, file_core, file_pk, file_pk_short, file_save, file_snr, path_core, path_data, path_pk, path_save, path_snr] ...
+[cb_type, file_age, file_data, file_core, file_pk, file_pk_short, file_save, file_snr, path_age, path_core, path_data, path_pk, path_save, path_snr] ...
                             = deal('');
 layer_str                   = {};
 
@@ -139,10 +142,10 @@ z_min_slide                 = uicontrol(mgui, 'style', 'slider', 'units', 'norma
                                               'sliderstep', [0.01 0.1]);
 z_max_slide                 = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.50 width_slide 0.32], 'callback', @slide_z_max, 'min', 0, 'max', 1, 'value', elev_max_ref, ...
                                               'sliderstep', [0.01 0.1]);
-cb_min_slide                = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.96 0.07 width_slide 0.32], 'callback', @slide_db_min, 'min', -150, 'max', 0, 'value', db_min_ref, ...
-                                              'sliderstep', [0.01 0.1]);
-cb_max_slide                = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.96 0.50 width_slide 0.32], 'callback', @slide_db_max, 'min', -150, 'max', 0, 'value', db_max_ref, ...
-                                              'sliderstep', [0.01 0.1]);
+cb_min_slide                = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.96 0.07 width_slide 0.32], 'callback', @slide_cb_min, 'min', db_min_ref, 'max', db_max_ref, ...
+                                              'value', db_min_ref, 'sliderstep', [0.01 0.1]);
+cb_max_slide                = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.96 0.50 width_slide 0.32], 'callback', @slide_cb_max, 'min', db_min_ref, 'max', db_max_ref, ...
+                                              'value', db_max_ref, 'sliderstep', [0.01 0.1]);
 dist_min_slide              = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.12 0.005 0.27 0.02], 'callback', @slide_dist_min, 'min', 0, 'max', 1, 'value', dist_min_ref, ...
                                               'sliderstep', [0.01 0.1]);
 dist_max_slide              = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.64 0.005 0.27 0.02], 'callback', @slide_dist_max, 'min', 0, 'max', 1, 'value', dist_max_ref, ...
@@ -164,6 +167,7 @@ uicontrol(mgui, 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalized',
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Match', 'units', 'normalized', 'position', [0.41 0.885 0.04 0.03], 'callback', @pk_match, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Last', 'units', 'normalized', 'position', [0.46 0.885 0.04 0.03], 'callback', @pk_last, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Next', 'units', 'normalized', 'position', [0.46 0.925 0.04 0.03], 'callback', @pk_next, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(mgui, 'style', 'pushbutton', 'string', 'Load ages', 'units', 'normalized', 'position', [0.505 0.965 0.07 0.03], 'callback', @load_age, 'fontsize', size_font, 'foregroundcolor', 'b')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Choose layer', 'units', 'normalized', 'position', [0.505 0.925 0.07 0.03], 'callback', @choose_pk, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Delete layer', 'units', 'normalized', 'position', [0.505 0.885 0.07 0.03], 'callback', @del_layer, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'test', 'units', 'normalized', 'position', [0.59 0.965 0.04 0.03], 'callback', @misctest, 'fontsize', size_font, 'foregroundcolor', 'r')
@@ -177,39 +181,39 @@ uicontrol(mgui, 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized',
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.005 0.46 0.03 0.03], 'callback', @reset_z_max, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.40 0.005 0.03 0.03], 'callback', @reset_dist_min, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.92 0.005 0.03 0.03], 'callback', @reset_dist_max, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(mgui, 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.965 0.03 0.03 0.03], 'callback', @reset_db_min, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(mgui, 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.965 0.46 0.03 0.03], 'callback', @reset_db_max, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(mgui, 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.965 0.03 0.03 0.03], 'callback', @reset_cb_min, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(mgui, 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.965 0.46 0.03 0.03], 'callback', @reset_cb_max, 'fontsize', size_font, 'foregroundcolor', 'r')
 
 % fixed text annotations
 a(1)                        = annotation('textbox', [0.13 0.965 0.03 0.03], 'string', 'N_{decimate}', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
 a(2)                        = annotation('textbox', [0.21 0.965 0.03 0.03], 'string', 'Chunk', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
 a(3)                        = annotation('textbox', [0.21 0.925 0.03 0.03], 'string', 'L_{chunk}', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
-a(4)                        = annotation('textbox', [0.965 0.42 0.03 0.03], 'string', 'dB_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(5)                        = annotation('textbox', [0.965 0.85 0.03 0.03], 'string', 'dB_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(6)                        = annotation('textbox', [0.41 0.965 0.03 0.03], 'string', 'Layer', 'fontsize', size_font, 'color', 'm', 'edgecolor', 'none');
-a(7)                        = annotation('textbox', [0.85 0.885 0.03 0.03], 'string', 'Grid', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(8)                        = annotation('textbox', [0.005 0.42 0.03 0.03], 'string', 'z_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(9)                        = annotation('textbox', [0.005 0.85 0.03 0.03], 'string', 'z_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(10)                       = annotation('textbox', [0.04 0.005 0.03 0.03], 'string', 'dist_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(11)                       = annotation('textbox', [0.55 0.005 0.03 0.03], 'string', 'dist_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(12)                       = annotation('textbox', [0.025 0.85 0.03 0.03], 'string', 'fix', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(13)                       = annotation('textbox', [0.005 0.005 0.03 0.03], 'string', 'fix', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(14)                       = annotation('textbox', [0.95 0.005 0.03 0.03], 'string', 'fix 1', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(15)                       = annotation('textbox', [0.98 0.005 0.03 0.03], 'string', '2', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(16)                       = annotation('textbox', [0.765 0.885 0.05 0.03], 'string', 'dd-mmm-yyyy', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(17)                       = annotation('textbox', [0.31 0.925 0.10 0.03], 'string', 'block divisions', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(4)                        = annotation('textbox', [0.41 0.965 0.03 0.03], 'string', 'Layer', 'fontsize', size_font, 'color', 'm', 'edgecolor', 'none');
+a(5)                        = annotation('textbox', [0.85 0.885 0.03 0.03], 'string', 'Grid', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(6)                        = annotation('textbox', [0.005 0.42 0.03 0.03], 'string', 'z_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(7)                        = annotation('textbox', [0.005 0.85 0.03 0.03], 'string', 'z_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(8)                        = annotation('textbox', [0.04 0.005 0.03 0.03], 'string', 'dist_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(9)                        = annotation('textbox', [0.55 0.005 0.03 0.03], 'string', 'dist_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(10)                       = annotation('textbox', [0.025 0.85 0.03 0.03], 'string', 'fix', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(11)                       = annotation('textbox', [0.005 0.005 0.03 0.03], 'string', 'fix', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(12)                       = annotation('textbox', [0.95 0.005 0.03 0.03], 'string', 'fix 1', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(13)                       = annotation('textbox', [0.98 0.005 0.03 0.03], 'string', '2', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(14)                       = annotation('textbox', [0.765 0.885 0.05 0.03], 'string', 'dd-mmm-yyyy', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(15)                       = annotation('textbox', [0.31 0.925 0.10 0.03], 'string', 'block divisions', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 if ~ispc
     set(a, 'fontweight', 'bold')
 end
 
 % variable text annotations
 file_box                    = annotation('textbox', [0.005 0.925 0.20 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none');
-date_box                    = annotation('textbox', [0.64 0.885 0.12 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none');
+date_box                    = annotation('textbox', [0.66 0.885 0.10 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none');
 status_box                  = annotation('textbox', [0.64 0.965 0.35 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none');
 cbl                         = annotation('textbox', [0.93 0.03 0.03 0.03], 'string', '(dB)', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 if ~ispc
     set(cbl, 'fontweight', 'bold')
 end
+cbl_min                     = annotation('textbox', [0.965 0.42 0.03 0.03], 'string', 'dB_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+cbl_max                     = annotation('textbox', [0.965 0.85 0.03 0.03], 'string', 'dB_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 
 % value boxes
 decim_edit                  = uicontrol(mgui, 'style', 'edit', 'string', num2str(decim), 'units', 'normalized', 'position', [0.175 0.965 0.03 0.03], 'fontsize', size_font, 'foregroundcolor', 'k', ...
@@ -228,7 +232,7 @@ block_list                  = uicontrol(mgui, 'style', 'popupmenu', 'string', 'N
 zfix_check                  = uicontrol(mgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.04 0.85 0.01 0.03], 'fontsize', size_font, 'value', 0);
 distfix_check               = uicontrol(mgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.02 0.005 0.01 0.03], 'fontsize', size_font, 'value', 0);
 cbfix_check1                = uicontrol(mgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.97 0.005 0.01 0.03], 'fontsize', size_font, 'value', 0);
-cbfix_check2                = uicontrol(mgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.985 0.005 0.01 0.03], 'callback', @narrow_cb, 'fontsize', size_font, 'value', 0);
+cbfix_check2                = uicontrol(mgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.985 0.005 0.01 0.03], 'callback', @narrow_cb, 'fontsize', size_font, 'value', 1);
 grid_check                  = uicontrol(mgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.88 0.885 0.01 0.03], 'callback', @toggle_grid, 'fontsize', size_font, 'value', 0);
 pk_check                    = uicontrol(mgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.08 0.965 0.01 0.03], 'callback', @show_pk, 'fontsize', size_font, 'value', 0);
 date_check                  = uicontrol(mgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.835 0.885 0.01 0.03], 'callback', @adj_date, 'fontsize', size_font, 'value', 0);
@@ -242,6 +246,13 @@ uicontrol(mgui, 'style', 'text', 'parent', disp_group, 'units', 'normalized', 'p
 disp_check(1)               = uicontrol(mgui, 'style', 'radio', 'string', 'amplitude', 'units', 'normalized', 'position', [0.01 0.1 0.45 0.8], 'parent', disp_group, 'fontsize', size_font, 'handlevisibility', 'off');
 disp_check(2)               = uicontrol(mgui, 'style', 'radio', 'string', 'flattened', 'units', 'normalized', 'position', [0.51 0.1 0.45 0.8], 'parent', disp_group, 'fontsize', size_font, 'handlevisibility', 'off');
 set(disp_group, 'selectedobject', disp_check(1))
+
+% colorscale buttons
+cb_group                    = uibuttongroup('position', [0.58 0.885 0.075 0.03], 'selectionchangefcn', @cb_radio);
+uicontrol(mgui, 'style', 'text', 'parent', cb_group, 'units', 'normalized', 'position', [0 0.6 0.9 0.3], 'fontsize', size_font)
+cb_check(1)                 = uicontrol(mgui, 'style', 'radio', 'string', 'std', 'units', 'normalized', 'position', [0.01 0.1 0.45 0.8], 'parent', cb_group, 'fontsize', size_font, 'handlevisibility', 'off');
+cb_check(2)                 = uicontrol(mgui, 'style', 'radio', 'string', 'age', 'units', 'normalized', 'position', [0.51 0.1 0.45 0.8], 'parent', cb_group, 'fontsize', size_font, 'handlevisibility', 'off');
+set(cb_group, 'selectedobject', cb_check(1))
 
 %% Clear plots
 
@@ -293,6 +304,10 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(disp_group, 'selectedobject', disp_check(1))
             disp_type       = 'amplitude';
         end
+        if (get(cb_group, 'selectedobject') ~= cb_check(1))
+            set(cb_group, 'selectedobject', cb_check(1))
+            cb_type       = 'dB';
+        end
     end
 
 %% Clear data and picks
@@ -301,7 +316,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         pk                  = struct;
         [bed_avail, data_done, edit_flag, flat_done, gimp_avail, merge_done, merge_file, surf_avail] ...
                             = deal(false);
-        [amp_mean, amp_flat, colors, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, ...
+        [age_curr, amp_mean, amp_flat, colors, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, ...
          dist_chunk, dt, elev, ii, ind_corr, ind_decim, ind_int, ind_x_pk, ind_x_ref, ind_y_pk, jj, kk, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, p_bed, p_block, p_blockflat, p_blocknum, ...
          p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, p_pk, p_pkflat, p_refflat, p_snr, p_surf, pk_all, pkfig, snrgui, snrlist, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
                             = deal(0);
@@ -836,6 +851,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             show_block
             if core_done
                 load_core_breakout
+            end
+            if age_done
+                load_age_breakout
             end
             
             if merge_file
@@ -2271,8 +2289,8 @@ set(disp_group, 'selectedobject', disp_check(1))
             % load core intersection file
             tmp1        = load([path_core file_core]);
             try
-                [int_core, name_core, rad_threshold, name_trans, num_year, num_trans] ...
-                        = deal(tmp1.int_core, tmp1.name_core, tmp1.rad_threshold, tmp1.name_trans, tmp1.num_year, tmp1.num_trans);
+                [int_core, name_core, rad_threshold, name_trans, num_core, num_trans, num_year] ...
+                        = deal(tmp1.int_core, tmp1.name_core, tmp1.rad_threshold, tmp1.name_trans, tmp1.num_core, tmp1.num_trans, tmp1.num_year);
             catch % give up, force restart
                 set(status_box, 'string', [file_core ' does not contain the expected variables. Try again.'])
                 return
@@ -2304,8 +2322,13 @@ set(disp_group, 'selectedobject', disp_check(1))
                 delete(p_corenameflat(logical(p_corenameflat) & ishandle(p_corenameflat)))
             end
             
-            tmp1            = file_pk_short(1:11);
-            
+            % determine current year/transect
+            tmp1            = file_pk_short;
+            tmp2            = 'fail';
+            if (isnan(str2double(tmp1(end))) || ~isreal(str2double(tmp1(end))))
+                tmp3        = tmp1(end);
+                tmp1        = tmp1(1:(end - 1));
+            end
             for ii = 1:num_year
                 for jj = 1:num_trans(ii)
                     if strcmp(tmp1, name_trans{ii}{jj})
@@ -2313,25 +2336,45 @@ set(disp_group, 'selectedobject', disp_check(1))
                     end
                 end
                 if strcmp(tmp1, name_trans{ii}{jj})
+                    tmp2    = 'success';
                     break
                 end
             end
             
-            curr_year       = ii;
-            curr_trans      = jj;
+            if strcmp(tmp2, 'fail')
+                set(status_box, 'string', 'Transect not identified. Try again.')
+                return
+            end
             
-            if (length(file_pk_short) == 12);
-                tmp1        = 'a':'z';
-                for ii = 1:length(tmp1)
-                    if strcmp(file_pk_short(end), tmp1(ii))
-                        curr_subtrans ...
-                            = ii;
-                        break
+            % fix for 2011 P3/TO ambiguity
+            if (ii == 17)
+                set(status_box, 'string', '2011 TO (press T)?')
+                waitforbuttonpress
+                if strcmpi(get(mgui, 'currentcharacter'), 'T')
+                    tmp2    = 'fail';
+                    ii      = 18;
+                    for jj = 1:num_trans(ii)
+                        if strcmp(tmp1, name_trans{ii}{jj})
+                            tmp2 ...
+                            = 'success';
+                            break
+                        end
+                    end
+                    if strcmp(tmp2, 'fail')
+                        set(status_box, 'string', 'Transect incorrectly identified as 2011 TO. Try again.')
+                        return
                     end
                 end
-            else
-                curr_subtrans ...
-                            = 0;
+            end
+            
+            [curr_year, curr_trans] ...
+                            = deal(ii, jj);
+            for ii = 1:length(tmp1)
+                if strcmp(tmp3, letters(ii))
+                    curr_subtrans ...
+                            = ii;
+                    break
+                end
             end
             
             if ~isempty(int_core{curr_year}{curr_trans})
@@ -2349,6 +2392,9 @@ set(disp_group, 'selectedobject', disp_check(1))
                 num_int     = length(find(~isnan(ind_int)));
                 
                 if ~num_int
+                    core_done ...
+                            = true;
+                    set(core_check, 'value', 1)
                     set(status_box, 'string', 'Core intersections loaded but none for this transect.')
                     return
                 end
@@ -2385,6 +2431,8 @@ set(disp_group, 'selectedobject', disp_check(1))
                 set(status_box, 'string', ['Core intersections loaded. ' num2str(num_int) ' for this transect within ' num2str(rad_threshold) ' km.'])
                 
             else
+                core_done   = true;
+                set(core_check, 'value', 1)
                 set(status_box, 'string', 'Core intersections loaded but none for this transect.')
             end
             
@@ -2396,26 +2444,174 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
     end
 
+%% Load layer age data
+
+    function load_age(source, eventdata)
+        
+        if ~core_done
+            set(status_box, 'string', 'Load core intersections first.')
+            return
+        end
+        
+        if merge_file
+            if ispc
+                if (~isempty(path_pk) && exist([path_pk '..\..\mat'], 'dir'))
+                    path_age = [path_pk '..\..\mat\'];
+                end
+            else
+                if (~isempty(path_pk) && exist([path_pk '../../mat/'], 'dir'))
+                    path_age = [path_pk '../../mat/'];
+                end
+            end
+        else
+            if ispc
+                if (~isempty(path_pk) && exist([path_pk '..\..\..\mat\'], 'dir'))
+                    path_age = [path_pk '..\..\..\mat\'];
+                elseif (~isempty(path_pk) && exist([path_pk '..\..\..\..\mat\'], 'dir'))
+                    path_age = [path_pk '..\..\..\..\mat\'];
+                end
+            else
+                if (~isempty(path_pk) && exist([path_pk '../../../mat/'], 'dir'))
+                    path_age = [path_pk '../../../mat/'];
+                elseif (~isempty(path_pk) && exist([path_pk '../../../../mat/'], 'dir'))
+                    path_age = [path_pk '../../../../mat/'];
+                end
+            end
+        end
+        
+        if (~isempty(path_age) && exist([path_age 'date_all.mat'], 'file'))
+            file_age        = 'date_all.mat';
+        else
+            % Dialog box to choose picks file to load
+            if ~isempty(path_age)
+                [file_age, path_age] = uigetfile('*.mat', 'Load layer ages (date_all.mat):', path_age);
+            elseif ~isempty(path_core)
+                [file_age, path_age] = uigetfile('*.mat', 'Load layer ages (date_all.mat):', path_core);
+            elseif ~isempty(path_pk)
+                [file_age, path_age] = uigetfile('*.mat', 'Load layer ages (date_all.mat):', path_pk);
+            else
+                [file_age, path_age] = uigetfile('*.mat', 'Load layer ages (date_all.mat):');
+            end
+            if isnumeric(file_age)
+                [file_age, path_age] = deal('');
+            end
+        end
+        
+        if ~isempty(file_age)
+            
+            set(status_box, 'string', 'Loading layer ages...')
+            pause(0.1)
+            
+            % load layer ages file
+            tmp1        = load([path_age file_age]);
+            try
+                age     = tmp1.age;
+            catch % give up, force restart
+                set(status_box, 'string', [file_age ' does not contain the expected variables. Try again.'])
+                return
+            end
+            
+            load_age_breakout
+            
+        else
+            set(status_box, 'string', 'No layer ages loaded.')
+        end
+    end
+
+%% Load layer ages breakout
+
+    function load_age_breakout(source, eventdata)
+        
+        if merge_done
+            
+            % determine current year/transect
+            tmp1            = file_pk_short;
+            tmp2            = 'fail';
+            if (isnan(str2double(tmp1(end))) || ~isreal(str2double(tmp1(end))))
+                tmp3        = tmp1(end);
+                tmp1        = tmp1(1:(end - 1));
+            else
+                tmp3        = 0;
+            end
+            for ii = 1:num_year
+                for jj = 1:num_trans(ii)
+                    if strcmp(tmp1, name_trans{ii}{jj})
+                        break
+                    end
+                end
+                if strcmp(tmp1, name_trans{ii}{jj})
+                    tmp2    = 'success';
+                    break
+                end
+            end
+            
+            if strcmp(tmp2, 'fail')
+                set(status_box, 'string', 'Transect not identified. Try again.')
+                return
+            end
+            
+            % fix for 2011 P3/TO ambiguity
+            if (ii == 17)
+                set(status_box, 'string', '2011 TO (press T)?')
+                waitforbuttonpress
+                if strcmpi(get(mgui, 'currentcharacter'), 'T')
+                    tmp2    = 'fail';
+                    ii      = 18;
+                    for jj = 1:num_trans(ii)
+                        if strcmp(tmp1, name_trans{ii}{jj})
+                            tmp2 ...
+                            = 'success';
+                            break
+                        end
+                    end
+                    if strcmp(tmp2, 'fail')
+                        set(status_box, 'string', 'Transect incorrectly identified as 2011 TO. Try again.')
+                        return
+                    end
+                end
+            end
+            
+            [curr_year, curr_trans] ...
+                            = deal(ii, jj);
+            if ischar(tmp3)
+                for ii = 1:length(tmp1)
+                    if strcmp(tmp3, letters(ii))
+                        curr_subtrans ...
+                            = ii;
+                        break
+                    end
+                end
+            else
+                curr_subtrans ...
+                            = 1;
+            end
+            
+            if ~isempty(age{curr_year}{curr_trans}{curr_subtrans})
+                age_curr    = age{curr_year}{curr_trans}{curr_subtrans};                
+                age_done    = true;
+                set(status_box, 'string', 'Layer ages for this transect found.')
+            else
+                set(status_box, 'string', 'Layer ages loaded but none for this transect.')
+            end
+            
+        else
+            age_done        = true;
+            set(status_box, 'string', 'Layer ages loaded.')
+        end
+    end
+
 %% SNR analysis
 
     function snr(source, eventdata)
         
-        if (~merge_file || ~core_done)
-            set(status_box, 'string', 'Only do SNR analysis on a fully merged file with core intersections.')
+        if (~merge_file || ~core_done || ~data_done || ~num_int)
+            set(status_box, 'string', 'Only do SNR analysis on a fully merged file with core intersections and data loaded.')
             return
         end
         
-        if ispc
-            if (~isempty(path_pk) && exist([path_pk '..\..\mat'], 'dir'))
-                path_snr    = [path_pk '..\..\mat\'];
-            end
-        else
-            if (~isempty(path_pk) && exist([path_pk '../../mat/'], 'dir'))
-                path_snr    = [path_pk '../../mat/'];
-            end
-        end
+        path_snr            = path_core;
         
-        if (~isempty(path_snr) && exist([path_snr 'snr_all.mat'], 'file'))
+        if exist([path_snr 'snr_all.mat'], 'file')
             file_snr        = 'snr_all.mat';
         else
             % Dialog box to choose picks file to load
@@ -2458,22 +2654,22 @@ set(disp_group, 'selectedobject', disp_check(1))
         [p_snr, tmp3]       = deal(cell(1, num_int));
         snrlist             = zeros(1, num_int);
         snr_all{curr_year}{curr_trans}{curr_subtrans} ...
-                            = NaN(pk.num_layer, num_int);
+                            = NaN(pk.num_layer, num_core);
         
         for ii = 1:num_int
             
-            tmp1            = interp1(pk.dist_lin_gimp(ind_decim), 1:num_decim, ind_int(tmp2(ii)), 'nearest', 'extrap');
+            tmp1            = interp1(ind_decim, 1:num_decim, ind_int(tmp2(ii)), 'nearest', 'extrap');
             tmp3{ii}        = find(~isnan(pk.elev_gimp(:, ind_int(tmp2(ii)))));
             
-            p_snr{ii}       = zeros(length(tmp3), 3);
+            p_snr{ii}       = zeros(length(tmp3{ii}), 2);
             
-            snrgui(ii)      = figure('position', [(50 + ((ii - 1) * 50)) (50 + ((ii - 1) * 50)) 800 800]);
-            axes('position', [0.1 0.1 0.7 0.8]) %#ok<LAXES>
+            snrgui(ii)      = figure('position', [(50 + ((ii - 1) * 50)) (50 + ((ii - 1) * 50)) 800 1000], 'menubar', 'figure');
+            axes('position', [0.12 0.1 0.7 0.8]) %#ok<LAXES>
             hold on
             plot(amp_mean(:, tmp1), elev, 'k', 'linewidth', 2)
-            for jj = 1:length(tmp3)
+            for jj = 1:length(tmp3{ii})
                 p_snr{ii}(jj, 1) ...
-                            = plot(amp_mean(elev, 1:length(elev), interp1(pk.elev_gimp(ind_int(ii), tmp3{ii}(jj)), 'nearest', 'extrap'), tmp1), pk.elev_gimp(ind_int(ii), tmp3{ii}(jj)), ...
+                            = plot(amp_mean(interp1(elev, 1:length(elev), pk.elev_gimp(tmp3{ii}(jj), ind_int(tmp2(ii))), 'nearest', 'extrap'), tmp1), pk.elev_gimp(tmp3{ii}(jj), ind_int(tmp2(ii))), ...
                                    'ko', 'markersize', 8, 'markerfacecolor', 'r');
             end
             set(gca, 'fontsize', 20)
@@ -2482,13 +2678,37 @@ set(disp_group, 'selectedobject', disp_check(1))
             title(name_core{int_core{curr_year}{curr_trans}(tmp2(ii), 3)}, 'fontweight', 'bold')
             grid on
             box on
-            snrlist(ii)     = uicontrol(snrgui(ii), 'style', 'popupmenu', 'string', num2cell(tmp3{ii}), 'value', 1, 'units', 'normalized', 'position', [0.75 0.85 0.2 0.1], 'fontsize', size_font, ...
-                                        'foregroundcolor', 'k', 'callback', eval(['@do_snr' num2str(ii)]));
-            uicontrol(snrgui(ii), 'style', 'pushbutton', 'string', 'Save', 'units', 'normalized', 'position', [0.75 0.2 0.15 0.1], 'callback', @save_snr, 'fontsize', size_font, 'foregroundcolor', 'g')
+            snrlist(ii)     = uicontrol(snrgui(ii), 'style', 'popupmenu', 'string', num2cell(tmp3{ii}), 'value', 1, 'units', 'normalized', 'position', [0.88 0.85 0.1 0.05], 'fontsize', size_font, ...
+                                        'foregroundcolor', 'k', 'callback', eval(['@choose_snr' num2str(ii)]));
+            uicontrol(snrgui(ii), 'style', 'pushbutton', 'string', 'Pick local noise floor', 'units', 'normalized', 'position', [0.88 0.75 0.1 0.05], 'callback', eval(['@do_snr' num2str(ii)]), ...
+                      'fontsize', size_font, 'foregroundcolor', 'm')                                    
+            uicontrol(snrgui(ii), 'style', 'pushbutton', 'string', 'Save', 'units', 'normalized', 'position', [0.88 0.1 0.1 0.05], 'callback', @save_snr, 'fontsize', size_font, 'foregroundcolor', 'g')
         end
         
         set(0, 'DefaultFigureWindowStyle', 'docked')
         
+    end
+
+    function choose_snr1(source, eventdata) %#ok<DEFNU>
+        ii                  = 1;
+        choose_snr
+    end
+
+    function choose_snr2(source, eventdata) %#ok<DEFNU>
+        ii                  = 2;
+        choose_snr
+    end
+
+    function choose_snr3(source, eventdata) %#ok<DEFNU>
+        ii                  = 3;
+        choose_snr
+    end
+
+    function choose_snr(source, eventdata)
+        tmp5                = tmp3{ii}(get(snrlist(ii), 'value'), 1);
+        set(p_snr{ii}(:, 1), 'markersize', 8, 'markerfacecolor', 'r')
+        set(p_snr{ii}(get(snrlist(ii), 'value'), 1), 'markersize', 16, 'markerfacecolor', 'b')
+        pause(0.1)
     end
 
     function do_snr1(source, eventdata) %#ok<DEFNU>
@@ -2507,16 +2727,16 @@ set(disp_group, 'selectedobject', disp_check(1))
     end
 
     function do_snr(source, eventdata)
-        tmp5                = tmp3{ii}(get(snrlist(ii), 'value'), 1);
-        set(p_snr{ii}(tmp5, 1), 'markerfacecolor', 'b')
-        set(status_box, 'string', 'Zoom in to determine SNR of current core-intersecting layer...')
-        pause
         [~, tmp4]           = ginput(1);
         tmp4                = interp1(elev, 1:length(elev), tmp4, 'nearest', 'extrap');
-        set(p_snr{ii}(tmp5, 1), 'markersize', 16, 'markerfacecolor', 'g')
-        p_snr{ii}(tmp5, 2)  = plot(amp_mean(tmp4, tmp1), elev(tmp4), 'ks', 'markersize', 12, 'markerfacecolor', 'm');
-        snr_all{curr_year}{curr_trans}{curr_subtrans}(tmp5, tmp2(ii)) ...
-                            = amp_mean(amp_mean(elev, 1:length(elev), interp1(pk.elev_gimp(ind_int(ii), tmp3{ii}(jj)), 'nearest', 'extrap'), tmp1)) - amp_mean(tmp4, tmp1); %#ok<SETNU>
+        set(p_snr{ii}(get(snrlist(ii), 'value'), 1), 'markersize', 8, 'markerfacecolor', 'g')
+        if (logical(p_snr{ii}(get(snrlist(ii), 'value'), 2)) && ishandle(p_snr{ii}(get(snrlist(ii), 'value'), 2)))
+            delete(p_snr{ii}(get(snrlist(ii), 'value'), 2))
+        end
+        p_snr{ii}(get(snrlist(ii), 'value'), 2) ...
+                            = plot(amp_mean(tmp4, tmp1), elev(tmp4), 'ks', 'markersize', 12, 'markerfacecolor', 'm');
+        snr_all{curr_year}{curr_trans}{curr_subtrans}(tmp5, int_core{curr_year}{curr_trans}(tmp2(ii), 3)) ...
+                            = amp_mean(elev, 1:length(elev), interp1(pk.elev_gimp(tmp3{ii}(jj), ind_int(tmp2(ii))), 'nearest', 'extrap'), tmp1) - amp_mean(tmp4, tmp1); %#ok<SETNU>
     end
 
     function save_snr(source, eventdata)
@@ -2825,123 +3045,243 @@ set(disp_group, 'selectedobject', disp_check(1))
         narrow_cb
     end
 
-%% Update minimum dB
+%% Update minimum color scale
 
-    function slide_db_min(source, eventdata)
-        if (get(cb_min_slide, 'value') < db_max)
-            if get(cbfix_check1, 'value')
-                tmp1 = db_max - db_min;
-            end
-            db_min          = get(cb_min_slide, 'value');
-            if get(cbfix_check1, 'value')
-                db_max = db_min + tmp1;
-                if (db_max > db_max_ref)
-                    db_max  = db_max_ref;
-                    db_min  = db_max - tmp1;
-                    if (db_min < db_min_ref)
-                        db_min = db_min_ref;
+    function slide_cb_min(source, eventdata)
+        switch cb_type
+            case 'std'
+                if (get(cb_min_slide, 'value') < db_max)
+                    if get(cbfix_check1, 'value')
+                        tmp1 = db_max - db_min;
                     end
+                    db_min          = get(cb_min_slide, 'value');
+                    if get(cbfix_check1, 'value')
+                        db_max = db_min + tmp1;
+                        if (db_max > db_max_ref)
+                            db_max  = db_max_ref;
+                            db_min  = db_max - tmp1;
+                            if (db_min < db_min_ref)
+                                db_min = db_min_ref;
+                            end
+                            if (db_min < get(cb_min_slide, 'min'))
+                                set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
+                            else
+                                set(cb_min_slide, 'value', db_min)
+                            end
+                        end
+                        set(cb_max_edit, 'string', sprintf('%3.0f', db_max))
+                        if (db_max > get(cb_max_slide, 'max'))
+                            set(cb_max_slide, 'value', get(cb_max_slide, 'max'))
+                        else
+                            set(cb_max_slide, 'value', db_max)
+                        end
+                    end
+                    set(cb_min_edit, 'string', sprintf('%3.0f', db_min))
+                    update_cb_range
+                else
                     if (db_min < get(cb_min_slide, 'min'))
                         set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
                     else
                         set(cb_min_slide, 'value', db_min)
                     end
                 end
-                set(cb_max_edit, 'string', sprintf('%3.0f', db_max))
-                if (db_max > get(cb_max_slide, 'max'))
-                    set(cb_max_slide, 'value', get(cb_max_slide, 'max'))
+            case 'age'
+                if (get(cb_min_slide, 'value') < age_max)
+                    if get(cbfix_check1, 'value')
+                        tmp1 = age_max - age_min;
+                    end
+                    age_min          = get(cb_min_slide, 'value');
+                    if get(cbfix_check1, 'value')
+                        age_max = age_min + tmp1;
+                        if (age_max > age_max_ref)
+                            age_max  = age_max_ref;
+                            age_min  = age_max - tmp1;
+                            if (age_min < age_min_ref)
+                                age_min = age_min_ref;
+                            end
+                            if (age_min < get(cb_min_slide, 'min'))
+                                set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
+                            else
+                                set(cb_min_slide, 'value', age_min)
+                            end
+                        end
+                        set(cb_max_edit, 'string', sprintf('%3.0f', age_max))
+                        if (age_max > get(cb_max_slide, 'max'))
+                            set(cb_max_slide, 'value', get(cb_max_slide, 'max'))
+                        else
+                            set(cb_max_slide, 'value', age_max)
+                        end
+                    end
+                    set(cb_min_edit, 'string', sprintf('%3.0f', age_min))
+                    update_cb_range
                 else
-                    set(cb_max_slide, 'value', db_max)
+                    if (age_min < get(cb_min_slide, 'min'))
+                        set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
+                    else
+                        set(cb_min_slide, 'value', age_min)
+                    end
                 end
-            end
-            set(cb_min_edit, 'string', sprintf('%3.0f', db_min))
-            update_db_range
-        else
-            if (db_min < get(cb_min_slide, 'min'))
-                set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
-            else
-                set(cb_min_slide, 'value', db_min)
-            end
         end
         set(cb_min_slide, 'enable', 'off')
         drawnow
         set(cb_min_slide, 'enable', 'on')
     end
 
-%% Update maximum dB
+%% Update maximum color scale
 
-    function slide_db_max(source, eventdata)
-        if (get(cb_max_slide, 'value') > db_min)
-            if get(cbfix_check1, 'value')
-                tmp1        = db_max - db_min;
-            end
-            db_max = get(cb_max_slide, 'value');
-            if get(cbfix_check1, 'value')
-                db_min = db_max - tmp1;
-                if (db_min < db_min_ref)
-                    db_min  = db_min_ref;
-                    db_max  = db_min + tmp1;
-                    if (db_max > db_max_ref)
-                        db_max = db_max_ref;
+    function slide_cb_max(source, eventdata)
+        switch cb_type
+            case 'std'
+                if (get(cb_max_slide, 'value') > db_min)
+                    if get(cbfix_check1, 'value')
+                        tmp1        = db_max - db_min;
                     end
+                    db_max = get(cb_max_slide, 'value');
+                    if get(cbfix_check1, 'value')
+                        db_min = db_max - tmp1;
+                        if (db_min < db_min_ref)
+                            db_min  = db_min_ref;
+                            db_max  = db_min + tmp1;
+                            if (db_max > db_max_ref)
+                                db_max = db_max_ref;
+                            end
+                            if (db_max > get(cb_max_slide, 'max'))
+                                set(cb_max_slide, 'value', get(cb_max_slide, 'max'))
+                            else
+                                set(cb_max_slide, 'value', db_max)
+                            end
+                        end
+                        set(cb_min_edit, 'string', sprintf('%3.0f', db_min))
+                        if (db_min < get(cb_min_slide, 'min'))
+                            set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
+                        else
+                            set(cb_min_slide, 'value', db_min)
+                        end
+                    end
+                    set(cb_max_edit, 'string', sprintf('%3.0f', db_max))
+                    update_cb_range
+                else
                     if (db_max > get(cb_max_slide, 'max'))
                         set(cb_max_slide, 'value', get(cb_max_slide, 'max'))
                     else
                         set(cb_max_slide, 'value', db_max)
                     end
                 end
-                set(cb_min_edit, 'string', sprintf('%3.0f', db_min))
-                if (db_min < get(cb_min_slide, 'min'))
-                    set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
+            case 'age'
+                if (get(cb_max_slide, 'value') > age_min)
+                    if get(cbfix_check1, 'value')
+                        tmp1        = age_max - age_min;
+                    end
+                    age_max = get(cb_max_slide, 'value');
+                    if get(cbfix_check1, 'value')
+                        age_min = age_max - tmp1;
+                        if (age_min < age_min_ref)
+                            age_min  = age_min_ref;
+                            age_max  = age_min + tmp1;
+                            if (age_max > age_max_ref)
+                                age_max = age_max_ref;
+                            end
+                            if (age_max > get(cb_max_slide, 'max'))
+                                set(cb_max_slide, 'value', get(cb_max_slide, 'max'))
+                            else
+                                set(cb_max_slide, 'value', age_max)
+                            end
+                        end
+                        set(cb_min_edit, 'string', sprintf('%3.0f', age_min))
+                        if (age_min < get(cb_min_slide, 'min'))
+                            set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
+                        else
+                            set(cb_min_slide, 'value', age_min)
+                        end
+                    end
+                    set(cb_max_edit, 'string', sprintf('%3.0f', age_max))
+                    update_cb_range
                 else
-                    set(cb_min_slide, 'value', db_min)
+                    if (age_max > get(cb_max_slide, 'max'))
+                        set(cb_max_slide, 'value', get(cb_max_slide, 'max'))
+                    else
+                        set(cb_max_slide, 'value', age_max)
+                    end
                 end
-            end
-            set(cb_max_edit, 'string', sprintf('%3.0f', db_max))
-            update_db_range
-        else
-            if (db_max > get(cb_max_slide, 'max'))
-                set(cb_max_slide, 'value', get(cb_max_slide, 'max'))
-            else
-                set(cb_max_slide, 'value', db_max)
-            end
         end
         set(cb_max_slide, 'enable', 'off')
         drawnow
         set(cb_max_slide, 'enable', 'on')
     end
 
-%% Reset minimum dB
+%% Reset minimum color scale
 
-    function reset_db_min(source, eventdata)
-        if (db_min_ref < get(cb_min_slide, 'min'))
-            set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
-        else
-            set(cb_min_slide, 'value', db_min_ref)
+    function reset_cb_min(source, eventdata)
+        switch cb_type
+            case 'std'
+                if (db_min_ref < get(cb_min_slide, 'min'))
+                    set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
+                else
+                    set(cb_min_slide, 'value', db_min_ref)
+                end
+                set(cb_min_edit, 'string', sprintf('%3.0f', db_min_ref))
+                db_min      = db_min_ref;
+            case 'age'
+                if (age_min_ref < get(cb_min_slide, 'min'))
+                    set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
+                else
+                    set(cb_min_slide, 'value', age_min_ref)
+                end
+                set(cb_min_edit, 'string', sprintf('%3.0f', age_min_ref))
+                age_min     = age_min_ref;                
         end
-        set(cb_min_edit, 'string', num2str(db_min_ref))
-        db_min      = db_min_ref;
-        update_db_range
+        update_cb_range
     end
 
-%% Reset maximum dB
+%% Reset maximum color scale
 
-    function reset_db_max(source, eventdata)
-        if (db_max_ref > get(cb_max_slide, 'max'))
-            set(cb_max_slide, 'value', get(cb_max_slide, 'max'))
-        else
-            set(cb_max_slide, 'value', db_max_ref)
+    function reset_cb_max(source, eventdata)
+        switch cb_type
+            case 'std'
+                if (db_max_ref > get(cb_max_slide, 'max'))
+                    set(cb_max_slide, 'value', get(cb_max_slide, 'max'))
+                else
+                    set(cb_max_slide, 'value', db_max_ref)
+                end
+                set(cb_max_edit, 'string', sprintf('%3.0f', db_max_ref))
+                db_max      = db_max_ref;
+            case 'age'
+                if (age_max_ref > get(cb_max_slide, 'max'))
+                    set(cb_max_slide, 'value', get(cb_max_slide, 'max'))
+                else
+                    set(cb_max_slide, 'value', age_max_ref)
+                end
+                set(cb_max_edit, 'string', sprintf('%3.0f', age_max_ref))
+                age_max     = age_max_ref;
         end
-        set(cb_max_edit, 'string', num2str(db_max_ref))
-        db_max      = db_max_ref;
-        update_db_range
+        update_cb_range
     end
 
-%% Update dB range
+%% Update color scale
 
-    function update_db_range(source, eventdata)
+    function update_cb_range(source, eventdata)
         axes(ax_radar)
-        caxis([db_min db_max])
+        switch cb_type
+            case 'std'
+                caxis([db_min db_max])
+            case 'age'
+                colors_age  = repmat([1 0 1], pk.num_layer, 1);
+                tmp1        = jet;
+                for ii = 1:pk.num_layer
+                    if ~isnan(age_curr(ii))
+                        colors_age(ii, :) ...
+                            = tmp1(interp1(linspace(age_min, age_max, 64), 1:64, (1e-3 * age_curr(ii)), 'nearest', 'extrap'), :);
+                    end
+                    if (logical(p_pk(ii)) && ishandle(p_pk(ii))) 
+                        set(p_pk(ii), 'color', colors_age(ii, :))
+                    end
+%                     if (data_done && flat_done)
+%                         if (logical(p_pkflat(ii)) && ishandle(p_pkflat(ii)))
+%                             set(p_pkflat(ii), 'color', colors_age(ii, :))
+%                         end
+%                     end
+                end
+        end
     end
 
 %% Update minimum distance
@@ -3591,6 +3931,46 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
     end
 
+%% Switch layer color type
+
+    function cb_radio(~, eventdata)
+        cb_type             = get(eventdata.NewValue, 'string');
+        switch cb_type
+            case 'std'
+                set(cbl, 'string', '(dB)')
+                set(cbl_min, 'string', 'dB_{min}')
+                set(cbl_max, 'string', 'dB_{max}')
+                set(cb_min_edit, 'string', sprintf('%3.0f', db_min))
+                set(cb_max_edit, 'string', sprintf('%3.0f', db_max))
+                set(cb_min_slide, 'min', db_min_ref, 'max', db_max_ref, 'value', db_min)
+                set(cb_max_slide, 'min', db_min_ref, 'max', db_max_ref, 'value', db_max)
+                for ii = 1:pk.num_layer
+                    if (logical(p_pk(ii)) && ishandle(p_pk(ii)))
+                        set(p_pk(ii), 'color', colors(ii, :))
+                    end
+                    if (data_done && flat_done)
+                        if (logical(p_pkflat(ii)) && ishandle(p_pkflat(ii)))
+                            set(p_pkflat(ii), 'color', colors(ii, :))
+                        end
+                    end
+                end
+            case 'age'
+                if age_done
+                    set(cbl, 'string', '(ka)')
+                    set(cbl_min, 'string', 'age_{min}')
+                    set(cbl_max, 'string', 'age_{max}')
+                    set(cb_min_edit, 'string', sprintf('%3.0f', age_min))
+                    set(cb_max_edit, 'string', sprintf('%3.0f', age_max))
+                    set(cb_min_slide, 'min', age_min_ref, 'max', age_max_ref, 'value', age_min)
+                    set(cb_max_slide, 'min', age_min_ref, 'max', age_max_ref, 'value', age_max)
+                    update_cb_range
+                else
+                    cb_type = 'dB';
+                    set(cb_group, 'selectedobject', cb_check(1))
+                end
+        end
+    end
+
 %% Toggle gridlines
 
     function toggle_grid(source, eventdata)
@@ -4152,7 +4532,7 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Test something
 
     function misctest(source, eventdata)
-        
+        core_done
     end
 
 %%
