@@ -11,7 +11,7 @@ function fencegui
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 11/14/13
+% Last updated: 11/20/13
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -428,7 +428,7 @@ int_check(2)                = uicontrol(fgui(2), 'style', 'checkbox', 'units', '
 int_check(3)                = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.625 0.88 0.01 0.03], 'callback', @show_int3, 'fontsize', size_font, 'value', 0);
 core_check(2)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.175 0.88 0.01 0.03], 'callback', @show_core2, 'fontsize', size_font, 'value', 0);
 core_check(3)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.66 0.88 0.01 0.03], 'callback', @show_core3, 'fontsize', size_font, 'value', 0);
-nearest_check               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.775 0.925 0.01 0.03], 'fontsize', size_font, 'value', 1);
+nearest_check               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.775 0.925 0.01 0.03], 'fontsize', size_font, 'value', 0);
 match_check                 = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.825 0.925 0.01 0.03], 'fontsize', size_font, 'value', 1);
 
 figure(fgui(1))

@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 11/06/13
+% Last updated: 11/21/13
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -84,9 +84,10 @@ letters                     = 'a':'z';
  num_pk, num_sample, num_trans, num_year, p_bed, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, pk_all, p_pk, p_pkflat, p_snr, p_surf, pkfig, ...
  p_refflat, rad_threshold, snr_all, snrgui, snrlist, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
                             = deal(0);
-[cb_type, file_age, file_data, file_core, file_pk, file_pk_short, file_save, file_snr, path_age, path_core, path_data, path_pk, path_save, path_snr] ...
+[file_age, file_data, file_core, file_pk, file_pk_short, file_save, file_snr, path_age, path_core, path_data, path_pk, path_save, path_snr] ...
                             = deal('');
 layer_str                   = {};
+cb_type                     = 'std';
 
 if license('checkout', 'distrib_computing_toolbox')
     if ~matlabpool('size')
@@ -3985,7 +3986,7 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Narrow color axis to +/- 2 standard deviations of current mean value
 
     function narrow_cb(source, eventdata)
-        if (get(cbfix_check2, 'value') && data_done)
+        if (get(cbfix_check2, 'value') && data_done && strcmp(cb_type, 'std'))
             axes(ax_radar)
             tmp1            = zeros(2);
             if all(gimp_avail)
@@ -4532,7 +4533,7 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Test something
 
     function misctest(source, eventdata)
-        core_done
+        
     end
 
 %%

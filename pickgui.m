@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 09/26/13
+% Last updated: 11/21/13
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -415,12 +415,18 @@ set(disp_group, 'selectedobject', disp_check(1))
                     end
                     block                   = struct;
                     try
-                        [block.amp, block.lat, block.lon, block.num_trace, block.twtt, block.twtt_surf, block.twtt_bed, block.elev_air, block.dt, block.num_sample, block.file_in, block.ind_overlap] ...
-                                            = deal(double(tmp1.Data), tmp1.Latitude, tmp1.Longitude, length(tmp1.Latitude), tmp1.Time, tmp1.Surface, tmp1.Bottom, tmp1.Elevation, (tmp1.Time(2) - tmp1.Time(1)), ...
+                        [block.amp, block.lat, block.lon, block.num_trace, block.twtt, block.twtt_surf, block.elev_air, block.dt, block.num_sample, block.file_in, block.ind_overlap] ...
+                                            = deal(double(tmp1.Data), tmp1.Latitude, tmp1.Longitude, length(tmp1.Latitude), tmp1.Time, tmp1.Surface, tmp1.Elevation, (tmp1.Time(2) - tmp1.Time(1)), ...
                                                    length(tmp1.Time), file_data(1:(end - 4)), NaN(1, 2));
                     catch
                         set(status_box, 'string', 'Selected file does not contain expected variables.')
                         return
+                    end
+                    try
+                        block.twtt_bed      = tmp1.Bottom;
+                    catch
+                        block.twtt_bed      = NaN(1, block.num_trace);
+                        set(status_box, 'string', 'Selected file does not contain the Bottom variable. Setting bed pick to NaN.')
                     end
                     block.amp               = single(block.amp);
                     if isrow(block.twtt)
@@ -431,7 +437,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     [block.x_gimp, block.y_gimp] ...
                                             = deal((1e-3 .* block.x_gimp), (1e-3 .* block.y_gimp)); % m to km
                     block.dist_gimp         = cumsum([0 sqrt((diff(block.x_gimp) .^ 2) + (diff(block.y_gimp) .^ 2))]); % distance vector
-                    block.dist_lin_gimp     = interp1([1 block.num_trace], block.dist([1 end]), 1:block.num_trace); % monotonic distance vector
+                    block.dist_lin_gimp     = interp1([1 block.num_trace], block.dist_gimp([1 end]), 1:block.num_trace); % monotonic distance vector
                     dist_lin                = block.dist_lin_gimp;
                     tmp1                    = 0;
                     set(file_box, 'string', file_data(6:(end - 4)))
