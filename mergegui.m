@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 11/21/13
+% Last updated: 12/19/13
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -733,7 +733,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 pk.num_layer= pk.num_layer - length(tmp1);
             end
             
-%             [pk_all, tmp3]  = deal(0);
+            [pk_all, tmp3]  = deal(0);
             
             % decimated vectors for display
             if (decim > 1)
@@ -883,28 +883,54 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         % check if data are in expected location based on picks' path
         tmp1                = file_pk_short;
-        if isnan(str2double(tmp1(end))) % check for a/b/c/etc in file_pk_short
-            tmp1            = tmp1(1:(end - 1));
+        if (isnan(str2double(tmp1(end))) || ~isreal(str2double(tmp1(end)))) % check for a/b/c/etc in file_pk_short
+            tmp2            = tmp1(1:(end - 1));
+        else
+            tmp2            = tmp1;
         end
-        
+
         if merge_file
             if ispc
-                if (~isempty(path_pk) && exist([path_pk '..\block\' tmp1], 'dir'))
-                    path_data = [path_pk(1:strfind(path_pk, '\merge')) 'block\' tmp1 '\'];
+                if ~strcmp(tmp1, tmp2)
+                    if (~isempty(path_pk) && exist([path_pk '..\block\' tmp2 '\' tmp1(end) '\'], 'dir'))
+                        path_data = [path_pk(1:strfind(path_pk, '\merge')) 'block\' tmp2 '\' tmp1(end) '\'];
+                    elseif (~isempty(path_pk) && exist([path_pk '..\block\' tmp2 '\'], 'dir'))
+                        path_data = [path_pk(1:strfind(path_pk, '\merge')) 'block\' tmp2 '\'];
+                    end
+                elseif (~isempty(path_pk) && exist([path_pk '..\block\' tmp2 '\'], 'dir'))
+                    path_data = [path_pk(1:strfind(path_pk, '\merge')) 'block\' tmp2 '\'];
                 end
             else
-                if (~isempty(path_pk) && exist([path_pk '../block/' tmp1], 'dir'))
-                    path_data = [path_pk(1:strfind(path_pk, '/merge')) 'block/' tmp1 '/'];
+                if ~strcmp(tmp1, tmp2)
+                    if (~isempty(path_pk) && exist([path_pk '../block/' tmp2 '/' tmp1(end) '/'], 'dir'))
+                        path_data = [path_pk(1:strfind(path_pk, '/merge')) 'block/' tmp2 '/' tmp1(end) '/'];
+                    elseif (~isempty(path_pk) && exist([path_pk '../block/' tmp2 '/'], 'dir'))
+                        path_data = [path_pk(1:strfind(path_pk, '/merge')) 'block/' tmp2 '/'];
+                    end
+                elseif (~isempty(path_pk) && exist([path_pk '../block/' tmp2 '/'], 'dir'))
+                    path_data = [path_pk(1:strfind(path_pk, '/merge')) 'block/' tmp2 '/'];
                 end
             end
         else
             if ispc
-                if (~isempty(path_pk) && (exist([path_pk '..\..\block\' tmp1], 'dir') || exist([path_pk '..\..\..\block\' tmp1], 'dir')))
-                    path_data = [path_pk(1:strfind(path_pk, '\pk')) 'block\' tmp1 '\'];
+                if ~strcmp(tmp1, tmp2)
+                    if (~isempty(path_pk) && exist([path_pk '..\..\..\block\' tmp2 '\' tmp1(end) '\'], 'dir'))
+                        path_data = [path_pk(1:strfind(path_pk, '\pk')) 'block\' tmp2 '\' tmp1(end) '\'];
+                    elseif (~isempty(path_pk) && exist([path_pk '..\..\block\' tmp2 '\'], 'dir'))
+                        path_data = [path_pk(1:strfind(path_pk, '\pk')) 'block\' tmp2 '\'];
+                    end
+                elseif (~isempty(path_pk) && exist([path_pk '..\..\block\' tmp2 '\'], 'dir'))
+                    path_data = [path_pk(1:strfind(path_pk, '\pk')) 'block\' tmp2 '\'];
                 end
             else
-                if (~isempty(path_pk) && (exist([path_pk '../../block/' file_pk_short], 'dir') || exist([path_pk '../../../block/' tmp1], 'dir')))
-                    path_data = [path_pk(1:strfind(path_pk, '/pk')) 'block/' tmp1 '/'];
+                if ~strcmp(tmp1, tmp2)
+                    if (~isempty(path_pk) && exist([path_pk '../../../block/' tmp2 '/' tmp1(end) '/'], 'dir'))
+                        path_data = [path_pk(1:strfind(path_pk, '/pk')) 'block/' tmp2 '/' tmp1(end) '/'];
+                    elseif (~isempty(path_pk) && exist([path_pk '../../block/' tmp2 '/'], 'dir'))
+                        path_data = [path_pk(1:strfind(path_pk, '/pk')) '/block/' tmp2 '/'];
+                    end
+                elseif (~isempty(path_pk) && exist([path_pk '../../block/' tmp2 '/'], 'dir'))
+                    path_data = [path_pk(1:strfind(path_pk, '/pk')) 'block/' tmp2 '/'];
                 end
             end
         end
@@ -2588,7 +2614,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
             
             if ~isempty(age{curr_year}{curr_trans}{curr_subtrans})
-                age_curr    = age{curr_year}{curr_trans}{curr_subtrans};                
+                age_curr    = age{curr_year}{curr_trans}{curr_subtrans};
                 age_done    = true;
                 set(status_box, 'string', 'Layer ages for this transect found.')
             else
@@ -2664,7 +2690,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             
             p_snr{ii}       = zeros(length(tmp3{ii}), 2);
             
-            snrgui(ii)      = figure('position', [(50 + ((ii - 1) * 50)) (50 + ((ii - 1) * 50)) 800 1000], 'menubar', 'figure');
+            snrgui(ii)      = figure('position', [(50 + ((ii - 1) * 50)) (50 + ((ii - 1) * 50)) 800 1000]);
             axes('position', [0.12 0.1 0.7 0.8]) %#ok<LAXES>
             hold on
             plot(amp_mean(:, tmp1), elev, 'k', 'linewidth', 2)
@@ -2681,7 +2707,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             box on
             snrlist(ii)     = uicontrol(snrgui(ii), 'style', 'popupmenu', 'string', num2cell(tmp3{ii}), 'value', 1, 'units', 'normalized', 'position', [0.88 0.85 0.1 0.05], 'fontsize', size_font, ...
                                         'foregroundcolor', 'k', 'callback', eval(['@choose_snr' num2str(ii)]));
-            uicontrol(snrgui(ii), 'style', 'pushbutton', 'string', 'Pick local noise floor', 'units', 'normalized', 'position', [0.88 0.75 0.1 0.05], 'callback', eval(['@do_snr' num2str(ii)]), ...
+            uicontrol(snrgui(ii), 'style', 'pushbutton', 'string', 'Pick', 'units', 'normalized', 'position', [0.88 0.75 0.1 0.05], 'callback', eval(['@do_snr' num2str(ii)]), ...
                       'fontsize', size_font, 'foregroundcolor', 'm')                                    
             uicontrol(snrgui(ii), 'style', 'pushbutton', 'string', 'Save', 'units', 'normalized', 'position', [0.88 0.1 0.1 0.05], 'callback', @save_snr, 'fontsize', size_font, 'foregroundcolor', 'g')
         end
@@ -2737,7 +2763,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         p_snr{ii}(get(snrlist(ii), 'value'), 2) ...
                             = plot(amp_mean(tmp4, tmp1), elev(tmp4), 'ks', 'markersize', 12, 'markerfacecolor', 'm');
         snr_all{curr_year}{curr_trans}{curr_subtrans}(tmp5, int_core{curr_year}{curr_trans}(tmp2(ii), 3)) ...
-                            = amp_mean(elev, 1:length(elev), interp1(pk.elev_gimp(tmp3{ii}(jj), ind_int(tmp2(ii))), 'nearest', 'extrap'), tmp1) - amp_mean(tmp4, tmp1); %#ok<SETNU>
+                            = amp_mean(interp1(elev, 1:length(elev), pk.elev_gimp(tmp3{ii}(jj), ind_int(tmp2(ii))), 'nearest', 'extrap'), tmp1) - amp_mean(tmp4, tmp1); %#ok<SETNU>
     end
 
     function save_snr(source, eventdata)
@@ -4287,6 +4313,8 @@ set(cb_group, 'selectedobject', cb_check(1))
                 load_pk
             case 'q'
                 pop_fig
+            case 's'
+                pk_last
             case 'v'
                 pk_save
             case 'w'

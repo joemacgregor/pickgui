@@ -11,7 +11,7 @@ function fencegui
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 11/20/13
+% Last updated: 12/27/13
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -1907,7 +1907,7 @@ linkprop(z_max_edit(2:3), 'string');
             end
         end
         
-        set(status_box(2), 'string', ['Matching master transect layer #' num2str(curr_layer(1)) ' with intersecting transect layer # ' num2str(curr_layer(2)) '...'])
+        set(status_box(2), 'string', ['Matching master transect layer #' num2str(curr_layer(1)) ' with intersecting transect layer #' num2str(curr_layer(2)) '...'])
         pause(0.1)
         % reassign master color to first master color if a master layer is matched to multiple intersecting transects
         if ~isempty(pk{1}.ind_layer)
@@ -1937,7 +1937,7 @@ linkprop(z_max_edit(2:3), 'string');
             end
         end
         
-        set(status_box(2), 'string', ['Intersecting transect layer # ' num2str(curr_layer(2)) ' matched to master transect layer #' num2str(curr_layer(1)) '.'])
+        set(status_box(2), 'string', ['Intersecting transect layer #' num2str(curr_layer(2)) ' matched to master transect layer #' num2str(curr_layer(1)) '.'])
     end
 
 %% Unmatch two intersecting layers
@@ -2192,10 +2192,10 @@ linkprop(z_max_edit(2:3), 'string');
         for ii = 1:2
             if curr_subtrans(ii)
                 id_layer_master_cell{curr_year(ii)}{curr_trans(ii)}{curr_subtrans(ii)} ...
-                            = pk{ii}.ind_layer;
+                            = sortrows(pk{ii}.ind_layer, [2:4 1 5 6]);
             else
                 id_layer_master_cell{curr_year(ii)}{curr_trans(ii)} ...
-                            = pk{ii}.ind_layer;
+                            = sortrows(pk{ii}.ind_layer, [2:4 1 5 6]);
             end
             pk{ii}          = orderfields(pk{ii});
         end
@@ -3389,7 +3389,7 @@ linkprop(z_max_edit(2:3), 'string');
         set(rad_group, 'selectedobject', rad_check(curr_rad))
         decim(curr_rad)     = abs(round(str2double(get(decim_edit(curr_gui, curr_rad), 'string'))));
         if pk_done(curr_rad)
-            set(status_box(curr_gui), 'string', 'Updating picks to new decimation...')
+            set(status_box, 'string', 'Updating picks to new decimation...')
             pause(0.1)
             if (decim(curr_rad) > 1)
                 ind_decim{curr_rad} ...
@@ -3403,39 +3403,42 @@ linkprop(z_max_edit(2:3), 'string');
             if (any(p_bed(:, curr_rad)) && any(ishandle(p_bed(:, curr_rad))))
                 delete(p_bed((logical(p_bed(:, curr_rad)) & ishandle(p_bed(:, curr_rad))), curr_rad))
             end
-            if (any(p_pk{curr_gui, curr_rad}) && any(ishandle(p_pk{curr_gui, curr_rad})))
-                delete(p_pk{curr_gui, curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pk{curr_gui, curr_rad})))
+            for ii = 1:2
+                if (any(p_pk{ii, curr_rad}) && any(ishandle(p_pk{ii, curr_rad})))
+                    delete(p_pk{ii, curr_rad}(logical(p_pk{ii, curr_rad}) & ishandle(p_pk{ii, curr_rad})))
+                end
             end
             if (any(p_surf(:, curr_rad)) && any(ishandle(p_surf(:, curr_rad))))
                 delete(p_surf((logical(p_surf(:, curr_rad)) & ishandle(p_surf(:, curr_rad))), curr_rad))
             end
             layer_str{curr_rad} ...
                             = num2cell(1:pk{curr_rad}.num_layer);
-            axes(ax(curr_ax))
-            switch curr_gui
+            axes(ax(1))
+            for ii = 1:pk{curr_rad}.num_layer
+                if ~any(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))
+                    p_pk{1, curr_rad}(ii) = plot3(0, 0, 0, 'w.', 'markersize', 1);
+                    layer_str{curr_rad}{ii} = [num2str(ii) ' H'];
+                else
+                    p_pk{1, curr_rad}(ii) = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
+                        y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
+                        elev_smooth{curr_rad}(ii, ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
+                        '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
+                end
+            end
+            switch curr_rad
                 case 1
-                    for ii = 1:pk{curr_rad}.num_layer
-                        if ~any(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))
-                            p_pk{curr_gui, curr_rad}(ii) = plot(0, 0, 'w.', 'markersize', 1);
-                            layer_str{curr_rad}{ii} = [num2str(ii) ' H'];
-                        else
-                            p_pk{curr_gui, curr_rad}(ii) = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
-                                                                 y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
-                                                                 elev_smooth{curr_rad}(ii, ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
-                                                                 '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
-                        end
-                    end
+                    axes(ax(2))
                 case 2
-                    for ii = 1:pk{curr_rad}.num_layer
-                        if ~any(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))
-                            p_pk{curr_gui, curr_rad}(ii) = plot(0, 0, 'w.', 'markersize', 1);
-                            layer_str{curr_rad}{ii} = [num2str(ii) ' H'];
-                        else
-                            p_pk{curr_gui, curr_rad}(ii) = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
-                                                                elev_smooth{curr_rad}(ii, ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
-                                                                '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
-                        end
-                    end
+                    axes(ax(3))
+            end
+            for ii = 1:pk{curr_rad}.num_layer
+                if ~any(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))
+                    p_pk{2, curr_rad}(ii) = plot(0, 0, 'w.', 'markersize', 1);
+                else
+                    p_pk{2, curr_rad}(ii) = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
+                        elev_smooth{curr_rad}(ii, ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
+                        '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
+                end
             end
             % check to see if surface and bed picks are available
             if isfield(pk{curr_rad}, 'elev_surf')
@@ -3485,15 +3488,22 @@ linkprop(z_max_edit(2:3), 'string');
             else
                 set(layer_list(:, curr_rad), 'string', layer_str{curr_rad}, 'value', 1)
             end
-            show_pk
+            switch curr_rad
+                case 1
+                    show_pk1
+                    show_pk3
+                case 2
+                    show_pk2
+                    show_pk4
+            end
         end
         if data_done(curr_rad)
-            set(status_box(curr_gui), 'string', 'Updating data to new decimation...')
+            set(status_box, 'string', 'Updating data to new decimation...')
             pause(0.1)
             load_data_breakout
         end
         set(decim_edit(:, curr_rad), 'string', num2str(decim(curr_rad)))
-        set(status_box(curr_gui), 'string', ['Decimation number set to 1/' num2str(decim(curr_rad)) ' indice(s).'])
+        set(status_box, 'string', ['Decimation number set to 1/' num2str(decim(curr_rad)) ' indice(s).'])
     end
 
 %% Adjust 3D display aspect ratio
@@ -3755,6 +3765,8 @@ linkprop(z_max_edit(2:3), 'string');
                     set(data_check(curr_gui, curr_rad), 'value', 1)
                 end
                 show_data
+            case 'a'
+                pk_last
             case 'c'
                 load_core
             case 'e'
@@ -3768,8 +3780,6 @@ linkprop(z_max_edit(2:3), 'string');
                 toggle_grid
             case 'i'
                 load_int
-            case 'l'
-                pk_last
             case 'm'
                 locate_master
             case 'n'

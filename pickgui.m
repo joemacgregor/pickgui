@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 11/21/13
+% Last updated: 12/19/13
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -253,7 +253,7 @@ layer_list                  = uicontrol(pkgui, 'style', 'popupmenu', 'string', '
 twttfix_check               = uicontrol(pkgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.04 0.85 0.01 0.03], 'fontsize', size_font, 'value', 0);
 distfix_check               = uicontrol(pkgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.02 0.005 0.01 0.03], 'fontsize', size_font, 'value', 0);
 cbfix_check1                = uicontrol(pkgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.97 0.005 0.01 0.03], 'fontsize', size_font, 'value', 0);
-cbfix_check2                = uicontrol(pkgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.985 0.005 0.01 0.03], 'callback', @narrow_cb, 'fontsize', size_font, 'value', 0);
+cbfix_check2                = uicontrol(pkgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.985 0.005 0.01 0.03], 'callback', @narrow_cb, 'fontsize', size_font, 'value', 1);
 ref_check                   = uicontrol(pkgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.36 0.92 0.01 0.03], 'callback', @show_ref, 'fontsize', size_font, 'value', 0);
 man_check                   = uicontrol(pkgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.41 0.88 0.01 0.03], 'callback', @show_man, 'fontsize', size_font, 'value', 0);
 phase_check                 = uicontrol(pkgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.41 0.96 0.01 0.03], 'callback', @show_phase, 'fontsize', size_font, 'value', 0);
@@ -722,28 +722,34 @@ set(disp_group, 'selectedobject', disp_check(1))
             plot_db
         end
         
-        if ispc
-            tmp1            = '..\..\pk\';
+        tmp1                = file_data(1:11);
+        tmp2                = path_data(end - 1);
+        if (isnan(str2double(tmp2)) || ~isreal(str2double(tmp2))) % check for a/b/c/etc in file_pk_short
+            if ispc
+                tmp3        = '..\..\..\pk\';
+            else
+                tmp3        = '../../../pk/';
+            end
         else
-            tmp1            = '../../pk/';
+            if ispc
+                tmp3        = '..\..\pk\';
+            else
+                tmp3        = '../../pk/';
+            end
         end
         
-        % look for picks file in expected location
-        try %#ok<TRYNC>
-            if (~isempty(path_data) && exist([path_data tmp1 file_data(1:11)], 'dir'))
-                if ispc
-                    if isempty(path_pk)
-                        path_pk = [path_data(1:strfind(path_data, '\block')) 'pk\' file_data(1:11) '/'];
-                    elseif ~strcmp(path_pk(1:(end - 2)), [path_data(1:strfind(path_data, '\block')) 'pk\' file_data(1:11) '\'])
-                        path_pk = [path_data(1:strfind(path_data, '\block')) 'pk\' file_data(1:11) '\'];
-                    end
-                else
-                    if isempty(path_pk)
-                        path_pk = [path_data(1:strfind(path_data, '/block')) 'pk/' file_data(1:11) '/'];
-                    elseif ~strcmp(path_pk(1:(end - 2)), [path_data(1:strfind(path_data, '/block')) 'pk/' file_data(1:11) '/'])
-                        path_pk = [path_data(1:strfind(path_data, '/block')) 'pk/' file_data(1:11) '/'];
-                    end
-                end
+        % look for picks file in the expected location
+        if ispc
+            if (~isempty(path_data) && exist([path_data tmp3 file_data(1:11)], 'dir'))
+                path_pk     = [path_data(1:strfind(path_data, '\block')) 'pk\' file_data(1:11) '\'];
+            elseif (~isempty(path_data) && exist([path_data tmp3 file_data(1:11) '\' tmp2(end)], 'dir'))
+                path_pk     = [path_data(1:strfind(path_data, '\block')) 'pk\' file_data(1:11) '\' tmp2(end) '\'];
+            end
+        else
+            if (~isempty(path_data) && exist([path_data tmp3 file_data(1:11)], 'dir'))
+                path_pk     = [path_data(1:strfind(path_data, '/block')) 'pk/' file_data(1:11) '/'];
+            elseif (~isempty(path_data) && exist([path_data tmp3 file_data(1:11) '/' tmp2(end)], 'dir'))
+                path_pk     = [path_data(1:strfind(path_data, '/block')) 'pk/' file_data(1:11) '/' tmp2(end) '/'];
             end
         end
         
@@ -3841,7 +3847,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         if any(isnan(pk.ind_match))
             tmp1            = nanmax(pk.ind_match);
             if isfield(pk_ref, 'ind_match_max') % if available, take care not to repeat layer numbers
-                if (pk_ref.ind_match_max > tmp1)
+                if ((pk_ref.ind_match_max > tmp1) || isnan(tmp1))
                     tmp1    = pk_ref.ind_match_max;
                 end
             end
@@ -6050,7 +6056,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     elseif spec_avail
                         set(disp_group, 'selectedobject', disp_check(4))
                         disp_type = 'spec.';
-                        plot_spec                        
+                        plot_spec
                     end
                 else
                     set(disp_group, 'selectedobject', disp_check(1))
