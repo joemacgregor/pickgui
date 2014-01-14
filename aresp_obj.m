@@ -29,10 +29,10 @@ function obj                = aresp_obj(data_bin, ind_sep, num_overlap, parallel
 %   
 %   http://researchpages.net/QDES/people/louise-sime/resources/
 %   
-%   See also ARESP.   
-%
+%   See also ARESP.
+%   
 % Louise Sime (BAS), Joe MacGregor (UTIG)
-% Last updated: 03/13/13
+% Last updated: 01/03/14
 
 if (nargin ~= 4)
     error('aresp_obj:nargin', 'Not enough input arguments (need 4).')
@@ -40,13 +40,13 @@ end
 if ~islogical(data_bin)
     error('aresp_obj:databintype', 'Binary radargram array (DATA_BIN) is not a logical array.')
 end
-if (~isnumeric(ind_sep) || (length(ind_sep) ~= 1) || mod(ind_sep(1), 1))
-    error('aresp_obj:indsep', 'Index separation (IND_SEP) is not a round scalar.')
+if (~isnumeric(ind_sep) || ~isscalar(ind_sep) || mod(ind_sep(1), 1))
+    error('aresp_obj:indsep', 'Index separation (IND_SEP) is not a round numeric scalar.')
 end
-if (~isnumeric(num_overlap) || (length(num_overlap) ~= 1) || mod(num_overlap(1), 1))
-    error('aresp_obj:indsep', 'Number of overlaps (NUM_OVERLAP) is not a round scalar.')
+if (~isnumeric(num_overlap) || ~isscalar(num_overlap) || mod(num_overlap(1), 1))
+    error('aresp_obj:indsep', 'Number of overlaps (NUM_OVERLAP) is not a round numeric scalar.')
 end
-if (~islogical(parallel_check) || (length(parallel_check) ~= 1))
+if (~islogical(parallel_check) || ~isscalar(parallel_check))
     error('aresp_obj:parallelcheck', 'True/false check for Parallel Computing Toolbox license (PARALLEL_CHECK) is not a logical scalar.')
 end
 

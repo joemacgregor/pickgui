@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 12/19/13
+% Last updated: 01/13/13
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -44,6 +44,7 @@ speed_ice                   = speed_vacuum / sqrt(permitt_ice);
 decim                       = 10; % decimate radargram for display
 length_chunk                = 100; % chunk length in km
 disp_type                   = 'amplitude';
+ord_poly                    = 3; % default polynomial order
 cmaps                       = {'bone' 'jet'}';
 var_cell                    = {'ind_keep_aresp' 'ind_keep_phase' 'ind_y_start_aresp' 'ind_y_start_phase' 'ind_match' 'ind_x_mean' 'poly_flat' 'file_in' 'ind_y_man' 'file_pk' 'file_block' 'ind_y_flat_mean'}; ...
                               % cell variables that are easy to merge
@@ -163,9 +164,9 @@ dist_max_edit               = annotation('textbox', [0.59 0.005 0.04 0.03], 'str
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Load picks', 'units', 'normalized', 'position', [0.005 0.965 0.07 0.03], 'callback', @load_pk, 'fontsize', size_font, 'foregroundcolor', 'b')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Load radar data', 'units', 'normalized', 'position', [0.30 0.965 0.09 0.03], 'callback', @load_data, 'fontsize', size_font, 'foregroundcolor', 'b')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Load core intersections', 'units', 'normalized', 'position', [0.64 0.925 0.11 0.03], 'callback', @load_core, 'fontsize', size_font, 'foregroundcolor', 'b')
-uicontrol(mgui, 'style', 'pushbutton', 'string', 'Flatten amplitude', 'units', 'normalized', 'position', [0.30 0.885 0.09 0.03], 'callback', @flatten, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(mgui, 'style', 'pushbutton', 'string', 'Flatten data', 'units', 'normalized', 'position', [0.30 0.885 0.09 0.03], 'callback', @flatten, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalized', 'position', [0.41 0.925 0.05 0.03], 'callback', @focus_layer, 'fontsize', size_font, 'foregroundcolor', 'm')
-uicontrol(mgui, 'style', 'pushbutton', 'string', 'Match', 'units', 'normalized', 'position', [0.41 0.885 0.04 0.03], 'callback', @pk_match, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(mgui, 'style', 'pushbutton', 'string', 'Merge', 'units', 'normalized', 'position', [0.41 0.885 0.04 0.03], 'callback', @pk_merge, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Last', 'units', 'normalized', 'position', [0.46 0.885 0.04 0.03], 'callback', @pk_last, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Next', 'units', 'normalized', 'position', [0.46 0.925 0.04 0.03], 'callback', @pk_next, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Load ages', 'units', 'normalized', 'position', [0.505 0.965 0.07 0.03], 'callback', @load_age, 'fontsize', size_font, 'foregroundcolor', 'b')
@@ -456,6 +457,8 @@ set(cb_group, 'selectedobject', cb_check(1))
                     if any(pk.poly_flat_merge(:))
                         flat_done ...
                             = true;
+                        ord_poly ...
+                            = size(pk.poly_flat_merge, 1) - 1;
                     end
                 end
                 if isfield(pk, 'ind_layer_keep_phase')
@@ -1173,7 +1176,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             % fix polynomials to current decimation vector
             if (num_decim ~= size(pk.poly_flat_merge, 2))
                 pk.poly_flat_merge ...
-                            = interp2(pk.poly_flat_merge, linspace(1, num_decim, num_decim), (1:size(pk.poly_flat_merge, 1))');
+                            = interp2(pk.poly_flat_merge, linspace(1, num_decim, num_decim), (1:(ord_poly + 1))');
             end
             flatten_breakout
         end
@@ -1190,8 +1193,8 @@ set(cb_group, 'selectedobject', cb_check(1))
             set(status_box, 'string', 'Picks must be loaded and merged and data must be loaded prior to flattening.')
             return
         end
-        if (pk.num_layer < 4)
-            set(status_box, 'string', 'Not enough layers to flatten (need 4+ including surface).')
+        if (pk.num_layer < (ord_poly + 1))
+            set(status_box, 'string', 'Not enough layers to flatten (need 3+ or 4+).')
             return
         end
         
@@ -1219,7 +1222,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         tic
         
         % compile layer depths to use in flattening
-        pk.poly_flat_merge  = NaN(4, num_decim, 'single');
+        pk.poly_flat_merge  = NaN((ord_poly + 1), num_decim, 'single');
         depth_curr          = [zeros(1, num_decim); pk.depth_smooth(:, ind_decim)];
         
         % keep the maximum number of layers for first go
@@ -1228,7 +1231,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         depth_layer_ref     = depth_curr(:, ind_x_ref); % layer depths at reference trace
         tmp1                = depth_curr(~isnan(depth_layer_ref), :); % depth of all layers that are not nan at the reference trace
         tmp2                = tmp1(:, ind_x_ref); % depths of non-nan layers at reference trace
-        tmp3                = find(sum(~isnan(tmp1)) > 3); % traces where it will be worth doing the polynomial
+        tmp3                = find(sum(~isnan(tmp1)) > ord_poly); % traces where it will be worth doing the polynomial
         
         set(status_box, 'string', ['Starting polynomial fits using ' num2str(length(tmp2)) ' / ' num2str(pk.num_layer) ' layers...'])
         pause(0.1)
@@ -1248,7 +1251,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             tmp1            = tmp1(:, tmp3);
             tmp4            = pk.poly_flat_merge(:, tmp3);
             parfor ii = 1:length(tmp3)
-                tmp4(:, ii) = polyfit(tmp2(~isnan(tmp1(:, ii))), tmp1(~isnan(tmp1(:, ii)), ii), 3)'; %#ok<PFBNS>
+                tmp4(:, ii) = polyfit(tmp2(~isnan(tmp1(:, ii))), tmp1(~isnan(tmp1(:, ii)), ii), ord_poly)'; %#ok<PFBNS>
             end
             pk.poly_flat_merge(:, tmp3) ...
                             = tmp4;
@@ -1256,7 +1259,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         else
             for ii = 1:length(tmp3)
                 pk.poly_flat_merge(:, tmp3(ii)) ...
-                            = polyfit(tmp2(~isnan(tmp1(:, tmp3(ii)))), tmp1(~isnan(tmp1(:, tmp3(ii))), tmp3(ii)), 3)';
+                            = polyfit(tmp2(~isnan(tmp1(:, tmp3(ii)))), tmp1(~isnan(tmp1(:, tmp3(ii))), tmp3(ii)), ord_poly)';
             end
         end
         
@@ -1271,14 +1274,14 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         if parallel_check
             tmp1            = pk.poly_flat_merge;
-            parfor ii = 1:4
+            parfor ii = 1:(ord_poly + 1)
                 tmp1(ii, :) = smooth_lowess(tmp1(ii, :), tmp2);
             end
             pk.poly_flat_merge ...
                             = tmp1;
             tmp1            = 0;
         else
-            for ii = 1:4
+            for ii = 1:(ord_poly + 1)
                 pk.poly_flat_merge(ii, :) ...
                             = smooth_lowess(pk.poly_flat_merge(ii, :), tmp2);
             end
@@ -1309,10 +1312,13 @@ set(cb_group, 'selectedobject', cb_check(1))
                 % calculate flattening matrix based on current polynomials
                 tmp1                = find(~isnan(depth_curr(ii, :)));
                 depth_mat           = single(depth(:, ones(1, length(tmp1)))); % depth matrix
-                depth_flat          = ((depth_mat .^ 3) .* pk.poly_flat_merge(ones((num_sample - max(ind_corr)), 1), tmp1)) + ...
-                                      ((depth_mat .^ 2) .* pk.poly_flat_merge((2 .* ones((num_sample - max(ind_corr)), 1)), tmp1)) + ...
-                                      (depth_mat .* (pk.poly_flat_merge((3 .* ones((num_sample - max(ind_corr)), 1)), tmp1))) + ...
-                                      pk.poly_flat_merge((4 .* ones((num_sample - max(ind_corr)), 1)), tmp1);
+                switch ord_poly
+                    case 2
+                        depth_flat  = ((depth_mat .^ 2) .* pk.poly_flat_merge(ones((num_sample - max(ind_corr)), 1), tmp1)) + (depth_mat .* (pk.poly_flat_merge((2 .* ones((num_sample - max(ind_corr)), 1)), tmp1))) + pk.poly_flat_merge((3 .* ones((num_sample - max(ind_corr)), 1)), tmp1);
+                    case 3
+                        depth_flat  = ((depth_mat .^ 3) .* pk.poly_flat_merge(ones((num_sample - max(ind_corr)), 1), tmp1)) + ((depth_mat .^ 2) .* pk.poly_flat_merge((2 .* ones((num_sample - max(ind_corr)), 1)), tmp1)) + ...
+                                      (depth_mat .* (pk.poly_flat_merge((3 .* ones((num_sample - max(ind_corr)), 1)), tmp1))) + pk.poly_flat_merge((4 .* ones((num_sample - max(ind_corr)), 1)), tmp1);
+                end
                 depth_mat           = 0;
                 depth_flat(depth_flat < 0) ...
                                     = 0; % limit too-low depths
@@ -1345,22 +1351,22 @@ set(cb_group, 'selectedobject', cb_check(1))
                 tmp4                = tmp1(tmp3);
                 tmp1                = depth_curr(~isnan(depth_layer_ref), tmp4);
                 tmp2                = depth_layer_ref(~isnan(depth_layer_ref));
-                tmp3                = find(sum(~isnan(tmp1)) > 3);
-                tmp4                = tmp4(sum(~isnan(tmp1)) > 3);
+                tmp3                = find(sum(~isnan(tmp1)) > ord_poly);
+                tmp4                = tmp4(sum(~isnan(tmp1)) > ord_poly);
                 
                 % new polynomials using additional "depth" for this layer
                 if parallel_check
                     tmp1            = tmp1(:, tmp3);
                     tmp3            = pk.poly_flat_merge(:, tmp3);
                     parfor jj = 1:length(tmp4)
-                        tmp3(:, jj) = polyfit(tmp2(~isnan(tmp1(:, jj))), tmp1(~isnan(tmp1(:, jj)), jj), 3)'; %#ok<PFBNS>
+                        tmp3(:, jj) = polyfit(tmp2(~isnan(tmp1(:, jj))), tmp1(~isnan(tmp1(:, jj)), jj), ord_poly)'; %#ok<PFBNS>
                     end
                     pk.poly_flat_merge(:, tmp4) ...
                                     = tmp3;
                 else
                     for jj = 1:length(tmp3)
                         pk.poly_flat_merge(:, tmp4(jj)) ...
-                                    = polyfit(tmp2(~isnan(tmp1(:, tmp3(jj)))), tmp1(~isnan(tmp1(:, tmp3(jj))), tmp3(jj)), 3)';
+                                    = polyfit(tmp2(~isnan(tmp1(:, tmp3(jj)))), tmp1(~isnan(tmp1(:, tmp3(jj))), tmp3(jj)), ord_poly)';
                     end
                 end
                 
@@ -1372,14 +1378,14 @@ set(cb_group, 'selectedobject', cb_check(1))
                 end
                 if parallel_check
                     tmp1            = pk.poly_flat_merge;
-                    parfor jj = 1:4
+                    parfor jj = 1:(ord_poly + 1)
                         tmp1(jj, :) = smooth_lowess(tmp1(jj, :), tmp2);
                     end
                     pk.poly_flat_merge ...
                                     = tmp1;
                     tmp1            = 0;
                 else
-                    for jj = 1:4
+                    for jj = 1:(ord_poly + 1)
                         pk.poly_flat_merge(jj, :) ...
                                     = smooth_lowess(pk.poly_flat_merge(jj, :), tmp2);
                     end
@@ -1432,8 +1438,14 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         % flattening matrix based on layer depth fits
         depth_mat           = single(depth(:, ones(1, num_decim))); % depth matrix
-        depth_flat          = ((depth_mat .^ 3) .* pk.poly_flat_merge(ones((num_sample - max(ind_corr)), 1), :)) + ((depth_mat .^ 2) .* pk.poly_flat_merge((2 .* ones((num_sample - max(ind_corr)), 1)), :)) + ...
+        switch ord_poly
+            case 2
+                depth_flat  = ((depth_mat .^ 2) .* pk.poly_flat_merge(ones((num_sample - max(ind_corr)), 1), :)) + (depth_mat .* (pk.poly_flat_merge((2 .* ones((num_sample - max(ind_corr)), 1)), :))) + ...
+                              pk.poly_flat_merge((3 .* ones((num_sample - max(ind_corr)), 1)), :);                
+            case 3
+                depth_flat  = ((depth_mat .^ 3) .* pk.poly_flat_merge(ones((num_sample - max(ind_corr)), 1), :)) + ((depth_mat .^ 2) .* pk.poly_flat_merge((2 .* ones((num_sample - max(ind_corr)), 1)), :)) + ...
                               (depth_mat .* (pk.poly_flat_merge((3 .* ones((num_sample - max(ind_corr)), 1)), :))) + pk.poly_flat_merge((4 .* ones((num_sample - max(ind_corr)), 1)), :);
+        end
         depth_mat           = 0;
         if any(isnan(depth_flat(:))) % fix nans
             for ii = find(any(isnan(depth_flat)))
@@ -1681,7 +1693,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 end
                 tmp1        = get(ax_radar, 'ylim');
                 [tmp1(1), tmp1(2)] ...
-                            = deal((tmp1(1) - (2 * diff(tmp1))), (tmp1(2) + (2 * diff(tmp1))));
+                            = deal((tmp1(1) - diff(tmp1)), (tmp1(2) + diff(tmp1)));
                 if (tmp1(1) < elev_min_ref)
                     tmp1(1) = elev_min_ref;
                 end
@@ -1721,7 +1733,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 ylim([min(depth_layer_flat(curr_layer, :)) max(depth_layer_flat(curr_layer, :))])
                 tmp1        = get(ax_radar, 'ylim');
                 [tmp1(1), tmp1(2)] ...
-                            = deal((tmp1(1) - (2 * diff(tmp1))), (tmp1(2) + (2 * diff(tmp1))));
+                            = deal((tmp1(1) - diff(tmp1)), (tmp1(2) + diff(tmp1)));
                 if (tmp1(1) < depth_min_ref)
                     tmp1(1) = depth_min_ref;
                 end
@@ -1871,9 +1883,9 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
     end
 
-%% Match two layers
+%% Merge two layers
 
-    function pk_match(source, eventdata)
+    function pk_merge(source, eventdata)
         
         set(status_box, 'string', ['Pick layer to merge with layer #' num2str(curr_layer) ' (Q: cancel)...'])
         pause(0.1)
@@ -4304,7 +4316,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             case 'l'
                 load_data
             case 'm'
-                pk_match
+                pk_merge
             case 'n'
                 pk_next
             case 'o'
@@ -4338,6 +4350,17 @@ set(cb_group, 'selectedobject', cb_check(1))
                 end
             case 'z'
                 choose_pk
+            case 'slash'
+                switch ord_poly
+                    case 2
+                        ord_poly ...
+                            = 3;
+                        set(status_box, 'string', 'Flattening polynomial switched to 3rd order')
+                    case 3
+                        ord_poly ...
+                            = 2;
+                        set(status_box, 'string', 'Flattening polynomial switched to 2nd order.')
+                end
             case 'downarrow'
                 switch disp_type
                     case 'amplitude'

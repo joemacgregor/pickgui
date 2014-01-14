@@ -346,6 +346,8 @@ uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalize
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.935 0.005 0.03 0.03], 'callback', @reset_dist_max2, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.965 0.03 0.03 0.03], 'callback', @reset_db_min3, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.965 0.46 0.03 0.03], 'callback', @reset_db_max3, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalized', 'position', [0.265 0.965 0.05 0.03], 'callback', @focus_layer1, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalized', 'position', [0.60 0.965 0.05 0.03], 'callback', @focus_layer2, 'fontsize', size_font, 'foregroundcolor', 'm')
 
 % fixed text annotations
 b(1)                        = annotation('textbox', [0.10 0.925 0.03 0.03], 'string', 'N_{decim}', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
@@ -1659,7 +1661,7 @@ linkprop(z_max_edit(2:3), 'string');
         if (all(pk_done) && ~isempty(pk{2}.ind_layer) && get(match_check, 'value'))
             switch curr_rad
                 case 1
-                    if (length(find((pk{2}.ind_layer(:, 5) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1)))) == 1)
+                    if ~isempty(find(((pk{2}.ind_layer(:, 5) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1))
                         curr_layer(2) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 5) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & ...
                                                               (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1), 1);
                         for ii = 1:2
@@ -1686,7 +1688,7 @@ linkprop(z_max_edit(2:3), 'string');
                     end
                     set(layer_list(:, 2), 'value', curr_layer(2))
                 case 2
-                    if (length(find((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1)))) == 1)
+                    if ~isempty(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1))
                         curr_layer(1) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & ...
                                                               (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1), 5);
                         for ii = 1:2
@@ -1724,6 +1726,8 @@ linkprop(z_max_edit(2:3), 'string');
                 tmp1        = 'rechoose';
                 choose_layer
             end
+        else
+            set(status_box, 'string', ['Layer #' num2str(curr_layer(curr_rad)) ' selected.'])
         end
     end
 
@@ -1766,7 +1770,97 @@ linkprop(z_max_edit(2:3), 'string');
         end
         set(layer_list(:, curr_rad), 'value', curr_layer(curr_rad))
         choose_layer
-        set(status_box(curr_gui), 'string', ['Layer #' num2str(curr_layer(curr_rad)) ' chosen.'])
+        set(status_box(curr_gui), 'string', ['Layer #' num2str(curr_layer(curr_rad)) ' selected.'])
+    end
+
+%% Focus on a layer
+
+    function focus_layer1(source, eventdata)
+        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+                        = deal(2, 2, 1, 2);
+        focus_layer
+    end
+
+    function focus_layer2(source, eventdata)
+        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+                        = deal(2, 3, 2, 1);
+        focus_layer
+    end
+
+    function focus_layer(source, eventdata)
+        if ~any(~isnan(pk{curr_rad}.elev_smooth(curr_layer(curr_rad), ind_decim{curr_rad})))
+            set(status_box(2), 'string', 'Cannot focus on a layer that is hidden.')
+            return
+        end
+        axes(ax(curr_ax))
+        if gimp_avail(curr_rad)
+            xlim([pk{curr_rad}.dist_lin_gimp(find(~isnan(pk{curr_rad}.elev_smooth_gimp(curr_layer(curr_rad), :)), 1)) pk{curr_rad}.dist_lin_gimp(find(~isnan(pk{curr_rad}.elev_smooth_gimp(curr_layer(curr_rad), :)), ...
+                  1, 'last'))])
+        else
+            xlim([pk{curr_rad}.dist_lin(find(~isnan(pk{curr_rad}.elev_smooth(curr_layer(curr_rad), :)), 1)) pk{curr_rad}.dist_lin(find(~isnan(pk{curr_rad}.elev_smooth(curr_layer(curr_rad), :)), 1, 'last'))])
+        end
+        tmp1                = get(ax(curr_ax), 'xlim');
+        [tmp1(1), tmp1(2)]  = deal((tmp1(1) - diff(tmp1)), (tmp1(2) + diff(tmp1)));
+        if (tmp1(1) < dist_min_ref(curr_rad))
+            tmp1(1)         = dist_min_ref(curr_rad);
+        end
+        if (tmp1(2) > dist_max_ref(curr_rad))
+            tmp1(2)         = dist_max_ref(curr_rad);
+        end
+        xlim(tmp1)
+        [dist_min(curr_rad), dist_max(curr_rad)] ...
+                            = deal(tmp1(1), tmp1(2));
+        if (dist_min(curr_rad) < get(dist_min_slide(curr_rad), 'min'))
+            set(dist_min_slide(curr_rad), 'value', get(dist_min_slide(curr_rad), 'min'))
+        elseif (dist_min(curr_rad) > get(dist_min_slide(curr_rad), 'max'))
+            set(dist_min_slide(curr_rad), 'value', get(dist_min_slide(curr_rad), 'max'))
+        else
+            set(dist_min_slide(curr_rad), 'value', dist_min(curr_rad))
+        end
+        if (dist_max(curr_rad) < get(dist_max_slide(curr_rad), 'min'))
+            set(dist_max_slide(curr_rad), 'value', get(dist_max_slide(curr_rad), 'min'))
+        elseif (dist_max(curr_rad) > get(dist_max_slide(curr_rad), 'max'))
+            set(dist_max_slide(curr_rad), 'value', get(dist_max_slide(curr_rad), 'max'))
+        else
+            set(dist_max_slide(curr_rad), 'value', dist_max(curr_rad))
+        end
+        set(dist_min_edit(curr_rad), 'string', sprintf('%3.1f', dist_min(curr_rad)))
+        set(dist_max_edit(curr_rad), 'string', sprintf('%3.1f', dist_max(curr_rad)))
+        if gimp_avail(curr_rad)
+            ylim([min(pk{curr_rad}.elev_smooth_gimp(curr_layer(curr_rad), ind_decim{curr_rad})) max(pk{curr_rad}.elev_smooth_gimp(curr_layer(curr_rad), ind_decim{curr_rad}))])
+        else
+            ylim([min(pk{curr_rad}.elev_smooth(curr_layer(curr_rad), ind_decim{curr_rad})) max(pk{curr_rad}.elev_smooth(curr_layer(curr_rad), ind_decim{curr_rad}))])
+        end
+        tmp1        = get(ax(curr_ax), 'ylim');
+        [tmp1(1), tmp1(2)] ...
+            = deal((tmp1(1) - diff(tmp1)), (tmp1(2) + diff(tmp1)));
+        if (tmp1(1) < elev_min_ref)
+            tmp1(1) = elev_min_ref;
+        end
+        if (tmp1(2) > elev_max_ref)
+            tmp1(2) = elev_max_ref;
+        end
+        ylim(tmp1)
+        [elev_min(curr_ax), elev_max(curr_ax)] ...
+                            = deal(tmp1(1), tmp1(2));
+        if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
+            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+        elseif (elev_min(curr_ax) > get(z_min_slide(curr_ax), 'max'))
+            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+        else
+            set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+        end
+        if (elev_max(curr_ax) < get(z_max_slide(curr_ax), 'min'))
+            set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+        elseif (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+            set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+        else
+            set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+        end
+        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+        narrow_cb
+        set(status_box(2), 'string', ['Focused on Layer #' num2str(curr_layer(curr_rad)) '.'])
     end
 
 %% Switch to previous layer in list
@@ -1813,6 +1907,7 @@ linkprop(z_max_edit(2:3), 'string');
             if (logical(p_pk{2, curr_rad}(curr_layer(curr_rad))) && ishandle(p_pk{2, curr_rad}(curr_layer(curr_rad))))
                 set(p_pk{2, curr_rad}(curr_layer(curr_rad)), 'markersize', 24)
             end
+            choose_layer
         end
     end
 
@@ -1860,6 +1955,7 @@ linkprop(z_max_edit(2:3), 'string');
             if (logical(p_pk{2, curr_rad}(curr_layer(curr_rad))) && ishandle(p_pk{2, curr_rad}(curr_layer(curr_rad))))
                 set(p_pk{2, curr_rad}(curr_layer(curr_rad)), 'markersize', 24)
             end
+            choose_layer
         end
     end
 
@@ -3504,6 +3600,7 @@ linkprop(z_max_edit(2:3), 'string');
         end
         set(decim_edit(:, curr_rad), 'string', num2str(decim(curr_rad)))
         set(status_box, 'string', ['Decimation number set to 1/' num2str(decim(curr_rad)) ' indice(s).'])
+        axes(ax(curr_ax))
     end
 
 %% Adjust 3D display aspect ratio
@@ -3952,6 +4049,13 @@ linkprop(z_max_edit(2:3), 'string');
                 pk_match
             case 'n'
                 pk_next
+            case 'o'
+                focus_layer
+            case 't'
+                if (curr_int > 1)
+                    set(intnum_list, 'value', (curr_int - 1))
+                    change_int
+                end
             case 'u'
                 pk_unmatch
             case 'v'
@@ -3969,6 +4073,11 @@ linkprop(z_max_edit(2:3), 'string');
                 change_cmap
             case 'x'
                 choose_pk2
+            case 'y'
+                if (curr_int < num_int)
+                    set(intnum_list, 'value', (curr_int + 1))
+                    change_int
+                end
             case 'z'
                 choose_pk1
             case 'downarrow'

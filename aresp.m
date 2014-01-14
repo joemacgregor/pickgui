@@ -44,8 +44,10 @@ function aresp(dir_block, file_block, decim_x, decim_z, z_smooth, num_overlap, p
 %   
 %   http://researchpages.net/QDES/people/louise-sime/resources/
 %   
+%   See also ARESP_OBJ.
+%   
 % Louise Sime (BAS), Joe MacGregor (UTIG)
-% Last updated: 03/13/13
+% Last updated: 01/07/14
 
 % clear
 % dir_block                   = '/Volumes/icebridge/data/2006_to/block/20060601_01/';
@@ -78,55 +80,55 @@ end
 if ~ischar(file_block)
     error('aresp:fileblockstr', 'Block filename (FILE_BLOCK) is not a string.')
 end
-if (~isnumeric(decim_x) || (length(decim_x) ~= 2))
-    error('aresp:decimxtype', 'Horizontal decimation (DECIM_X) is not a two-element vector.')
+if (~isnumeric(decim_x) || ~isvector(decim_x) || (length(decim_x) ~= 2))
+    error('aresp:decimxtype', 'Horizontal decimation (DECIM_X) is not a two-element numeric vector.')
 end
 if any(mod(decim_x, 1))
     decim_x                 = round(decim_x);
     warning('aresp:rounddecimx', ['Horizontal decimation (DECIM_X) rounded to [' num2str(decim_x) '].'])
 end
-if (~isnumeric(decim_z) || (length(decim_z) ~= 1))
-    error('aresp:decimztype', 'Vertical decimation (DECIM_Z) is not a scalar.')
+if (~isnumeric(decim_z) || ~isscalar(decim_z))
+    error('aresp:decimztype', 'Vertical decimation (DECIM_Z) is not a numeric scalar.')
 end
 if mod(decim_z, 1)
     decim_z                 = round(decim_z);
     warning('aresp:rounddecimz', ['Vertical decimation (DECIM_Z) rounded to ' num2str(decim_z) '.'])
 end
-if (~isnumeric(z_smooth) || (length(z_smooth) ~= 2))
-    error('aresp:zsmoothtype', 'Vertical filter size (Z_SMOOTH) is not a two-element vector.')
+if (~isnumeric(z_smooth) || ~isvector(z_smooth) || (length(z_smooth) ~= 2))
+    error('aresp:zsmoothtype', 'Vertical filter size (Z_SMOOTH) is not a two-element numeric vector.')
 end
 if any(mod(z_smooth, 1))
     z_smooth                = round(z_smooth);
     warning('aresp:roundzsmooth', ['Vertical filter size (Z_SMOOTH) rounded to [' num2str(z_smooth) '].'])
 end
-if (~isnumeric(num_overlap) || (length(num_overlap) ~= 2))
-    error('aresp:numoverlaptype', 'Vertical filter size (NUM_OVERLAP) is not a two-element vector.')
+if (~isnumeric(num_overlap) || ~isvector(num_overlap) || (length(num_overlap) ~= 2))
+    error('aresp:numoverlaptype', 'Vertical filter size (NUM_OVERLAP) is not a two-element numeric vector.')
 end
 if any(mod(num_overlap, 1))
     num_overlap             = round(num_overlap);
     warning('aresp:roundnumoverlap', ['Vertical filter size (NUM_OVERLAP) rounded to [' num2str(num_overlap) '].'])
 end
-if (~islogical(parallel_check) || (length(parallel_check) ~= 1))
+if (~islogical(parallel_check) || ~isscalar(parallel_check))
     error('aresp_obj:parallelcheck', 'True/false check for Parallel Computing Toolbox license (PARALLEL_CHECK) is not a logical scalar.')
 end
-if (~isnumeric(dist_max) || (length(dist_max) ~= 1))
-    error('aresp:distmaxtype', 'Maximum distance (DIST_MAX) is not a scalar.')
+if (~isnumeric(dist_max) || ~isscalar(dist_max))
+    error('aresp:distmaxtype', 'Maximum distance (DIST_MAX) is not a numeric scalar.')
 end
-if (~isnumeric(num_obj_max) || (length(num_obj_max) ~= 1))
-    error('aresp:numobjmaxtype', 'Maximum number of objects (NUM_OBJ_MAX) is not a scalar.')
+if (~isnumeric(num_obj_max) || ~isscalar(num_obj_max))
+    error('aresp:numobjmaxtype', 'Maximum number of objects (NUM_OBJ_MAX) is not a numeric scalar.')
 end
 if mod(num_obj_max, 1)
     num_obj_max             = round(num_obj_max);
     warning('aresp:roundnumobjmax', ['Maximum number of objects (NUM_OBJ_MAX) rounded to ' num2str(num_obj_max) '.'])
 end
-if (~isnumeric(area_max) || (length(area_max) ~= 1))
-    error('aresp:areamaxtype', 'Maximum object area (AREA_MAX) is not a scalar.')
+if (~isnumeric(area_max) || ~isscalar(area_max))
+    error('aresp:areamaxtype', 'Maximum object area (AREA_MAX) is not a numeric scalar.')
 end
-if (~isnumeric(ellipse_min) || (length(ellipse_min) ~= 1))
-    error('aresp:ellipsemintype', 'Minimum object ellipticity (ELLIPSE_MIN) is not a scalar.')
+if (~isnumeric(ellipse_min) || ~isscalar(ellipse_min))
+    error('aresp:ellipsemintype', 'Minimum object ellipticity (ELLIPSE_MIN) is not a numeric scalar.')
 end
-if (~isnumeric(angle_max) || (length(angle_max) ~= 1))
-    error('aresp:anglemaxtype', 'Maximum object angle (ANGLE_MAX) is not a scalar.')
+if (~isnumeric(angle_max) || ~isscalar(angle_max))
+    error('aresp:anglemaxtype', 'Maximum object angle (ANGLE_MAX) is not a numeric scalar.')
 end
 
 ind_sep                     = [(z_smooth(1) * 3) (z_smooth(1) * 6)]; % S_1, S_2
