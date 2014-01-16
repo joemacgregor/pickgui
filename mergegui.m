@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 01/13/13
+% Last updated: 01/16/14
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -113,12 +113,12 @@ end
 
 set(0, 'DefaultFigureWindowStyle', 'docked')
 if ispc % windows switch
-    mgui                    = figure('toolbar', 'figure', 'name', 'MERGEGUI', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress);
+    mgui                    = figure('toolbar', 'figure', 'name', 'MERGEGUI', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress, 'windowscrollwheelfcn', @wheel_zoom);
     ax_radar                = subplot('position', [0.065 0.06 1.42 0.81]);
     size_font               = 14;
     width_slide             = 0.01;
 else
-    mgui                    = figure('toolbar', 'figure', 'name', 'MERGEGUI', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress);
+    mgui                    = figure('toolbar', 'figure', 'name', 'MERGEGUI', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress, 'windowscrollwheelfcn', @wheel_zoom);
     ax_radar                = subplot('position', [0.065 0.06 0.86 0.81]);
     size_font               = 18;
     width_slide             = 0.02;
@@ -1170,7 +1170,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         plot_db
         
         if flat_done
-            depth_layer_ref  = NaN(pk.num_layer, 1);
+            depth_layer_ref = NaN(pk.num_layer, 1);
             depth_layer_ref(~isnan(pk.elev_smooth(:, pk.ind_x_ref))) ...
                             = 1;
             % fix polynomials to current decimation vector
@@ -1218,8 +1218,6 @@ set(cb_group, 'selectedobject', cb_check(1))
         if (any(p_corenameflat) && any(ishandle(p_corenameflat)))
             delete(p_corenameflat(logical(p_corenameflat) & ishandle(p_corenameflat)))
         end
-        
-        tic
         
         % compile layer depths to use in flattening
         pk.poly_flat_merge  = NaN((ord_poly + 1), num_decim, 'single');
@@ -1434,8 +1432,6 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         set(status_box, 'string', 'Flattening data based on polynomials...')
         
-        tic
-        
         % flattening matrix based on layer depth fits
         depth_mat           = single(depth(:, ones(1, num_decim))); % depth matrix
         switch ord_poly
@@ -1459,10 +1455,8 @@ set(cb_group, 'selectedobject', cb_check(1))
                             = 0;
         depth_flat(depth_flat > depth(end)) ...
                             = depth(end);
-        set(status_box, 'string', ['Calculated remapping in ' num2str(toc, '%.0f') ' s...'])
+        set(status_box, 'string', 'Calculated remapping...')
         pause(0.1)
-        
-        tic
         
         % flattened radargram based on the polyfits
         tmp1                = flipud(amp_mean);
@@ -1493,18 +1487,18 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         tmp1                = 0;
         
-        set(status_box, 'string', ['Flattened amplitude in ' num2str(toc, '%.0f') ' s...'])
+        set(status_box, 'string', 'Flattened amplitude...')
         pause(0.1)
         
         % flatten bed pick
         if (any(bed_avail) && any(~isnan(pk.elev_bed)) && ~any(isinf(pk.elev_bed)))
             depth_bed_flat  = NaN(1, num_decim);
-            for ii = 1:length(tmp2)
-                [~, tmp1]   = unique(depth_flat(:, tmp2(ii)), 'last');
-                tmp1        = intersect((1 + find(diff(depth_flat(:, tmp2(ii))) > 0)), tmp1);
+            for ii = tmp2
+                [~, tmp1]   = unique(depth_flat(:, ii), 'last');
+                tmp1        = intersect((1 + find(diff(depth_flat(:, ii)) > 0)), tmp1);
                 if (length(tmp1) > 1)
-                    depth_bed_flat(tmp2(ii)) ...
-                            = interp1(depth_flat(tmp1, tmp2(ii)), depth(tmp1), depth_bed(tmp2(ii)), 'nearest', 'extrap');
+                    depth_bed_flat(ii) ...
+                            = interp1(depth_flat(tmp1, ii), depth(tmp1), depth_bed(ii), 'nearest', 'extrap');
                 end
             end
             depth_bed_flat((depth_bed_flat < 0) | (depth_bed_flat > depth(end))) ...
@@ -1530,7 +1524,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             tmp1            = pk.dist_lin_gimp;
         else
             tmp1            = pk.dist_lin;
-        end        
+        end
         p_pkflat            = zeros(1, pk.num_layer);
         for ii = 1:pk.num_layer
             if ~isempty(find(~isnan(depth_layer_flat(ii, :)), 1))
@@ -1811,7 +1805,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
             p_pkflat        = p_pkflat(tmp1);
             depth_layer_flat= depth_layer_flat(tmp1, :);
-            depth_layer_ref  = depth_layer_ref(tmp1);
+            depth_layer_ref = depth_layer_ref(tmp1);
             edit_flag       = true;
         end
         curr_layer          = curr_layer - 1;
@@ -3561,6 +3555,36 @@ set(cb_group, 'selectedobject', cb_check(1))
         narrow_cb
     end
 
+    function zoom_in(source, eventdata)
+        tmp1                = dist_max - dist_min;
+        tmp2                = [(dist_min + (0.25 * tmp1)) (dist_max - (0.25 * tmp1))];
+        switch disp_type
+            case 'amplitude'
+                tmp3        = elev_max - elev_min;
+                tmp4        = [(elev_min + (0.25 * tmp3)) (elev_max - (0.25 * tmp3))];
+            case 'flattened'
+                tmp3        = depth_max - depth_min;
+                tmp4        = [(elev_min + (0.25 * tmp3)) (elev_max - (0.25 * tmp3))];
+        end
+        set(ax_radar, 'xlim', tmp2, 'ylim', tmp4)
+        panzoom
+    end
+
+    function zoom_out(source, eventdata)
+        tmp1                = dist_max - dist_min;
+        tmp2                = [(dist_min - (0.25 * tmp1)) (dist_max + (0.25 * tmp1))];
+        switch disp_type
+            case 'amplitude'
+                tmp3        = elev_max - elev_min;
+                tmp4        = [(elev_min - (0.25 * tmp3)) (elev_max + (0.25 * tmp3))];
+            case 'flattened'
+                tmp3        = depth_max - depth_min;
+                tmp4        = [(elev_min - (0.25 * tmp3)) (elev_max + (0.25 * tmp3))];
+        end
+        set(ax_radar, 'xlim', tmp2, 'ylim', tmp4)
+        panzoom
+    end
+
 %% Plot data in dB (amplitude)
 
     function plot_db(source, eventdata)
@@ -4114,7 +4138,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             return
         end
         set(0, 'DefaultFigureWindowStyle', 'default')
-        figure('position', [10 10 1200 800]);
+        figure('position', [200 200 1600 800]);
         axis tight
         hold on
         colormap(cmaps{get(cmap_list, 'value')})
@@ -4123,10 +4147,13 @@ set(cb_group, 'selectedobject', cb_check(1))
             case 'amplitude'
                 axis xy
                 axis([dist_min dist_max elev_min elev_max])
+                tmp1        = amp_mean;
+                tmp1(isnan(tmp1)) ...
+                            = db_max;
                 if any(gimp_avail)
-                    imagesc(pk.dist_lin_gimp(ind_decim), elev, amp_mean, [db_min db_max])
+                    imagesc(pk.dist_lin_gimp(ind_decim), elev, tmp1, [db_min db_max])
                 else
-                    imagesc(pk.dist_lin(ind_decim), elev, amp_mean, [db_min db_max])
+                    imagesc(pk.dist_lin(ind_decim), elev, tmp1, [db_min db_max])
                 end
                 if (any(surf_avail) && any(~isnan(pk.elev_surf)))
                     if all(gimp_avail)
@@ -4148,6 +4175,22 @@ set(cb_group, 'selectedobject', cb_check(1))
                         set(tmp1, 'marker', '.', 'linestyle', 'none', 'markersize', 12)
                     end
                 end
+                if get(pk_check, 'value')
+                    for ii = 1:pk.num_layer
+                        if any(~isnan(pk.elev_smooth(ii, ind_decim)))
+                            if all(gimp_avail)
+                                tmp1 = plot(pk.dist_lin_gimp(ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), pk.elev_smooth_gimp(ii, ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), ...
+                                            '.', 'color', colors(ii, :), 'markersize', 12);
+                            else
+                                tmp1 = plot(pk.dist_lin(ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), pk.elev_smooth(ii, ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), ...
+                                            'markersize', 12);
+                            end
+                            if any(ii == curr_layer)
+                                set(tmp1, 'markersize', 24)
+                            end
+                        end
+                    end
+                end                
                 if get(block_check, 'value')
                     for ii = 1:length(pk.ind_trace_start)
                         if all(gimp_avail)
@@ -4173,24 +4216,8 @@ set(cb_group, 'selectedobject', cb_check(1))
                         text(double(tmp1(ind_int(tmp2(ii))) + 1), double(elev_max - (0.2 * (elev_max - elev_min))), name_core{int_core{curr_year}{curr_trans}(tmp2(ii), 3)}, 'color', 'm', 'fontsize', size_font)
                     end
                 end
-                if get(pk_check, 'value')
-                    for ii = 1:pk.num_layer
-                        if any(~isnan(pk.elev_smooth(ii, ind_decim)))
-                            if all(gimp_avail)
-                                tmp1 = plot(pk.dist_lin_gimp(ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), pk.elev_smooth_gimp(ii, ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), ...
-                                            '.', 'color', colors(ii, :), 'markersize', 12);
-                            else
-                                tmp1 = plot(pk.dist_lin(ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), pk.elev_smooth(ii, ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), ...
-                                            'markersize', 12);
-                            end
-                            if any(ii == curr_layer)
-                                set(tmp1, 'markersize', 24)
-                            end
-                        end
-                    end
-                end
                 ylabel('Elevation (m)', 'fontsize', 20)
-                text((dist_max + (0.015 * (dist_max - dist_min))), (elev_max + (0.04 * (elev_max - elev_min))), '(dB)', 'color', 'k', 'fontsize', 20)
+                text(double(dist_max + (0.015 * (dist_max - dist_min))), double(elev_max + (0.04 * (elev_max - elev_min))), '(dB)', 'color', 'k', 'fontsize', 20)
             case 'flattened'
                 axis ij
                 axis([dist_min dist_max depth_min depth_max])
@@ -4199,12 +4226,25 @@ set(cb_group, 'selectedobject', cb_check(1))
                 else
                     tmp1 = pk.dist_lin;
                 end
-                imagesc(tmp1(ind_decim), depth, amp_flat, [db_min db_max])
+                tmp2     = amp_flat;
+                tmp2(isnan(tmp2)) ...
+                         = db_max;
+                imagesc(tmp1(ind_decim), depth, tmp2, [db_min db_max])
                 if (any(bed_avail) && any(~isnan(pk.elev_bed)))
                     if any(isnan(depth_bed_flat))
                         plot(tmp1(ind_decim(~isnan(depth_bed_flat))), depth_bed_flat(~isnan(depth_bed_flat)), 'g.', 'markersize', 12)
                     else
                         plot(tmp1(ind_decim), depth_bed_flat, 'g--', 'linewidth', 2)
+                    end
+                end
+                if get(pk_check, 'value')
+                    for ii = 1:pk.num_layer
+                        if ~isempty(find(~isnan(depth_layer_flat(ii, :)), 1))
+                            tmp2 = plot(tmp1(ind_decim(~isnan(depth_layer_flat(ii, :)))), depth_layer_flat(ii, ~isnan(depth_layer_flat(ii, :))), '.', 'markersize', 12, 'color', colors(ii, :));
+                            if isnan(depth_layer_ref(ii))
+                                set(tmp2, 'markersize', 6)
+                            end
+                        end
                     end
                 end
                 if get(block_check, 'value')
@@ -4222,22 +4262,13 @@ set(cb_group, 'selectedobject', cb_check(1))
                         text(double(tmp1(ind_int(tmp2(ii))) + 1), double(depth_min + (0.2 * (depth_max - depth_min))), name_core{int_core{curr_year}{curr_trans}(tmp2(ii), 3)}, 'color', 'm', 'fontsize', size_font)
                     end
                 end
-                if get(pk_check, 'value')
-                    for ii = 1:pk.num_layer
-                        if ~isempty(find(~isnan(depth_layer_flat(ii, :)), 1))
-                            tmp1    = plot(tmp1(ind_decim(~isnan(depth_layer_flat(ii, :)))), depth_layer_flat(ii, ~isnan(depth_layer_flat(ii, :))), '.', 'markersize', 12, 'color', colors(ii, :));
-                        end
-                        if isnan(depth_layer_ref(ii))
-                            set(tmp1, 'markersize', 6)
-                        end
-                    end
-                end
+                plot(repmat(tmp1(ind_decim(ind_x_ref)), 1, 2), [depth_min depth_max], 'w--', 'linewidth', 2);
                 ylabel('Depth (m)', 'fontsize', 20)
-                text((dist_max + (0.015 * (dist_max - dist_min))), (depth_min - (0.04 * (depth_max - depth_min))), '(dB)', 'color', 'k', 'fontsize', 20)
+                text(double(dist_max + (0.015 * (dist_max - dist_min))), double(depth_min - (0.04 * (depth_max - depth_min))), '(dB)', 'color', 'k', 'fontsize', 20)
         end
         set(gca, 'fontsize', 20, 'layer', 'top')
         xlabel('Distance (km)')
-        title(file_pk_short, 'fontweight', 'bold', 'interpreter', 'none')
+%         title(file_pk_short, 'fontweight', 'bold', 'interpreter', 'none')
         colorbar('fontsize', 20)
         if get(grid_check, 'value')
             grid on
@@ -4578,6 +4609,17 @@ set(cb_group, 'selectedobject', cb_check(1))
                         disp_type = 'amplitude';
                         plot_db
                 end
+        end
+    end
+
+%% Mouse wheel shortcut
+
+    function wheel_zoom(~, eventdata)
+        switch eventdata.VerticalScrollCount
+            case -1
+                zoom_in
+            case 1
+                zoom_out
         end
     end
 

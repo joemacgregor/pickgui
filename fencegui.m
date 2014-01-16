@@ -11,7 +11,7 @@ function fencegui
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 12/27/13
+% Last updated: 01/16/13
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -240,11 +240,11 @@ master_check                = uicontrol(fgui(1), 'style', 'checkbox', 'units', '
 %% draw second GUI
 
 if ispc % windows switch
-    fgui(2)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress2);
+    fgui(2)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress2, 'windowscrollwheelfcn', @wheel_zoom);
     ax(2)                   = subplot('position', [0.065 0.06 0.41 0.81]);
     ax(3)                   = subplot('position', [0.55 0.06 0.41 0.81]);
 else
-    fgui(2)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress2);
+    fgui(2)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress2, 'windowscrollwheelfcn', @wheel_zoom);
     ax(2)                   = subplot('position', [0.065 0.06 0.41 0.81]);
     ax(3)                   = subplot('position', [0.55 0.06 0.41 0.81]);
 end
@@ -4288,6 +4288,27 @@ linkprop(z_max_edit(2:3), 'string');
                         [curr_ax, curr_rad] = deal(3, 2);
                 end
                 update_z_range
+        end
+    end
+
+%% Mouse wheel shortcut
+
+    function wheel_zoom(~, eventdata)
+        switch eventdata.VerticalScrollCount
+            case -1
+                tmp1        = dist_max(curr_rad) - dist_min(curr_rad);
+                tmp2        = [(dist_min(curr_rad) + (0.25 * tmp1)) (dist_max(curr_rad) - (0.25 * tmp1))];
+                tmp3        = elev_max(curr_ax) - elev_min(curr_ax);
+                tmp4        = [(elev_min(curr_ax) + (0.25 * tmp3)) (elev_max(curr_ax) - (0.25 * tmp3))];
+                set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
+                panzoom
+            case 1
+                tmp1        = dist_max(curr_rad) - dist_min(curr_rad);
+                tmp2        = [(dist_min(curr_rad) - (0.25 * tmp1)) (dist_max(curr_rad) + (0.25 * tmp1))];
+                tmp3        = elev_max(curr_ax) - elev_min(curr_ax);
+                tmp4        = [(elev_min(curr_ax) - (0.25 * tmp3)) (elev_max(curr_ax) + (0.25 * tmp3))];
+                set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
+                panzoom
         end
     end
 

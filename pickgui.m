@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 01/13/13
+% Last updated: 01/16/14
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -110,12 +110,12 @@ amp_flat                    = NaN;
 
 set(0, 'DefaultFigureWindowStyle', 'docked')
 if ispc % windows switch
-    pkgui                   = figure('toolbar', 'figure', 'name', 'PICKGUI', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress);
+    pkgui                   = figure('toolbar', 'figure', 'name', 'PICKGUI', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress, 'windowscrollwheelfcn', @wheel_zoom);
     ax_radar                = subplot('position', [0.065 0.06 1.42 0.81]);
     size_font               = 14;
     width_slide             = 0.01;
 else
-    pkgui                   = figure('toolbar', 'figure', 'name', 'PICKGUI', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress);
+    pkgui                   = figure('toolbar', 'figure', 'name', 'PICKGUI', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress, 'windowscrollwheelfcn', @wheel_zoom);
     ax_radar                = subplot('position', [0.065 0.06 0.86 0.81]);
     size_font               = 18;
     width_slide             = 0.02;
@@ -1012,17 +1012,23 @@ set(disp_group, 'selectedobject', disp_check(1))
                 ind_y_flat(ind_y_flat > num_sample_trim) ...
                             = num_sample_trim;
                 amp_flat    = NaN(size(block.amp, 1), block.num_trace, 'single');
+                tmp2        = find(~sum(isnan(ind_y_flat)));
+                
                 if parallel_check
-                    tmp1    = block.amp;
-                    parfor ii = 1:block.num_trace
-                        amp_flat(:, ii) ...
-                            = interp1(tmp1(:, ii), ind_y_flat(:, ii));
+                    tmp1    = block.amp(:, tmp2);
+                    tmp3    = ind_y_flat(:, tmp2);
+                    tmp4    = amp_flat(:, tmp2);
+                    parfor ii = 1:length(tmp2)
+                        tmp4(:, ii) ...
+                            = interp1(tmp1(:, ii), tmp3(:, ii));
                     end
+                    amp_flat(:, tmp2) ...
+                            = tmp4;
                     tmp1    = 0;
                 else
-                    for ii = 1:block.num_trace
-                        amp_flat(:, ii) ...
-                            = interp1(block.amp(:, ii), ind_y_flat(:, ii));
+                    for ii = 1:length(tmp2)
+                        amp_flat(:, tmp2(ii)) ...
+                            = interp1(block.amp(:, tmp2(ii)), ind_y_flat(:, tmp2(ii)));
                     end
                 end
                 flat_done   = true;
@@ -1035,11 +1041,13 @@ set(disp_group, 'selectedobject', disp_check(1))
                         tmp1(ii, :) = pk.layer(ii).ind_y;
                     end
                     for ii = 1:num_mean
-                        [~, tmp3] ...
-                            = unique(ind_y_flat(:, pk.ind_x_mean(ii)));
-                        if any(~isnan(tmp1(:, pk.ind_x_mean(ii))))
-                            tmp2(~isnan(tmp1(:, pk.ind_x_mean(ii))), ii) ...
-                            = interp1(ind_y_flat(tmp3, pk.ind_x_mean(ii)), tmp3, tmp1(~isnan(tmp1(:, pk.ind_x_mean(ii))), pk.ind_x_mean(ii)), 'nearest', 'extrap');
+                        if ~sum(isnan(ind_y_flat(:, pk.ind_x_mean(ii))))
+                            [~, tmp3] ...
+                                = unique(ind_y_flat(:, pk.ind_x_mean(ii)));
+                            if any(~isnan(tmp1(:, pk.ind_x_mean(ii))))
+                                tmp2(~isnan(tmp1(:, pk.ind_x_mean(ii))), ii) ...
+                                    = interp1(ind_y_flat(tmp3, pk.ind_x_mean(ii)), tmp3, tmp1(~isnan(tmp1(:, pk.ind_x_mean(ii))), pk.ind_x_mean(ii)), 'nearest', 'extrap');
+                            end
                         end
                     end
                     
@@ -1052,7 +1060,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     for ii = 1:pk.num_layer
                         tmp1(ii, :) = pk.layer(ii).ind_y_smooth;
                     end
-                    for ii = 1:block.num_trace
+                    for ii = find(~sum(isnan(ind_y_flat)))
                         [~, tmp3] ...
                             = unique(ind_y_flat(:, ii));
                         if any(~isnan(tmp1(:, ii)))
@@ -1071,19 +1079,10 @@ set(disp_group, 'selectedobject', disp_check(1))
                 if surf_avail
                     ind_surf_flat ...
                             = NaN(1, block.num_trace);
-                    if parallel_check
-                        parfor ii = 1:block.num_trace
-                            [~, tmp2] = unique(ind_y_flat(:, ii));
-                            if (length(tmp2) > 1)
-                                ind_surf_flat(ii) = interp1(ind_y_flat(tmp2, ii), tmp2, ind_surf(ii), 'nearest', 'extrap'); %#ok<PFBNS>
-                            end
-                        end
-                    else
-                        for ii = 1:block.num_trace
-                            [~, tmp2] = unique(ind_y_flat(:, ii));
-                            if (length(tmp2) > 1)
-                                ind_surf_flat(ii) = interp1(ind_y_flat(tmp2, ii), tmp2, ind_surf(ii), 'nearest', 'extrap');
-                            end
+                    for ii = find(~sum(isnan(ind_y_flat)))
+                        [~, tmp2] = unique(ind_y_flat(:, ii));
+                        if (length(tmp2) > 1)
+                            ind_surf_flat(ii) = interp1(ind_y_flat(tmp2, ii), tmp2, ind_surf(ii), 'nearest', 'extrap');
                         end
                     end
                     ind_surf_flat ...
@@ -1095,19 +1094,10 @@ set(disp_group, 'selectedobject', disp_check(1))
                 % flatten bed pick
                 if bed_avail
                     ind_bed_flat= NaN(1, block.num_trace);
-                    if parallel_check
-                        parfor ii = 1:block.num_trace
-                            [~, tmp2] = unique(ind_y_flat(:, ii));
-                            if (length(tmp2) > 1)
-                                ind_bed_flat(ii) = interp1(ind_y_flat(tmp2, ii), tmp2, ind_bed(ii), 'nearest', 'extrap'); %#ok<PFBNS>
-                            end
-                        end
-                    else
-                        for ii = 1:block.num_trace
-                            [~, tmp2] = unique(ind_y_flat(:, ii));
-                            if (length(tmp2) > 1)
-                                ind_bed_flat(ii) = interp1(ind_y_flat(tmp2, ii), tmp2, ind_bed(ii), 'nearest', 'extrap');
-                            end
+                    for ii = find(~sum(isnan(ind_y_flat)))
+                        [~, tmp2] = unique(ind_y_flat(:, ii));
+                        if (length(tmp2) > 1)
+                            ind_bed_flat(ii) = interp1(ind_y_flat(tmp2, ii), tmp2, ind_bed(ii), 'nearest', 'extrap');
                         end
                     end
                     ind_bed_flat ...
@@ -2280,19 +2270,23 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         % flattened radargram based on the fits to the kept layers
         amp_flat            = NaN(size(block.amp, 1), block.num_trace, 'single');
+        tmp2                = find(sum(~isnan(ind_y_flat)));
         if parallel_check
             pctRunOnAll warning('off', 'MATLAB:interp1:NaNinY')
-            tmp1            = block.amp;
-            parfor ii = 1:block.num_trace
-                amp_flat(:, ii) ...
-                            = interp1(tmp1(:, ii), ind_y_flat(:, ii));
+            tmp1            = block.amp(:, tmp2);
+            tmp3            = ind_y_flat(:, tmp2);
+            tmp4            = amp_flat(:, tmp2);
+            parfor ii = 1:length(tmp2)
+                tmp4(:, ii) = interp1(tmp1(:, ii), tmp3(:, ii));
             end
+            amp_flat(:, tmp2) ...
+                            = tmp4;
             tmp1            = 0;
             pctRunOnAll warning('on', 'MATLAB:interp1:NaNinY')
         else
             warning('off', 'MATLAB:interp1:NaNinY')
-            for ii = 1:block.num_trace
-                amp_flat(:, ii) ...
+            for ii = 1:length(tmp2)
+                amp_flat(:, tmp2(ii)) ...
                             = interp1(block.amp(:, ii), ind_y_flat(:, ii));
             end
             warning('on', 'MATLAB:interp1:NaNinY')
@@ -2307,19 +2301,11 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         ind_surf_flat       = NaN(1, block.num_trace);
         if surf_avail % flatten surface pick
-            if parallel_check
-                parfor ii = 1:block.num_trace
-                    [~, tmp4] = unique(ind_y_flat(:, ii));
-                    if (length(tmp4) > 1)
-                        ind_surf_flat(ii) = interp1(ind_y_flat(tmp4, ii), tmp4, ind_surf(ii), 'nearest', 'extrap'); %#ok<PFBNS>
-                    end
-                end
-            else
-                for ii = 1:block.num_trace
-                    [~, tmp4]   = unique(ind_y_flat(:, ii));
-                    if (length(tmp4) > 1)
-                        ind_surf_flat(ii) = interp1(ind_y_flat(tmp4, ii), tmp4, ind_surf(ii), 'nearest', 'extrap');
-                    end
+            for ii = tmp2
+                [~, tmp4]   = unique(ind_y_flat(:, ii));
+                if (length(tmp4) > 1)
+                    ind_surf_flat(ii) ...
+                            = interp1(ind_y_flat(tmp4, ii), tmp4, ind_surf(ii), 'nearest', 'extrap');
                 end
             end
             ind_surf_flat   = round(ind_surf_flat);
@@ -2329,19 +2315,11 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         if bed_avail % flatten bed pick
             ind_bed_flat    = NaN(1, block.num_trace);
-            if parallel_check
-                parfor ii = 1:block.num_trace
-                    [~, tmp4] = unique(ind_y_flat(:, ii));
-                    if (length(tmp4) > 1)
-                        ind_bed_flat(ii) = interp1(ind_y_flat(tmp4, ii), tmp4, ind_bed(ii), 'nearest', 'extrap'); %#ok<PFBNS>
-                    end
-                end
-            else
-                for ii = 1:block.num_trace
-                    [~, tmp4] = unique(ind_y_flat(:, ii));
-                    if (length(tmp4) > 1)
-                        ind_bed_flat(ii) = interp1(ind_y_flat(tmp4, ii), tmp4, ind_bed(ii), 'nearest', 'extrap');
-                    end
+            for ii = tmp2
+                [~, tmp4]   = unique(ind_y_flat(:, ii));
+                if (length(tmp4) > 1)
+                    ind_bed_flat(ii) ...
+                            = interp1(ind_y_flat(tmp4, ii), tmp4, ind_bed(ii), 'nearest', 'extrap');
                 end
             end
             ind_bed_flat    = round(ind_bed_flat);
@@ -2357,58 +2335,59 @@ set(disp_group, 'selectedobject', disp_check(1))
                 
                 if pk.num_keep_phase
                     for ii = 1:pk.num_keep_phase
-                        p_flat(ii) = plot(dist_lin([1 block.num_trace]), (1e6 .* block.twtt(repmat(round(ind_y_flat(round(ind_y_phase(pk.ind_keep_phase(ii), ind_x_pk)), ind_x_pk)), 1, 2))), 'w:', 'linewidth', 2);
+                        try %#ok<TRYNC>
+                            p_flat(ii) = plot(dist_lin([1 block.num_trace]), (1e6 .* block.twtt(repmat(round(ind_y_flat(round(ind_y_phase(pk.ind_keep_phase(ii), ind_x_pk)), ind_x_pk)), 1, 2))), 'w:', 'linewidth', 2);
+                        end
                     end
                 end
                 if pk.num_keep_aresp
                     for ii = (pk.num_keep_phase + 1):(pk.num_keep_phase + pk.num_keep_aresp)
-                        p_flat(ii) = plot(dist_lin([1 block.num_trace]), (1e6 .* block.twtt(repmat(round(ind_y_flat(round(ind_y_aresp(pk.ind_keep_aresp(ii), ind_x_pk)), ind_x_pk)), 1, 2))), 'w:', 'linewidth', 2);
+                        try %#ok<TRYNC>
+                            p_flat(ii) = plot(dist_lin([1 block.num_trace]), (1e6 .* block.twtt(repmat(round(ind_y_flat(round(ind_y_aresp(pk.ind_keep_aresp(ii), ind_x_pk)), ind_x_pk)), 1, 2))), 'w:', 'linewidth', 2);
+                        end
                     end
                 end
                 if pk.num_man
                     for ii = (pk.num_keep_phase + pk.num_keep_aresp + 1):(pk.num_keep_phase + pk.num_keep_aresp + pk.num_man)
-                        p_flat(ii) = plot(dist_lin([1 block.num_trace]), (1e6 .* block.twtt(repmat(round(ind_y_flat(round(pk.ind_y_man((ii - pk.num_keep_phase - pk.num_keep_aresp), ind_x_pk)), ind_x_pk)), 1, 2))), 'w:', 'linewidth', 2);
+                        try %#ok<TRYNC>
+                            p_flat(ii) = plot(dist_lin([1 block.num_trace]), (1e6 .* block.twtt(repmat(round(ind_y_flat(round(pk.ind_y_man((ii - pk.num_keep_phase - pk.num_keep_aresp), ind_x_pk)), ind_x_pk)), 1, 2))), 'w:', 'linewidth', 2);
+                        end
                     end
                 end
                 
-                if ~load_flat
-                    
-                    [p_pkflat, p_pksmoothflat] ...
-                            = deal(zeros(1, pk.num_layer));
-                    
-                    % flatten ind_y and ind_y_smooth if they were recently loaded from an old format merge
-                    for ii = 1:pk.num_layer
-                        pk.layer(ii).ind_y_flat_mean    = NaN(1, num_mean);
-                        pk.layer(ii).ind_y_flat_smooth  = NaN(1, block.num_trace);
-                        for jj = 1:num_mean
+                [p_pkflat, p_pksmoothflat] ...
+                        = deal(zeros(1, pk.num_layer));
+                
+                % flatten ind_y and ind_y_smooth if they were recently loaded from an old format merge
+                for ii = 1:pk.num_layer
+                    pk.layer(ii).ind_y_flat_mean    = NaN(1, num_mean);
+                    pk.layer(ii).ind_y_flat_smooth  = NaN(1, block.num_trace);
+                    for jj = 1:num_mean
+                        if ~sum(isnan(ind_y_flat(:, pk.ind_x_mean(jj))))
                             [~, tmp3]                           = unique(ind_y_flat(:, pk.ind_x_mean(jj)));
                             pk.layer(ii).ind_y_flat_mean(jj)    = interp1(ind_y_flat(tmp3, pk.ind_x_mean(jj)), tmp3, pk.layer(ii).ind_y(pk.ind_x_mean(jj)), 'nearest', 'extrap');
                         end
-                        for jj = 1:block.num_trace
-                            [~, tmp3]                           = unique(ind_y_flat(:, jj));
-                            pk.layer(ii).ind_y_flat_smooth(jj)  = interp1(ind_y_flat(tmp3, jj), tmp3, pk.layer(ii).ind_y_smooth(jj), 'nearest', 'extrap');
-                        end
-                        [pk.layer(ii).ind_y_flat_mean, pk.layer(ii).ind_y_flat_smooth] ...
-                            = deal(round(pk.layer(ii).ind_y_flat_mean), round(pk.layer(ii).ind_y_flat_smooth));
-                        pk.layer(ii).ind_y_flat_mean((pk.layer(ii).ind_y_flat_mean < 1) | (pk.layer(ii).ind_y_flat_mean > num_sample_trim)) ...
-                            = NaN;
-                        pk.layer(ii).ind_y_flat_smooth((pk.layer(ii).ind_y_flat_smooth < 1) | (pk.layer(ii).ind_y_flat_smooth > num_sample_trim)) ...
-                            = NaN;
-                        p_pkflat(ii) ...
-                            = plot(dist_lin(pk.ind_x_mean(~isnan(pk.layer(ii).ind_y_flat_mean))), (1e6 .* block.twtt(round(pk.layer(ii).ind_y_flat_mean(~isnan(pk.layer(ii).ind_y_flat_mean))))), 'r.', 'markersize', 12, 'visible', 'off');
-                        p_pksmoothflat(ii) ...
-                            = plot(dist_lin(ind_decim(~isnan(pk.layer(ii).ind_y_flat_smooth(ind_decim)))), (1e6 .* block.twtt(round(pk.layer(ii).ind_y_flat_smooth(ind_decim(~isnan(pk.layer(ii).ind_y_flat_smooth(ind_decim))))))), 'g.', 'markersize', 12, 'visible', 'off');
                     end
-                    
-                    pk_done = true;
-                    smooth_done ...
-                            = true(1, pk.num_layer);
-                    
-                elseif pk.num_layer % delete all layers
-                    del_all
-                    set(status_box, 'string', 'Deleted limited picked layers.')
+                    for jj = tmp2
+                        [~, tmp3]                           = unique(ind_y_flat(:, jj));
+                        pk.layer(ii).ind_y_flat_smooth(jj)  = interp1(ind_y_flat(tmp3, jj), tmp3, pk.layer(ii).ind_y_smooth(jj), 'nearest', 'extrap');
+                    end
+                    [pk.layer(ii).ind_y_flat_mean, pk.layer(ii).ind_y_flat_smooth] ...
+                        = deal(round(pk.layer(ii).ind_y_flat_mean), round(pk.layer(ii).ind_y_flat_smooth));
+                    pk.layer(ii).ind_y_flat_mean((pk.layer(ii).ind_y_flat_mean < 1) | (pk.layer(ii).ind_y_flat_mean > num_sample_trim)) ...
+                        = NaN;
+                    pk.layer(ii).ind_y_flat_smooth((pk.layer(ii).ind_y_flat_smooth < 1) | (pk.layer(ii).ind_y_flat_smooth > num_sample_trim)) ...
+                        = NaN;
+                    p_pkflat(ii) ...
+                        = plot(dist_lin(pk.ind_x_mean(~isnan(pk.layer(ii).ind_y_flat_mean))), (1e6 .* block.twtt(round(pk.layer(ii).ind_y_flat_mean(~isnan(pk.layer(ii).ind_y_flat_mean))))), 'r.', 'markersize', 12, 'visible', 'off');
+                    p_pksmoothflat(ii) ...
+                        = plot(dist_lin(ind_decim(~isnan(pk.layer(ii).ind_y_flat_smooth(ind_decim)))), (1e6 .* block.twtt(round(pk.layer(ii).ind_y_flat_smooth(ind_decim(~isnan(pk.layer(ii).ind_y_flat_smooth(ind_decim))))))), 'g.', 'markersize', 12, 'visible', 'off');
                 end
                 
+                pk_done = true;
+                smooth_done ...
+                        = true(1, pk.num_layer);
+                    
                 set(disp_group, 'selectedobject', disp_check(5))
                 
                 mean_done   = false;
@@ -2417,9 +2396,6 @@ set(disp_group, 'selectedobject', disp_check(1))
                 
             case 'flat'
                 
-                if (any(p_pk) && any(ishandle(p_pk)))
-                    delete(p_pk(logical(p_pk) & ishandle(p_pk)))
-                end
                 if (any(p_pkflat) && any(ishandle(p_pkflat)))
                     delete(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)))
                 end
@@ -2430,7 +2406,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     delete(p_pksmoothflat(logical(p_pksmoothflat) & ishandle(p_pksmoothflat)))
                 end
                 
-                [p_flat, p_pk, p_pkflat, p_pksmooth, p_pksmoothflat] ...
+                [p_flat, p_pkflat, p_pksmooth, p_pksmoothflat] ...
                             = deal(zeros(1, pk.num_layer));
                 
                 mean_done   = false;
@@ -2441,10 +2417,12 @@ set(disp_group, 'selectedobject', disp_check(1))
                 warning('off', 'MATLAB:interp1:NaNinY')
                 tmp1        = NaN(pk.num_layer, num_mean);
                 for ii = 1:num_mean
-                    [~, tmp4] ...
+                    if ~sum(isnan(ind_y_flat(:, pk.ind_x_mean(ii))))
+                        [~, tmp4] ...
                             = unique(ind_y_flat(:, pk.ind_x_mean(ii)));
-                    tmp1(~isnan(ind_y_curr(:, pk.ind_x_mean(ii))), ii) ...
+                        tmp1(~isnan(ind_y_curr(:, pk.ind_x_mean(ii))), ii) ...
                             = interp1(ind_y_flat(tmp4, pk.ind_x_mean(ii)), tmp4, ind_y_curr(~isnan(ind_y_curr(:, pk.ind_x_mean(ii))), pk.ind_x_mean(ii)), 'nearest', 'extrap');
+                    end
                 end
                 for ii = 1:pk.num_layer
                     pk.layer(ii).ind_y_flat_mean ...
@@ -2452,60 +2430,18 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 
                 tmp5        = [];
-                % re-flatten ind_y_flat_mean and redo ind_y
+                
                 for ii = 1:pk.num_layer
-                    
-                    tmp1    = pk.layer(ii).ind_y_flat_mean;
-                    % search again around min/max
-                    for jj = find(~isnan(pk.layer(ii).ind_y_flat_mean))
-                        try
-                            [~, pk.layer(ii).ind_y_flat_mean(jj)] ...
-                            = eval([pk.layer(ii).type '(amp_flat_mean((pk.layer(ii).ind_y_flat_mean(jj) - pk.num_win):(pk.layer(ii).ind_y_flat_mean(jj) + pk.num_win), jj));']);
-                        catch
-                            continue % have to do this because range may not be valid; not just a NaN issue
-                        end
-                    end
-                    pk.layer(ii).ind_y_flat_mean ...
-                            = pk.layer(ii).ind_y_flat_mean - (pk.num_win + 1) + tmp1; % adjust because of narrower window
-                    if all(isnan(pk.layer(ii).ind_y_flat_mean))
-                        tmp5= [tmp5 ii]; %#ok<AGROW>
-                        continue
-                    end
-                    
-                    p_flat(ii) ...
+                    try %#ok<TRYNC>
+                        p_flat(ii) ...
                             = plot(dist_lin([1 block.num_trace]), (1e6 .* block.twtt(repmat(round(ind_y_flat(round(ind_y_pk(ii)), ind_x_pk)), 1, 2))), 'w:', 'linewidth', 2);
-                    p_pkflat(ii) ...
-                            = plot(dist_lin(pk.ind_x_mean(~isnan(pk.layer(ii).ind_y_flat_mean))), (1e6 .* block.twtt(pk.layer(ii).ind_y_flat_mean(~isnan(pk.layer(ii).ind_y_flat_mean)))), 'r.', 'markersize', 12);
-                    
-                    % now redo ind_y in the same way as pk_flat
-                    pk.layer(ii).ind_y  ...
-                            = NaN(1, block.num_trace);
-                    tmp1    = round(interp1(pk.ind_x_mean, pk.layer(ii).ind_y_flat_mean, 1:block.num_trace, 'linear', 'extrap'));
-                    tmp1((tmp1 < 1) | (tmp1 > num_sample_trim)) ...
-                            = NaN;
-                    tmp2    = 1:block.num_trace;
-                    tmp2    = tmp2(~isnan(tmp1));
-                    pk.layer(ii).ind_y(~isnan(tmp1)) ...
-                            = round(ind_y_flat(sub2ind([num_sample_trim block.num_trace], tmp1(~isnan(tmp1)), tmp2)));
-                    pk.layer(ii).ind_y((pk.layer(ii).ind_y < 1) | (pk.layer(ii).ind_y > num_sample_trim)) ...
-                            = NaN;
-                    for jj = 1:(num_mean - 1)
-                        if all(isnan(pk.layer(ii).ind_y_flat_mean(jj:(jj + 1))))
-                            pk.layer(ii).ind_y(pk.ind_x_mean(jj):pk.ind_x_mean(jj + 1)) = NaN; % deal with breaks in layers
-                        end
                     end
-                    
-                    % re-do best layer plots
-                    p_pk(ii) = plot(dist_lin(ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim)))), (1e6 .* block.twtt(round(pk.layer(ii).ind_y(ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim))))))), 'r.', 'markersize', 12, 'visible', 'off');
+                    try %#ok<TRYNC>
+                        p_pkflat(ii) ...
+                            = plot(dist_lin(pk.ind_x_mean(~isnan(pk.layer(ii).ind_y_flat_mean))), (1e6 .* block.twtt(pk.layer(ii).ind_y_flat_mean(~isnan(pk.layer(ii).ind_y_flat_mean)))), 'r.', 'markersize', 12);
+                    end
                 end
                 warning('on', 'MATLAB:interp1:NaNinY')
-                
-                if ~isempty(tmp5) % get rid of screwy layers
-                    [p_flat, p_pk, p_pkflat, pk.layer, smooth_done] ...
-                            = deal(p_flat(setdiff(1:pk.num_layer, tmp5)), p_pk(setdiff(1:pk.num_layer, tmp5)), p_pkflat(setdiff(1:pk.num_layer, tmp5)), pk.layer(setdiff(1:pk.num_layer, tmp5)), smooth_done(setdiff(1:pk.num_layer, tmp5)));
-                    pk.num_layer ...
-                            = pk.num_layer - length(tmp5);
-                end
                 
                 pk_smooth
                 
@@ -2515,7 +2451,6 @@ set(disp_group, 'selectedobject', disp_check(1))
                 set(smooth_check, 'value', 0)
                 pk_done   = true;
                 set(status_box, 'string', 'Layers re-flattened...')
-                
         end
         
         % (re)flatten reference layers
@@ -2634,6 +2569,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         % layer picking callbacks
         tmp3                = pk.num_layer + 1; % used to shorten real/flatten conversion loop after this while picking loop
         set(pkgui, 'keypressfcn', [])
+        
         while true
             
             set(status_box, 'string', 'H: Pick high; D: delete; U: undo; L: cut left; R: cut right; C: cut chunk; M: merge; Q: done.')
@@ -2881,6 +2817,38 @@ set(disp_group, 'selectedobject', disp_check(1))
                     continue
                 end
                 
+            elseif strcmpi(char(button), 'E')
+                
+                reset_xy
+                
+            elseif strcmpi(char(button), 'W')
+                
+                pk.num_win  = pk.num_win + 1;
+                set(num_win_edit, 'string', num2str(pk.num_win))
+                set(status_box, 'string', ['Vertical search window adjusted to +/- ' num2str(pk.num_win) ' samples.'])
+            
+            elseif strcmpi(char(button), 'S')
+                
+                if (pk.num_win > 1)
+                    pk.num_win ...
+                            = pk.num_win - 1;
+                    set(num_win_edit, 'string', num2str(pk.num_win))
+                    set(status_box, 'string', ['Vertical search window adjusted to +/- ' num2str(pk.num_win) ' samples.'])
+                end
+                
+            elseif (button == 28)
+                pan_left
+            elseif (button == 29)
+                pan_right
+            elseif (button == 30)
+                pan_up
+            elseif (button == 31)
+                pan_down
+            elseif strcmpi(char(button), 'Z')
+                zoom_in
+            elseif strcmpi(char(button), 'O')
+                zoom_out
+                
             elseif strcmpi(char(button), 'Q') % done picking lines
                 
                 set(status_box, 'string', 'Done picking flattened layers...')
@@ -2888,6 +2856,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 
             end
         end
+        
         set(pkgui, 'keypressfcn', @keypress)
         
         if ~pk.num_layer
@@ -2905,7 +2874,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = pk.layer(ii).ind_y;
             end
             tmp1            = NaN(pk.num_layer, num_mean);
-            for ii = 1:num_mean
+            for ii = find(~sum(isnan(ind_y_flat(:, pk.ind_x_mean))))
                 [~, tmp4]   = unique(ind_y_flat(:, pk.ind_x_mean(ii)));
                 tmp1(~isnan(ind_y_curr(:, pk.ind_x_mean(ii))), ii) ...
                             = interp1(ind_y_flat(tmp4, pk.ind_x_mean(ii)), tmp4, ind_y_curr(~isnan(ind_y_curr(:, pk.ind_x_mean(ii))), pk.ind_x_mean(ii)), 'nearest', 'extrap');
@@ -2925,7 +2894,8 @@ set(disp_group, 'selectedobject', disp_check(1))
         p_pkflat            = zeros(1, pk.num_layer);
         if flat_done
             for ii = 1:pk.num_layer
-                p_pkflat(ii)= plot(dist_lin(pk.ind_x_mean(~isnan(pk.layer(ii).ind_y_flat_mean))), (1e6 .* block.twtt(pk.layer(ii).ind_y_flat_mean(~isnan(pk.layer(ii).ind_y_flat_mean)))), 'r.', 'markersize', 12, 'visible', 'off');           
+                p_pkflat(ii) ...
+                        = plot(dist_lin(pk.ind_x_mean(~isnan(pk.layer(ii).ind_y_flat_mean))), (1e6 .* block.twtt(pk.layer(ii).ind_y_flat_mean(~isnan(pk.layer(ii).ind_y_flat_mean)))), 'r.', 'markersize', 12, 'visible', 'off');
             end
         end
         
@@ -2984,6 +2954,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         % layer picking callbacks
         tmp3                = pk.num_layer + 1; % used to shorten real/flatten conversion loop after this while picking loop
         set(pkgui, 'keypressfcn', [])
+        
         while true
             
             set(status_box, 'string', 'H: Pick high; D: delete; U: undo; L: cut left; R: cut right; C: cut chunk; M: merge; Q: done.')
@@ -3230,6 +3201,38 @@ set(disp_group, 'selectedobject', disp_check(1))
                     continue
                 end
                 
+            elseif strcmpi(char(button), 'E')
+                
+                reset_xy                
+                
+            elseif strcmpi(char(button), 'W')
+                
+                pk.num_win  = pk.num_win + 1;
+                set(num_win_edit, 'string', num2str(pk.num_win))
+                set(status_box, 'string', ['Vertical search window adjusted to +/- ' num2str(pk.num_win) ' samples.'])
+            
+            elseif strcmpi(char(button), 'S')
+                
+                if (pk.num_win > 1)
+                    pk.num_win ...
+                            = pk.num_win - 1;
+                    set(num_win_edit, 'string', num2str(pk.num_win))
+                    set(status_box, 'string', ['Vertical search window adjusted to +/- ' num2str(pk.num_win) ' samples.'])
+                end
+                
+            elseif (button == 28)
+                pan_left
+            elseif (button == 29)
+                pan_right
+            elseif (button == 30)
+                pan_up
+            elseif (button == 31)
+                pan_down
+            elseif strcmpi(char(button), 'Z')
+                zoom_in
+            elseif strcmpi(char(button), 'O')
+                zoom_out
+                
             elseif strcmpi(char(button), 'Q') % done picking lines
                 
                 set(status_box, 'string', 'Done picking flattened layers...')
@@ -3255,8 +3258,10 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = NaN;
             tmp2            = 1:block.num_trace;
             tmp2            = tmp2(~isnan(tmp1));
-            pk.layer(ii).ind_y(~isnan(tmp1)) ...
+            try %#ok<TRYNC>
+                pk.layer(ii).ind_y(~isnan(tmp1)) ...
                             = ind_y_flat(sub2ind([num_sample_trim block.num_trace], tmp1(~isnan(tmp1)), tmp2));
+            end
             pk.layer(ii).ind_y((pk.layer(ii).ind_y < 1) | (pk.layer(ii).ind_y > num_sample_trim)) ...
                             = NaN;
             for jj = 1:(num_mean - 1)
@@ -3349,10 +3354,12 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         pk.layer(curr_layer).ind_y_flat_mean ...
                             = NaN(1, num_mean);
-        [~, pk.layer(curr_layer).ind_y_flat_mean(ind_x_pk)] ...
+        try %#ok<TRYNC>
+            [~, pk.layer(curr_layer).ind_y_flat_mean(ind_x_pk)] ...
                             = eval([curr_type '(amp_flat_mean((ind_y_pk - pk.num_win):(ind_y_pk + pk.num_win), ind_x_pk));']); % y index of nearest min/max
-        pk.layer(curr_layer).ind_y_flat_mean(ind_x_pk) ...
+            pk.layer(curr_layer).ind_y_flat_mean(ind_x_pk) ...
                             = ind_y_pk - ((pk.num_win + 1) - pk.layer(curr_layer).ind_y_flat_mean(ind_x_pk)); % correct y index of min/max because search was done in a narrow window
+        end
         
         for ii = (ind_x_pk - 1):-1:1 % loop for left of ind_x_pk
             try
@@ -3375,7 +3382,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
         end
         
-        p_pkflat(curr_layer) = plot(dist_lin(pk.ind_x_mean(~isnan(pk.layer(curr_layer).ind_y_flat_mean))), (1e6 .* block.twtt(pk.layer(curr_layer).ind_y_flat_mean(~isnan(pk.layer(curr_layer).ind_y_flat_mean)))), 'k.', 'color', [1 0.7 0.7], 'markersize', 12);
+        p_pkflat(curr_layer)= plot(dist_lin(pk.ind_x_mean(~isnan(pk.layer(curr_layer).ind_y_flat_mean))), (1e6 .* block.twtt(pk.layer(curr_layer).ind_y_flat_mean(~isnan(pk.layer(curr_layer).ind_y_flat_mean)))), 'k.', 'color', [1 0.7 0.7], 'markersize', 12);
         pk.layer(curr_layer).type ...
                             = curr_type;
     end
@@ -3482,10 +3489,12 @@ set(disp_group, 'selectedobject', disp_check(1))
                 pk.layer(pk.num_layer).ind_y_flat_mean ...
                             = NaN(1, num_mean);
                 for ii = interp1(pk.ind_x_mean, 1:num_mean, ind_x_pk(1), 'nearest', 'extrap'):interp1(pk.ind_x_mean, 1:num_mean, ind_x_pk(end), 'nearest', 'extrap')
-                    [~, tmp1] ...
+                    if find(~sum(isnan(ind_y_flat(:, pk.ind_x_mean(ii)))))
+                        [~, tmp1] ...
                             = unique(ind_y_flat(:, pk.ind_x_mean(ii)));
-                    pk.layer(pk.num_layer).ind_y_flat_mean(ii) ...
+                        pk.layer(pk.num_layer).ind_y_flat_mean(ii) ...
                             = interp1(ind_y_flat(tmp1, pk.ind_x_mean(ii)), tmp1, pk.layer(pk.num_layer).ind_y(pk.ind_x_mean(ii)), 'nearest', 'extrap');
+                    end
                 end
                 warning('on', 'MATLAB:interp1:NaNinY')
                 
@@ -3554,6 +3563,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
             end
         end
+        set(status_box, 'string', ['Layer #' num2str(curr_layer) ' selected.'])
     end
 
 %% Choose/select a layer interactively
@@ -5140,7 +5150,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         tmp1                = get(ax_radar, 'xlim');
         if (tmp1(1) < dist_min_ref)
-            reset_dist_min;
+            reset_dist_min
         else
             if (tmp1(1) < get(dist_min_slide, 'min'))
                 set(dist_min_slide, 'value', get(dist_min_slide, 'min'))
@@ -5150,7 +5160,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(dist_min_edit, 'string', sprintf('%3.1f', tmp1(1)))
             dist_min        = tmp1(1);
         end
-        if (tmp1(2) > dist_max_ref);
+        if (tmp1(2) > dist_max_ref)
             reset_dist_max
         else
             if (tmp1(2) > get(dist_max_slide, 'max'))
@@ -5189,6 +5199,136 @@ set(disp_group, 'selectedobject', disp_check(1))
             twtt_max        = 1e-6 * tmp1(2);
         end
         narrow_cb
+    end
+
+%%  Arrow pan/zoom functions
+
+    function pan_left(source, eventdata)
+        tmp1                = dist_max - dist_min;
+        tmp2                = dist_min - (0.25 * tmp1);
+        if (tmp2 < dist_min_ref)
+            dist_min        = dist_min_ref;
+        else
+            dist_min        = tmp2;
+        end
+        dist_max            = dist_min + tmp1;
+        if (dist_max > dist_max_ref)
+            dist_max    	= dist_max_ref;
+        end
+        set(dist_min_edit, 'string', sprintf('%3.1f', dist_min))
+        set(dist_max_edit, 'string', sprintf('%3.1f', dist_max))
+        if (dist_min < get(dist_min_slide, 'min'))
+            set(dist_min_slide, 'value', get(dist_min_slide, 'min'))
+        else
+            set(dist_min_slide, 'value', dist_min)
+        end
+        if (dist_max > get(dist_max_slide, 'max'))
+            set(dist_max_slide, 'value', get(dist_max_slide, 'max'))
+        else
+            set(dist_max_slide, 'value', dist_max)
+        end
+        update_dist_range
+    end
+
+    function pan_right(source, eventdata)
+        tmp1                = dist_max - dist_min;
+        tmp2                = dist_max + (0.25 * tmp1);
+        if (tmp2 > dist_max_ref)
+            dist_max        = dist_max_ref;
+        else
+            dist_max        = tmp2;
+        end
+        dist_min    = dist_max - tmp1;
+        if (dist_min < dist_min_ref)
+            dist_min        = dist_min_ref;
+        end
+        set(dist_min_edit, 'string', sprintf('%3.1f', dist_min))
+        set(dist_max_edit, 'string', sprintf('%3.1f', dist_max))
+        if (dist_min < get(dist_min_slide, 'min'))
+            set(dist_min_slide, 'value', get(dist_min_slide, 'min'))
+        else
+            set(dist_min_slide, 'value', dist_min)
+        end
+        if (dist_max > get(dist_max_slide, 'max'))
+            set(dist_max_slide, 'value', get(dist_max_slide, 'max'))
+        else
+            set(dist_max_slide, 'value', dist_max)
+        end
+        update_dist_range
+    end
+
+    function pan_up(source, eventdata)
+        tmp1                = twtt_max - twtt_min;
+        tmp2                = twtt_min - (0.25 * tmp1);
+        if (tmp2 < twtt_min_ref)
+            twtt_min        = twtt_min_ref;
+        else
+            twtt_min        = tmp2;
+        end
+        twtt_max            = twtt_min + tmp1;
+        set(twtt_min_edit, 'string', sprintf('%3.1f', (1e6 * twtt_min)))
+        set(twtt_max_edit, 'string', sprintf('%3.1f', (1e6 * twtt_max)))
+        if ((1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref))) < get(twtt_min_slide, 'min'))
+            set(twtt_min_slide, 'value', get(twtt_min_slide, 'min'))
+        elseif ((1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref))) > get(twtt_min_slide, 'max'))
+            set(twtt_min_slide, 'value', get(twtt_min_slide, 'max'))
+        else
+            set(twtt_min_slide, 'value', (1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref))))
+        end
+        if ((1e6 * (twtt_max_ref - (twtt_max - twtt_min_ref))) < get(twtt_max_slide, 'min'))
+            set(twtt_max_slide, 'value', get(twtt_max_slide, 'min'))
+        elseif ((1e6 * (twtt_max_ref - (twtt_max - twtt_min_ref))) > get(twtt_max_slide, 'max'))
+            set(twtt_max_slide, 'value', get(twtt_max_slide, 'max'))
+        else
+            set(twtt_max_slide, 'value', (1e6 * (twtt_max_ref - (twtt_max - twtt_min_ref))))
+        end
+        update_twtt_range
+    end
+
+    function pan_down(source, eventdata)
+        tmp1                = twtt_max - twtt_min;
+        tmp2                = twtt_max + (0.25 * tmp1);
+        if (tmp2 > twtt_max_ref)
+            twtt_max        = twtt_max_ref;
+        else
+            twtt_max        = tmp2;
+        end
+        twtt_min            = twtt_max - tmp1;
+        set(twtt_min_edit, 'string', sprintf('%3.1f', (1e6 * twtt_min)))
+        set(twtt_max_edit, 'string', sprintf('%3.1f', (1e6 * twtt_max)))
+        if ((1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref))) < get(twtt_min_slide, 'min'))
+            set(twtt_min_slide, 'value', get(twtt_min_slide, 'min'))
+        elseif ((1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref))) > get(twtt_min_slide, 'max'))
+            set(twtt_min_slide, 'value', get(twtt_min_slide, 'max'))
+        else
+            set(twtt_min_slide, 'value', (1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref))))
+        end
+        if ((1e6 * (twtt_max_ref - (twtt_max - twtt_min_ref))) < get(twtt_max_slide, 'min'))
+            set(twtt_max_slide, 'value', get(twtt_max_slide, 'min'))
+        elseif ((1e6 * (twtt_max_ref - (twtt_max - twtt_min_ref))) > get(twtt_max_slide, 'max'))
+            set(twtt_max_slide, 'value', get(twtt_max_slide, 'max'))
+        else
+            set(twtt_max_slide, 'value', (1e6 * (twtt_max_ref - (twtt_max - twtt_min_ref))))
+        end
+        update_twtt_range
+    end
+
+    function zoom_in(source, eventdata)
+        tmp1                = dist_max - dist_min;
+        tmp2                = [(dist_min + (0.25 * tmp1)) (dist_max - (0.25 * tmp1))];
+        tmp3                = twtt_max - twtt_min;
+        tmp4                = [(twtt_min + (0.25 * tmp3)) (twtt_max - (0.25 * tmp3))];
+        set(ax_radar, 'xlim', tmp2, 'ylim', (1e6 .* tmp4))
+        panzoom
+    end
+
+    function zoom_out(source, eventdata)
+        tmp1                = dist_max - dist_min;
+        tmp2                = [(dist_min - (0.25 * tmp1)) (dist_max + (0.25 * tmp1))];
+        tmp3                = twtt_max - twtt_min;
+        tmp4                = [(twtt_min - (0.25 * tmp3)) (twtt_max + (0.25 * tmp3))];
+        set(ax_radar, 'xlim', tmp2, 'ylim', (1e6 .* tmp4))
+        panzoom
     end
 
 %% Switch display type
@@ -5478,7 +5618,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     end
                 end
         end
-        disp_type       = 'flat';
+        disp_type           = 'flat';
         narrow_cb
         show_flat
         show_ref
@@ -5827,8 +5967,8 @@ set(disp_group, 'selectedobject', disp_check(1))
             return
         end
         pk.num_win          = abs(round(str2double(get(num_win_edit, 'string'))));
-        set(status_box, 'string', ['Vertical search window adjusted to +/- ' num2str(pk.num_win) ' samples.'])
         set(num_win_edit, 'string', num2str(pk.num_win))
+        set(status_box, 'string', ['Vertical search window adjusted to +/- ' num2str(pk.num_win) ' samples.'])
     end
 
 %% Adjust layer smoothing length
@@ -5869,7 +6009,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         % make a simple figure that also gets saved
         set(0, 'DefaultFigureWindowStyle', 'default')
-        figure('position', [10 10 1200 800]);
+        figure('position', [100 100 1200 800]);
         axis ij tight
         axis([dist_min dist_max (1e6 .* [twtt_min twtt_max])])
         hold on
@@ -6058,10 +6198,14 @@ set(disp_group, 'selectedobject', disp_check(1))
                 if get(flat_check, 'value')
                     for ii = 1:pk.num_layer
                         if ~isnan(pk.layer(ii).ind_y(ind_x_pk))
-                            plot(dist_lin([1 block.num_trace]), (1e6 .* block.twtt(repmat(round(ind_y_flat(round(pk.layer(ii).ind_y(ind_x_pk)), ind_x_pk)), 1, 2))), 'w:', 'linewidth', 2)
+                            try %#ok<TRYNC>
+                                plot(dist_lin([1 block.num_trace]), (1e6 .* block.twtt(repmat(round(ind_y_flat(round(pk.layer(ii).ind_y(ind_x_pk)), ind_x_pk)), 1, 2))), 'w:', 'linewidth', 2)
+                            end
                         else
-                            plot(dist_lin([1 block.num_trace]), (1e6 .* block.twtt(repmat(round(ind_y_flat(round(pk.layer(ii).ind_y(find(~isnan(pk.layer(ii).ind_y), 1, 'first'))), ...
-                                 find(~isnan(pk.layer(ii).ind_y), 1, 'first'))), 1, 2))), 'w:', 'linewidth', 2)
+                            try %#ok<TRYNC>
+                                plot(dist_lin([1 block.num_trace]), (1e6 .* block.twtt(repmat(round(ind_y_flat(round(pk.layer(ii).ind_y(find(~isnan(pk.layer(ii).ind_y), 1, 'first'))), ...
+                                     find(~isnan(pk.layer(ii).ind_y), 1, 'first'))), 1, 2))), 'w:', 'linewidth', 2)
+                            end
                         end
                     end
                 end
@@ -6409,107 +6553,13 @@ set(disp_group, 'selectedobject', disp_check(1))
                         set(status_box, 'string', 'Flattening switched to using predicted layers.')
                 end
             case 'downarrow'
-                tmp1        = twtt_max - twtt_min;
-                tmp2        = twtt_max + (0.25 * tmp1);
-                if (tmp2 > twtt_max_ref)
-                    twtt_max= twtt_max_ref;
-                else
-                    twtt_max= tmp2;
-                end
-                twtt_min    = twtt_max - tmp1;
-                set(twtt_min_edit, 'string', sprintf('%3.1f', (1e6 * twtt_min)))
-                set(twtt_max_edit, 'string', sprintf('%3.1f', (1e6 * twtt_max)))
-                if ((1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref))) < get(twtt_min_slide, 'min'))
-                    set(twtt_min_slide, 'value', get(twtt_min_slide, 'min'))
-                elseif ((1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref))) > get(twtt_min_slide, 'max'))
-                    set(twtt_min_slide, 'value', get(twtt_min_slide, 'max'))
-                else
-                    set(twtt_min_slide, 'value', (1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref))))
-                end
-                if ((1e6 * (twtt_max_ref - (twtt_max - twtt_min_ref))) < get(twtt_max_slide, 'min'))
-                    set(twtt_max_slide, 'value', get(twtt_max_slide, 'min'))
-                elseif ((1e6 * (twtt_max_ref - (twtt_max - twtt_min_ref))) > get(twtt_max_slide, 'max'))
-                    set(twtt_max_slide, 'value', get(twtt_max_slide, 'max'))
-                else
-                    set(twtt_max_slide, 'value', (1e6 * (twtt_max_ref - (twtt_max - twtt_min_ref))))
-                end
-                update_twtt_range
+                pan_down
             case 'leftarrow'
-                tmp1        = dist_max - dist_min;
-                tmp2        = dist_min - (0.25 * tmp1);
-                if (tmp2 < dist_min_ref)
-                    dist_min= dist_min_ref;
-                else
-                    dist_min= tmp2;
-                end
-                dist_max    = dist_min + tmp1;
-                if (dist_max > dist_max_ref)
-                    dist_max= dist_max_ref;
-                end
-                set(dist_min_edit, 'string', sprintf('%3.1f', dist_min))
-                set(dist_max_edit, 'string', sprintf('%3.1f', dist_max))
-                if (dist_min < get(dist_min_slide, 'min'))
-                    set(dist_min_slide, 'value', get(dist_min_slide, 'min'))
-                else
-                    set(dist_min_slide, 'value', dist_min)
-                end
-                if (dist_max > get(dist_max_slide, 'max'))
-                    set(dist_max_slide, 'value', get(dist_max_slide, 'max'))
-                else
-                    set(dist_max_slide, 'value', dist_max)
-                end
-                update_dist_range
+                pan_left
             case 'rightarrow'
-                tmp1        = dist_max - dist_min;
-                tmp2        = dist_max + (0.25 * tmp1);
-                if (tmp2 > dist_max_ref)
-                    dist_max= dist_max_ref;
-                else
-                    dist_max= tmp2;
-                end
-                dist_min    = dist_max - tmp1;
-                if (dist_min < dist_min_ref)
-                    dist_min= dist_min_ref;
-                end
-                set(dist_min_edit, 'string', sprintf('%3.1f', dist_min))
-                set(dist_max_edit, 'string', sprintf('%3.1f', dist_max))
-                if (dist_min < get(dist_min_slide, 'min'))
-                    set(dist_min_slide, 'value', get(dist_min_slide, 'min'))
-                else
-                    set(dist_min_slide, 'value', dist_min)
-                end
-                if (dist_max > get(dist_max_slide, 'max'))
-                    set(dist_max_slide, 'value', get(dist_max_slide, 'max'))
-                else
-                    set(dist_max_slide, 'value', dist_max)
-                end
-                update_dist_range
+                pan_right
             case 'uparrow'
-                tmp1        = twtt_max - twtt_min;
-                tmp2        = twtt_min - (0.25 * tmp1);
-                if (tmp2 < twtt_min_ref)
-                    twtt_min= twtt_min_ref;
-                else
-                    twtt_min= tmp2;
-                end
-                twtt_max= twtt_min + tmp1;
-                set(twtt_min_edit, 'string', sprintf('%3.1f', (1e6 * twtt_min)))
-                set(twtt_max_edit, 'string', sprintf('%3.1f', (1e6 * twtt_max)))
-                if ((1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref))) < get(twtt_min_slide, 'min'))
-                    set(twtt_min_slide, 'value', get(twtt_min_slide, 'min'))
-                elseif ((1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref))) > get(twtt_min_slide, 'max'))
-                    set(twtt_min_slide, 'value', get(twtt_min_slide, 'max'))
-                else
-                    set(twtt_min_slide, 'value', (1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref))))
-                end
-                if ((1e6 * (twtt_max_ref - (twtt_max - twtt_min_ref))) < get(twtt_max_slide, 'min'))
-                    set(twtt_max_slide, 'value', get(twtt_max_slide, 'min'))
-                elseif ((1e6 * (twtt_max_ref - (twtt_max - twtt_min_ref))) > get(twtt_max_slide, 'max'))
-                    set(twtt_max_slide, 'value', get(twtt_max_slide, 'max'))
-                else
-                    set(twtt_max_slide, 'value', (1e6 * (twtt_max_ref - (twtt_max - twtt_min_ref))))
-                end
-                update_twtt_range
+                pan_up
             case 'space'
                 if (get(disp_group, 'selectedobject') == disp_check(1))
                     if flat_done
@@ -6534,6 +6584,17 @@ set(disp_group, 'selectedobject', disp_check(1))
                     disp_type = 'amp.';
                     plot_db
                 end
+        end
+    end
+
+%% Mouse wheel shortcut
+
+    function wheel_zoom(~, eventdata)
+        switch eventdata.VerticalScrollCount
+            case -1
+                zoom_in
+            case 1
+                zoom_out
         end
     end
 
