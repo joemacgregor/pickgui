@@ -17,7 +17,7 @@ function radblockproc(dir_in, file_in, file_block, num_file_block, num_overlap, 
 %   LL2PS must be available within the user's path.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 12/03/13
+% Last updated: 01/19/13
 
 if (nargin ~= 7)
     error('radblockproc:inputs', ['Number input arguments (' numstr(nargin) ') should be 7.'])
@@ -73,7 +73,7 @@ if (~license('test', 'map_toolbox') && ~exist('ll2ps', 'file'))
     error('radblockproc:ll2ps', 'Function LL2PS is not available within this user''s path and Mapping Toolbox is not available.')
 end
 
-% add GIMIP projection if available
+% add GIMP projection if available
 if (license('test', 'map_toolbox') && exist('mat/gimp_90m.mat' , 'file'))
     load mat/gimp_90m gimp_info
     gimp_avail              = true;
@@ -184,10 +184,7 @@ for ii = 1:num_block
     if (sign(block.lat(find(~isnan(block.lat), 1))) ~= sign(lat_std))
         error('radblockproc:latmatch', 'Standard parallel is in the wrong hemisphere.')
     end
-    
-    % aircraft elevation
-    block.elev_air          = [load_struct(:).elev_air];
-    
+        
     try
         block.amp           = single([load_struct(:).data]); % amplitude
         block.twtt          = [load_struct(1).twtt]; % traveltime
@@ -274,18 +271,32 @@ for ii = 1:num_block
         end
     end
     
+    % aircraft elevation
+    block.elev_air          = [load_struct(:).elev_air];    
+    if gps_nan
+        block.elev_air      = block.elev_air(ind_nonan);
+    end
+    
     % make sure traveltime is a column vector
     if isrow(block.twtt)
         block.twtt          = block.twtt'; 
     end
     block.dt                = block.twtt(2) - block.twtt(1);
-    block.time              = [load_struct(:).time]; % measurement time
     
-    block.twtt_surf         = [load_struct(:).twtt_surf]; % surface arrival auto-pick
+    % measurement time
+    block.time              = [load_struct(:).time];
+    if gps_nan
+        block.time          = block.time(ind_nonan);
+    end
+    
+    % surface arrival auto-pick
+    block.twtt_surf         = [load_struct(:).twtt_surf];
     if gps_nan
         block.twtt_surf     = block.twtt_surf(ind_nonan);
     end
-    block.twtt_bed          = [load_struct(:).twtt_bed]; % bed pick
+    
+    % bed pick
+    block.twtt_bed          = [load_struct(:).twtt_bed];
     if gps_nan
         block.twtt_bed      = block.twtt_bed(ind_nonan);
     end

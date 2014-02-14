@@ -4,7 +4,7 @@
 %   deep ice-core sites and records this position if so.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 06/10/13
+% Last updated: 01/31/13
 
 clear
 
@@ -29,7 +29,7 @@ if do_core
     name_core               = {'Camp Century' 'Dye 3' 'GISP2' 'GRIP' 'NEEM' 'NGRIP'};
     name_core_short         = {'century' 'dye3' 'gisp2' 'grip' 'neem' 'ngrip'};    
     lat_core                = [77.18 65.18 72.6 72.58  77.45  75.10];
-    lon_core                = [-61.13 -43.49 -38.5 -37.64 -51.06 -42.32];
+    lon_core                = [-61.13 -43.82 -38.5 -37.64 -51.06 -42.32];
     num_core                = length(name_core);
     
 %     wgs84                   = almanac('earth', 'wgs84', 'meters');
@@ -41,7 +41,7 @@ if do_core
     [x_core_gimp, y_core_gimp] ...
                             = projfwd(gimp_info, lat_core, lon_core);
     [x_core_gimp, y_core_gimp] ...
-                            = deal(x_core_gimp, y_core_gimp);
+                            = deal((1e-3 .* x_core_gimp), (1e-3 .* y_core_gimp));
     
     int_core                = cell(1, num_year);
     int_core_mat            = [];
@@ -69,8 +69,7 @@ if do_core
         end
     end
     
-    save([dir_save 'core_int'], '-v7.3', 'int_core', 'int_core_mat', 'lat_core', 'lon_core', 'name_core', 'name_core_short', 'name_trans', 'num_core', 'num_trans', 'num_year', 'rad_threshold', 'x_core_gimp', ...
-                                         'y_core_gimp')
+    save([dir_save 'core_int'], '-v7.3', 'int_core', 'int_core_mat', 'lat_core', 'lon_core', 'name_core', 'name_core_short', 'name_trans', 'num_core', 'num_trans', 'num_year', 'rad_threshold', 'x_core_gimp', 'y_core_gimp')
     disp(['Done comparing transects to core sites and saved results in ' dir_save '.'])
     
 else

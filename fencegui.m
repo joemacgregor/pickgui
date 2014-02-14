@@ -11,7 +11,7 @@ function fencegui
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 01/16/13
+% Last updated: 02/14/13
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -23,10 +23,13 @@ end
 %% Intialize variables
 
 % elevation/depth defaults
-[elev_min_ref, elev_max_ref] ...
-                            = deal(0, 1);
+[elev_min_ref, elev_max_ref]= deal(0, 1);
 elev_min                    = zeros(1, 3);
 elev_max                    = ones(1, 3);
+[depth_min_ref, depth_max_ref] ...
+                            = deal(0, 1);
+depth_min                   = zeros(1, 2);
+depth_max                   = ones(1, 2);
 
 % x/y defaults
 [x_min_ref, x_max_ref]      = deal(0, 1);
@@ -40,6 +43,7 @@ elev_max                    = ones(1, 3);
 [db_min_ref, db_max_ref]    = deal(repmat(-130, 1, 3), zeros(1, 3));
 [db_min, db_max]            = deal(repmat(-80, 1, 3), repmat(-20, 1, 3));
 
+disp_type                   = 'elev.';
 aspect_ratio                = 10;
 
 % some default values
@@ -69,11 +73,12 @@ colors_def                  = [0    0       0.75;
                             = deal(false);
 [bed_avail, data_done, gimp_avail, pk_done, surf_avail] ...
                             = deal(false(1, 2));
-[amp_mean, colors, depth, dist_lin, elev, elev_bed, elev_smooth, elev_surf, file_data, file_pk, file_pk_short, ind_corr, ind_decim, ind_int_core, layer_str, path_data, p_int2, path_pk, pk, twtt, x, y] ...
+[amp_depth, amp_elev, colors, depth, dist_lin, elev, elev_bed, elev_smooth, elev_surf, file_data, file_pk, file_pk_short, ind_corr, ind_decim, ind_int_core, layer_str, p_coredepth, p_corenamedepth, p_pkdepth, path_data, path_pk, pk, twtt, x, y] ...
                             = deal(cell(1, 2));
 p_int1                      = cell(2, 3);
-[p_core, p_corename, p_pk]  = deal(cell(2));
-[curr_layer, curr_trans, curr_subtrans, curr_year, dt, num_data, num_decim, num_int_core, num_sample] ...
+[p_core, p_corename, p_int2, p_pk] ...
+                            = deal(cell(2));
+[curr_layer, curr_trans, curr_subtrans, curr_year, disp_check, dt, num_data, num_decim, num_int_core, num_sample, p_beddepth] ...
                             = deal(zeros(1, 2));
 [decim_edit, layer_list, p_bed, p_data, pk_check, p_surf] ...
                             = deal(zeros(2));
@@ -117,22 +122,14 @@ zlabel('Elevation (m)')
 colorbar('fontsize', size_font)
 
 % sliders
-x_min_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.11 0.04 0.24 0.02], 'callback', @slide_x_min, 'min', 0, 'max', 1, 'value', x_min_ref, ...
-                                               'sliderstep', [0.01 0.1]);
-x_max_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.11 0.01 0.24 0.02], 'callback', @slide_x_max, 'min', 0, 'max', 1, 'value', x_max_ref, ...
-                                               'sliderstep', [0.01 0.1]);
-y_min_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.62 0.04 0.24 0.02], 'callback', @slide_y_min, 'min', 0, 'max', 1, 'value', x_min_ref, ...
-                                               'sliderstep', [0.01 0.1]);
-y_max_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.62 0.01 0.24 0.02], 'callback', @slide_y_max, 'min', 0, 'max', 1, 'value', x_max_ref, ...
-                                               'sliderstep', [0.01 0.1]);
-z_min_slide(1)              = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.07 width_slide 0.32], 'callback', @slide_z_min1, 'min', 0, 'max', 1, 'value', elev_min_ref, ...
-                                               'sliderstep', [0.01 0.1]);
-z_max_slide(1)              = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.52 width_slide 0.32], 'callback', @slide_z_max1, 'min', 0, 'max', 1, 'value', elev_max_ref, ...
-                                               'sliderstep', [0.01 0.1]);
-cb_min_slide(1)             = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.97 0.07 width_slide 0.32], 'callback', @slide_db_min1, 'min', db_min_ref(1), 'max', db_max_ref(1), ...
-                                                 'value', db_min(1), 'sliderstep', [0.01 0.1]);
-cb_max_slide(1)             = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.97 0.50 width_slide 0.32], 'callback', @slide_db_max1, 'min', db_min_ref(1), 'max', db_max_ref(1), ...
-                                                 'value', db_max(1), 'sliderstep', [0.01 0.1]);
+x_min_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.11 0.04 0.24 0.02], 'callback', @slide_x_min, 'min', 0, 'max', 1, 'value', x_min_ref, 'sliderstep', [0.01 0.1]);
+x_max_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.11 0.01 0.24 0.02], 'callback', @slide_x_max, 'min', 0, 'max', 1, 'value', x_max_ref, 'sliderstep', [0.01 0.1]);
+y_min_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.62 0.04 0.24 0.02], 'callback', @slide_y_min, 'min', 0, 'max', 1, 'value', x_min_ref, 'sliderstep', [0.01 0.1]);
+y_max_slide                 = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.62 0.01 0.24 0.02], 'callback', @slide_y_max, 'min', 0, 'max', 1, 'value', x_max_ref, 'sliderstep', [0.01 0.1]);
+z_min_slide(1)              = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.07 width_slide 0.32], 'callback', @slide_z_min1, 'min', 0, 'max', 1, 'value', elev_min_ref, 'sliderstep', [0.01 0.1]);
+z_max_slide(1)              = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.52 width_slide 0.32], 'callback', @slide_z_max1, 'min', 0, 'max', 1, 'value', elev_max_ref, 'sliderstep', [0.01 0.1]);
+cb_min_slide(1)             = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.97 0.07 width_slide 0.32], 'callback', @slide_db_min1, 'min', db_min_ref(1), 'max', db_max_ref(1), 'value', db_min(1), 'sliderstep', [0.01 0.1]);
+cb_max_slide(1)             = uicontrol(fgui(1), 'style', 'slider', 'units', 'normalized', 'position', [0.97 0.50 width_slide 0.32], 'callback', @slide_db_max1, 'min', db_min_ref(1), 'max', db_max_ref(1), 'value', db_max(1), 'sliderstep', [0.01 0.1]);
 
 % slider values
 cb_min_edit(1)              = annotation('textbox', [0.965 0.39 0.04 0.03], 'string', num2str(db_min(1)), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
@@ -150,20 +147,20 @@ uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Next', 'units', 'normalized
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Next', 'units', 'normalized', 'position', [0.51 0.925 0.03 0.03], 'callback', @pk_next2, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Last', 'units', 'normalized', 'position', [0.215 0.925 0.03 0.03], 'callback', @pk_last1, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Last', 'units', 'normalized', 'position', [0.48 0.925 0.03 0.03], 'callback', @pk_last2, 'fontsize', size_font, 'foregroundcolor', 'm')
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'test', 'units', 'normalized', 'position', [0.865 0.965 0.03 0.03], 'callback', @misctest, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Test', 'units', 'normalized', 'position', [0.865 0.965 0.03 0.03], 'callback', @misctest, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Save', 'units', 'normalized', 'position', [0.965 0.965 0.03 0.03], 'callback', @pk_save, 'fontsize', size_font, 'foregroundcolor', 'g')
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'transects', 'units', 'normalized', 'position', [0.63 0.965 0.05 0.03], 'callback', @load_int, 'fontsize', size_font, 'foregroundcolor', 'b')
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'cores', 'units', 'normalized', 'position', [0.695 0.965 0.03 0.03], 'callback', @load_core, 'fontsize', size_font, 'foregroundcolor', 'b')
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'master', 'units', 'normalized', 'position', [0.745 0.965 0.04 0.03], 'callback', @locate_master, 'fontsize', size_font, 'foregroundcolor', 'b')
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset x/y/z', 'units', 'normalized', 'position', [0.94 0.925 0.055 0.03], 'callback', @reset_xyz, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.36 0.04 0.03 0.03], 'callback', @reset_x_min, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.36 0.005 0.03 0.03], 'callback', @reset_x_max, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.585 0.04 0.03 0.03], 'callback', @reset_y_min, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.585 0.005 0.03 0.03], 'callback', @reset_y_max, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.005 0.005 0.03 0.03], 'callback', @reset_z_min1, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.005 0.48 0.03 0.03], 'callback', @reset_z_max1, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.965 0.03 0.03 0.03], 'callback', @reset_db_min1, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.965 0.46 0.03 0.03], 'callback', @reset_db_max1, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Transects', 'units', 'normalized', 'position', [0.63 0.965 0.05 0.03], 'callback', @load_int, 'fontsize', size_font, 'foregroundcolor', 'b')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Cores', 'units', 'normalized', 'position', [0.695 0.965 0.03 0.03], 'callback', @load_core, 'fontsize', size_font, 'foregroundcolor', 'b')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Master', 'units', 'normalized', 'position', [0.745 0.965 0.04 0.03], 'callback', @locate_master, 'fontsize', size_font, 'foregroundcolor', 'b')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Reset x/y/z', 'units', 'normalized', 'position', [0.94 0.925 0.055 0.03], 'callback', @reset_xyz, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.36 0.04 0.03 0.03], 'callback', @reset_x_min, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.36 0.005 0.03 0.03], 'callback', @reset_x_max, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.585 0.04 0.03 0.03], 'callback', @reset_y_min, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.585 0.005 0.03 0.03], 'callback', @reset_y_max, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.005 0.005 0.03 0.03], 'callback', @reset_z_min1, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.005 0.48 0.03 0.03], 'callback', @reset_z_max1, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.965 0.03 0.03 0.03], 'callback', @reset_db_min1, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.965 0.46 0.03 0.03], 'callback', @reset_db_max1, 'fontsize', size_font, 'foregroundcolor', 'r')
 
 % fixed text annotations
 a(1)                        = annotation('textbox', [0.12 0.965 0.025 0.03], 'string', 'N_{decim}', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
@@ -204,47 +201,40 @@ dim_check(2)                = uicontrol(fgui(1), 'style', 'radio', 'string', '3D
 set(dim_group, 'selectedobject', dim_check(2))
 
 % value boxes
-decim_edit(1, 1)            = uicontrol(fgui(1), 'style', 'edit', 'string', num2str(decim(1)), 'units', 'normalized', 'position', [0.16 0.965 0.03 0.03], 'fontsize', size_font, 'foregroundcolor', 'k', ...
-                                                 'backgroundcolor', 'w', 'callback', @adj_decim1);
-decim_edit(1, 2)            = uicontrol(fgui(1), 'style', 'edit', 'string', num2str(decim(2)), 'units', 'normalized', 'position', [0.405 0.965 0.03 0.03], 'fontsize', size_font, 'foregroundcolor', 'k', ...
-                                                 'backgroundcolor', 'w', 'callback', @adj_decim2);
-aspect_edit                 = uicontrol(fgui(1), 'style', 'edit', 'string', num2str(aspect_ratio), 'units', 'normalized', 'position', [0.84 0.965 0.02 0.03], 'fontsize', size_font, 'foregroundcolor', 'k', ...
-                                                 'backgroundcolor', 'w', 'callback', @adj_aspect);
+decim_edit(1, 1)            = uicontrol(fgui(1), 'style', 'edit', 'string', num2str(decim(1)), 'units', 'normalized', 'position', [0.16 0.965 0.03 0.03], 'fontsize', size_font, 'foregroundcolor', 'k', 'backgroundcolor', 'w', 'callback', @adj_decim1);
+decim_edit(1, 2)            = uicontrol(fgui(1), 'style', 'edit', 'string', num2str(decim(2)), 'units', 'normalized', 'position', [0.405 0.965 0.03 0.03], 'fontsize', size_font, 'foregroundcolor', 'k', 'backgroundcolor', 'w', 'callback', @adj_decim2);
+aspect_edit                 = uicontrol(fgui(1), 'style', 'edit', 'string', num2str(aspect_ratio), 'units', 'normalized', 'position', [0.84 0.965 0.02 0.03], 'fontsize', size_font, 'foregroundcolor', 'k', 'backgroundcolor', 'w', 'callback', @adj_aspect);
 
 % menus
-layer_list(1, 1)            = uicontrol(fgui(1), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.225 0.955 0.05 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', ...
-                                                 'callback', @choose_layer1);
-layer_list(1, 2)            = uicontrol(fgui(1), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.49 0.955 0.05 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', ...
-                                                 'callback', @choose_layer2);
-int_list                    = uicontrol(fgui(1), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.28 0.915 0.10 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', ...
-                                                 'callback', @load_pk2);
+layer_list(1, 1)            = uicontrol(fgui(1), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.225 0.955 0.05 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', 'callback', @pk_select1);
+layer_list(1, 2)            = uicontrol(fgui(1), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.49 0.955 0.05 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', 'callback', @pk_select2);
+int_list                    = uicontrol(fgui(1), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.28 0.915 0.10 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', 'callback', @load_pk2);
 cmap_list(1)                = uicontrol(fgui(1), 'style', 'popupmenu', 'string', cmaps, 'value', 1, 'units', 'normalized', 'position', [0.945 0.005 0.05 0.03], 'callback', @change_cmap1, 'fontsize', size_font);
-subtrans_list               = uicontrol(fgui(1), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.11 0.915 0.05 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', ...
-                                                 'callback', @load_subtrans);
+subtrans_list               = uicontrol(fgui(1), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.11 0.915 0.05 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', 'callback', @load_subtrans);
 
 % check boxes
-xfix_check                  = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.415 0.005 0.01 0.03], 'fontsize', size_font, 'value', 0);
-yfix_check                  = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.56 0.005 0.01 0.03], 'fontsize', size_font, 'value', 0);
-zfix_check(1)               = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.02 0.89 0.01 0.03], 'fontsize', size_font, 'value', 0);
-grid_check(1)               = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.925 0.925 0.01 0.03], 'callback', @toggle_grid1, 'fontsize', size_font, 'value', 1);
-pk_check(1, 1)              = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.105 0.965 0.01 0.03], 'callback', @show_pk1, 'fontsize', size_font, 'value', 0);
-pk_check(1, 2)              = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.36 0.965 0.01 0.03], 'callback', @show_pk2, 'fontsize', size_font, 'value', 0);
-int_check(1)                = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.68 0.965 0.01 0.03], 'callback', @show_int1, 'fontsize', size_font, 'value', 0);
-core_check(1)               = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.73 0.965 0.01 0.03], 'callback', @show_core1, 'fontsize', size_font, 'value', 0);
-data_check(1, 1)            = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.20 0.925 0.01 0.03], 'callback', @show_data1, 'fontsize', size_font, 'value', 0);
-data_check(1, 2)            = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.465 0.925 0.01 0.03], 'callback', @show_data2, 'fontsize', size_font, 'value', 0);
-cbfix_check1(1)             = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.97 0.88 0.01 0.03], 'fontsize', size_font, 'value', 0);
-cbfix_check2(1)             = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.985 0.88 0.01 0.03], 'callback', @narrow_cb1, 'fontsize', size_font, 'value', 1);
-master_check                = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.79 0.965 0.01 0.03], 'fontsize', size_font, 'value', 0);
+xfix_check                  = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.415 0.005 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
+yfix_check                  = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.56 0.005 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
+zfix_check(1)               = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.02 0.89 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
+grid_check(1)               = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.925 0.925 0.01 0.02], 'callback', @toggle_grid1, 'fontsize', size_font, 'value', 1, 'backgroundcolor', get(fgui(1), 'color'));
+pk_check(1, 1)              = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.105 0.965 0.01 0.02], 'callback', @show_pk1, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
+pk_check(1, 2)              = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.36 0.965 0.01 0.02], 'callback', @show_pk2, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
+int_check(1)                = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.68 0.965 0.01 0.02], 'callback', @show_int1, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
+core_check(1)               = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.73 0.965 0.01 0.02], 'callback', @show_core1, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
+data_check(1, 1)            = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.20 0.925 0.01 0.02], 'callback', @show_data1, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
+data_check(1, 2)            = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.465 0.925 0.01 0.02], 'callback', @show_data2, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
+cbfix_check1(1)             = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.97 0.88 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
+cbfix_check2(1)             = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.985 0.88 0.01 0.02], 'callback', @narrow_cb1, 'fontsize', size_font, 'value', 1, 'backgroundcolor', get(fgui(1), 'color'));
+master_check                = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.79 0.965 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
 
 %% draw second GUI
 
 if ispc % windows switch
-    fgui(2)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress2, 'windowscrollwheelfcn', @wheel_zoom);
+    fgui(2)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress2, 'windowscrollwheelfcn', @wheel_zoom, 'windowbuttondownfcn', @mouse_click);
     ax(2)                   = subplot('position', [0.065 0.06 0.41 0.81]);
     ax(3)                   = subplot('position', [0.55 0.06 0.41 0.81]);
 else
-    fgui(2)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress2, 'windowscrollwheelfcn', @wheel_zoom);
+    fgui(2)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress2, 'windowscrollwheelfcn', @wheel_zoom, 'windowbuttondownfcn', @mouse_click);
     ax(2)                   = subplot('position', [0.065 0.06 0.41 0.81]);
     ax(3)                   = subplot('position', [0.55 0.06 0.41 0.81]);
 end
@@ -281,30 +271,18 @@ h_zoom(2)                   = zoom;
 set(h_zoom(2), 'actionpostcallback', @panzoom2)
 
 % sliders
-cb_min_slide(2)             = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.475 0.07 width_slide 0.32], 'callback', @slide_db_min2, 'min', db_min_ref(2), 'max', db_max_ref(2), ...
-                                                 'value', db_min(2), 'sliderstep', [0.01 0.1]);
-cb_max_slide(2)             = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.475 0.50 width_slide 0.32], 'callback', @slide_db_max2, 'min', db_min_ref(2), 'max', db_max_ref(2), ...
-                                                 'value', db_max(2), 'sliderstep', [0.01 0.1]);
-cb_min_slide(3)             = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.97 0.07 width_slide 0.32], 'callback', @slide_db_min3, 'min', db_min_ref(3), 'max', db_max_ref(3), ...
-                                                 'value', db_min(3), 'sliderstep', [0.01 0.1]);
-cb_max_slide(3)             = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.97 0.50 width_slide 0.32], 'callback', @slide_db_max3, 'min', db_min_ref(3), 'max', db_max_ref(3), ...
-                                                 'value', db_max(3), 'sliderstep', [0.01 0.1]);
-dist_min_slide(1)           = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.10 0.005 0.12 0.02], 'callback', @slide_dist_min1, 'min', dist_min_ref(1), 'max', dist_max_ref(1), ...
-                                                 'value', dist_min_ref(1), 'sliderstep', [0.01 0.1]);
-dist_max_slide(1)           = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.33 0.005 0.12 0.02], 'callback', @slide_dist_max1, 'min', dist_min_ref(1), 'max', dist_max_ref(1), ...
-                                                 'value', dist_max_ref(1), 'sliderstep', [0.01 0.1]);
-dist_min_slide(2)           = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.58 0.005 0.12 0.02], 'callback', @slide_dist_min2, 'min', dist_min_ref(2), 'max', dist_max_ref(2), ...
-                                                 'value', dist_min_ref(2), 'sliderstep', [0.01 0.1]);
-dist_max_slide(2)           = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.81 0.005 0.12 0.02], 'callback', @slide_dist_max2, 'min', dist_min_ref(2), 'max', dist_max_ref(2), ...
-                                                 'value', dist_max_ref(2), 'sliderstep', [0.01 0.1]);
-z_min_slide(2)              = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.07 width_slide 0.32], 'callback', @slide_z_min2, 'min', elev_min_ref, 'max', elev_max_ref, ...
-                                                 'value', elev_min_ref, 'sliderstep', [0.01 0.1]);
-z_max_slide(2)              = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.50 width_slide 0.32], 'callback', @slide_z_max2, 'min', elev_min_ref, 'max', elev_max_ref, ...
-                                                 'value', elev_max_ref, 'sliderstep', [0.01 0.1]);
-z_min_slide(3)              = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.505 0.07 width_slide 0.32], 'callback', @slide_z_min3, 'min', elev_min_ref, 'max', elev_max_ref, ...
-                                                 'value', elev_min_ref, 'sliderstep', [0.01 0.1]);
-z_max_slide(3)              = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.505 0.50 width_slide 0.32], 'callback', @slide_z_max3, 'min', elev_min_ref, 'max', elev_max_ref, ...
-                                                 'value', elev_max_ref, 'sliderstep', [0.01 0.1]);
+cb_min_slide(2)             = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.475 0.07 width_slide 0.32], 'callback', @slide_db_min2, 'min', db_min_ref(2), 'max', db_max_ref(2), 'value', db_min(2), 'sliderstep', [0.01 0.1]);
+cb_max_slide(2)             = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.475 0.50 width_slide 0.32], 'callback', @slide_db_max2, 'min', db_min_ref(2), 'max', db_max_ref(2), 'value', db_max(2), 'sliderstep', [0.01 0.1]);
+cb_min_slide(3)             = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.97 0.07 width_slide 0.32], 'callback', @slide_db_min3, 'min', db_min_ref(3), 'max', db_max_ref(3), 'value', db_min(3), 'sliderstep', [0.01 0.1]);
+cb_max_slide(3)             = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.97 0.50 width_slide 0.32], 'callback', @slide_db_max3, 'min', db_min_ref(3), 'max', db_max_ref(3), 'value', db_max(3), 'sliderstep', [0.01 0.1]);
+dist_min_slide(1)           = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.10 0.005 0.12 0.02], 'callback', @slide_dist_min1, 'min', dist_min_ref(1), 'max', dist_max_ref(1), 'value', dist_min_ref(1), 'sliderstep', [0.01 0.1]);
+dist_max_slide(1)           = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.33 0.005 0.12 0.02], 'callback', @slide_dist_max1, 'min', dist_min_ref(1), 'max', dist_max_ref(1), 'value', dist_max_ref(1), 'sliderstep', [0.01 0.1]);
+dist_min_slide(2)           = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.58 0.005 0.12 0.02], 'callback', @slide_dist_min2, 'min', dist_min_ref(2), 'max', dist_max_ref(2), 'value', dist_min_ref(2), 'sliderstep', [0.01 0.1]);
+dist_max_slide(2)           = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.81 0.005 0.12 0.02], 'callback', @slide_dist_max2, 'min', dist_min_ref(2), 'max', dist_max_ref(2), 'value', dist_max_ref(2), 'sliderstep', [0.01 0.1]);
+z_min_slide(2)              = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.07 width_slide 0.32], 'callback', @slide_z_min2, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min_ref, 'sliderstep', [0.01 0.1]);
+z_max_slide(2)              = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.50 width_slide 0.32], 'callback', @slide_z_max2, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max_ref, 'sliderstep', [0.01 0.1]);
+z_min_slide(3)              = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.505 0.07 width_slide 0.32], 'callback', @slide_z_min3, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min_ref, 'sliderstep', [0.01 0.1]);
+z_max_slide(3)              = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.505 0.50 width_slide 0.32], 'callback', @slide_z_max3, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max_ref, 'sliderstep', [0.01 0.1]);
 
 % slider values
 cb_min_edit(2)              = annotation('textbox', [0.48 0.39 0.04 0.03], 'string', num2str(db_min(1)), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
@@ -325,29 +303,29 @@ uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Load master data', 'units',
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Load intersecting data', 'units', 'normalized', 'position', [0.345 0.925 0.11 0.03], 'callback', @load_data2, 'fontsize', size_font, 'foregroundcolor', 'b')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Match', 'units', 'normalized', 'position', [0.645 0.925 0.04 0.03], 'callback', @pk_match, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Unmatch', 'units', 'normalized', 'position', [0.69 0.925 0.05 0.03], 'callback', @pk_unmatch, 'fontsize', size_font, 'foregroundcolor', 'm')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Choose', 'units', 'normalized', 'position', [0.17 0.925 0.045 0.03], 'callback', @choose_pk1, 'fontsize', size_font, 'foregroundcolor', 'm')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Choose', 'units', 'normalized', 'position', [0.535 0.925 0.045 0.03], 'callback', @choose_pk2, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Select', 'units', 'normalized', 'position', [0.17 0.925 0.045 0.03], 'callback', @choose_pk1, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Select', 'units', 'normalized', 'position', [0.535 0.925 0.045 0.03], 'callback', @choose_pk2, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Next', 'units', 'normalized', 'position', [0.245 0.925 0.03 0.03], 'callback', @pk_next3, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Next', 'units', 'normalized', 'position', [0.61 0.925 0.03 0.03], 'callback', @pk_next4, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Last', 'units', 'normalized', 'position', [0.215 0.925 0.03 0.03], 'callback', @pk_last3, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Last', 'units', 'normalized', 'position', [0.58 0.925 0.03 0.03], 'callback', @pk_last4, 'fontsize', size_font, 'foregroundcolor', 'm')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'test', 'units', 'normalized', 'position', [0.91 0.925 0.03 0.03], 'callback', @misctest, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset x/z', 'units', 'normalized', 'position', [0.41 0.885 0.05 0.03], 'callback', @reset_xz1, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset x/z', 'units', 'normalized', 'position', [0.895 0.885 0.05 0.03], 'callback', @reset_xz2, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.005 0.03 0.03 0.03], 'callback', @reset_z_min2, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.005 0.46 0.03 0.03], 'callback', @reset_z_max2, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.225 0.005 0.03 0.03], 'callback', @reset_dist_min1, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.455 0.005 0.03 0.03], 'callback', @reset_dist_max1, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.48 0.03 0.03 0.03], 'callback', @reset_db_min2, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.48 0.46 0.03 0.03], 'callback', @reset_db_max2, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.51 0.03 0.03 0.03], 'callback', @reset_z_min3, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.51 0.46 0.03 0.03], 'callback', @reset_z_max3, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.705 0.005 0.03 0.03], 'callback', @reset_dist_min2, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.935 0.005 0.03 0.03], 'callback', @reset_dist_max2, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.965 0.03 0.03 0.03], 'callback', @reset_db_min3, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'reset', 'units', 'normalized', 'position', [0.965 0.46 0.03 0.03], 'callback', @reset_db_max3, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalized', 'position', [0.265 0.965 0.05 0.03], 'callback', @focus_layer1, 'fontsize', size_font, 'foregroundcolor', 'm')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalized', 'position', [0.60 0.965 0.05 0.03], 'callback', @focus_layer2, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Test', 'units', 'normalized', 'position', [0.91 0.925 0.03 0.03], 'callback', @misctest, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset x/z', 'units', 'normalized', 'position', [0.41 0.885 0.05 0.03], 'callback', @reset_xz1, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset x/z', 'units', 'normalized', 'position', [0.895 0.885 0.05 0.03], 'callback', @reset_xz2, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.005 0.03 0.03 0.03], 'callback', @reset_z_min2, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.005 0.46 0.03 0.03], 'callback', @reset_z_max2, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.225 0.005 0.03 0.03], 'callback', @reset_dist_min1, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.455 0.005 0.03 0.03], 'callback', @reset_dist_max1, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.48 0.03 0.03 0.03], 'callback', @reset_db_min2, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.48 0.46 0.03 0.03], 'callback', @reset_db_max2, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.51 0.03 0.03 0.03], 'callback', @reset_z_min3, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.51 0.46 0.03 0.03], 'callback', @reset_z_max3, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.705 0.005 0.03 0.03], 'callback', @reset_dist_min2, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.935 0.005 0.03 0.03], 'callback', @reset_dist_max2, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.965 0.03 0.03 0.03], 'callback', @reset_db_min3, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.965 0.46 0.03 0.03], 'callback', @reset_db_max3, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalized', 'position', [0.28 0.925 0.04 0.03], 'callback', @focus_layer1, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalized', 'position', [0.645 0.965 0.04 0.03], 'callback', @focus_layer2, 'fontsize', size_font, 'foregroundcolor', 'm')
 
 % fixed text annotations
 b(1)                        = annotation('textbox', [0.10 0.925 0.03 0.03], 'string', 'N_{decim}', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
@@ -357,7 +335,7 @@ b(4)                        = annotation('textbox', [0.49 0.85 0.03 0.03], 'stri
 b(5)                        = annotation('textbox', [0.965 0.42 0.03 0.03], 'string', 'dB_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 b(6)                        = annotation('textbox', [0.965 0.85 0.03 0.03], 'string', 'dB_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 b(7)                        = annotation('textbox', [0.18 0.965 0.03 0.03], 'string', 'Layer', 'fontsize', size_font, 'color', 'm', 'edgecolor', 'none');
-b(8)                        = annotation('textbox', [0.515 0.965 0.03 0.03], 'string', 'Layer', 'fontsize', size_font, 'color', 'm', 'edgecolor', 'none');
+b(8)                        = annotation('textbox', [0.52 0.965 0.03 0.03], 'string', 'Layer', 'fontsize', size_font, 'color', 'm', 'edgecolor', 'none');
 b(9)                        = annotation('textbox', [0.37 0.88 0.03 0.03], 'string', 'Grid', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 b(10)                       = annotation('textbox', [0.855 0.88 0.03 0.03], 'string', 'Grid', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 b(11)                       = annotation('textbox', [0.035 0.005 0.03 0.03], 'string', 'dist_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
@@ -395,43 +373,44 @@ rad_check(1)                = uicontrol(fgui(2), 'style', 'radio', 'string', 'M'
 rad_check(2)                = uicontrol(fgui(2), 'style', 'radio', 'string', 'I', 'units', 'normalized', 'position', [0.51 0.1 0.45 0.8], 'parent', rad_group, 'fontsize', size_font, 'handlevisibility', 'off');
 set(rad_group, 'selectedobject', rad_check(1))
 
+disp_group                  = uibuttongroup('position', [0.265 0.965 0.075 0.03], 'selectionchangefcn', @disp_radio);
+uicontrol(fgui(2), 'style', 'text', 'parent', disp_group, 'units', 'normalized', 'position', [0 0.6 0.9 0.3], 'fontsize', size_font)
+disp_check(1)               = uicontrol(fgui(2), 'style', 'radio', 'string', 'elev.', 'units', 'normalized', 'position', [0.01 0.1 0.45 0.8], 'parent', disp_group, 'fontsize', size_font, 'handlevisibility', 'off');
+disp_check(2)               = uicontrol(fgui(2), 'style', 'radio', 'string', 'depth', 'units', 'normalized', 'position', [0.5 0.1 0.45 0.8], 'parent', disp_group, 'fontsize', size_font, 'handlevisibility', 'off', 'visible', 'off');
+set(disp_group, 'selectedobject', disp_check(1))
+
 % value boxes
-decim_edit(2, 1)            = uicontrol(fgui(2), 'style', 'edit', 'string', num2str(decim(1)), 'units', 'normalized', 'position', [0.135 0.925 0.03 0.03], 'fontsize', size_font, 'foregroundcolor', 'k', ...
-                                                 'backgroundcolor', 'w', 'callback', @adj_decim3);
-decim_edit(2, 2)            = uicontrol(fgui(2), 'style', 'edit', 'string', num2str(decim(2)), 'units', 'normalized', 'position', [0.50 0.925 0.03 0.03], 'fontsize', size_font, 'foregroundcolor', 'k', ...
-                                                 'backgroundcolor', 'w', 'callback', @adj_decim4);
+decim_edit(2, 1)            = uicontrol(fgui(2), 'style', 'edit', 'string', num2str(decim(1)), 'units', 'normalized', 'position', [0.135 0.925 0.03 0.03], 'fontsize', size_font, 'foregroundcolor', 'k', 'backgroundcolor', 'w', 'callback', @adj_decim3);
+decim_edit(2, 2)            = uicontrol(fgui(2), 'style', 'edit', 'string', num2str(decim(2)), 'units', 'normalized', 'position', [0.50 0.925 0.03 0.03], 'fontsize', size_font, 'foregroundcolor', 'k', 'backgroundcolor', 'w', 'callback', @adj_decim4);
 % menus
 cmap_list(2)                = uicontrol(fgui(2), 'style', 'popupmenu', 'string', cmaps, 'value', 1, 'units', 'normalized', 'position', [0.945 0.925 0.05 0.03], 'callback', @change_cmap2, 'fontsize', size_font);
-layer_list(2, 1)            = uicontrol(fgui(2), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.21 0.955 0.05 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', ...
-                                                 'callback', @choose_layer3);
-layer_list(2, 2)            = uicontrol(fgui(2), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.545 0.955 0.05 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', ...
-                                                 'callback', @choose_layer4);
-intnum_list                 = uicontrol(fgui(2), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.10 0.86 0.04 0.05], 'fontsize', size_font, 'foregroundcolor', 'k', ...
-                                                 'callback', @change_int);
+layer_list(2, 1)            = uicontrol(fgui(2), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.21 0.955 0.05 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', 'callback', @pk_select3);
+layer_list(2, 2)            = uicontrol(fgui(2), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.55 0.955 0.05 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', 'callback', @pk_select4);
+intnum_list                 = uicontrol(fgui(2), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.10 0.86 0.04 0.05], 'fontsize', size_font, 'foregroundcolor', 'k', 'callback', @change_int);
 data_list(1)                = uicontrol(fgui(2), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.19 0.86 0.175 0.05], 'fontsize', size_font, 'foregroundcolor', 'k');
 data_list(2)                = uicontrol(fgui(2), 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.68 0.86 0.175 0.05], 'fontsize', size_font, 'foregroundcolor', 'k');
 
 % check boxes
-distfix_check(1)            = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.50 0.005 0.01 0.03], 'fontsize', size_font, 'value', 0);
-distfix_check(2)            = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.98 0.005 0.01 0.03], 'fontsize', size_font, 'value', 0);
-zfix_check(2)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.02 0.88 0.01 0.03], 'fontsize', size_font, 'value', 0);
-zfix_check(3)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.54 0.88 0.01 0.03], 'fontsize', size_font, 'value', 0);
-cbfix_check1(2)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.485 0.88 0.01 0.03], 'fontsize', size_font, 'value', 0);
-cbfix_check1(3)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.97 0.88 0.01 0.03], 'fontsize', size_font, 'value', 0);
-cbfix_check2(2)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.50 0.88 0.01 0.03], 'callback', @narrow_cb2, 'fontsize', size_font, 'value', 1);
-cbfix_check2(3)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.985 0.88 0.01 0.03], 'callback', @narrow_cb3, 'fontsize', size_font, 'value', 1);
-grid_check(2)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.39 0.88 0.01 0.03], 'callback', @toggle_grid2, 'fontsize', size_font, 'value', 0);
-grid_check(3)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.88 0.88 0.01 0.03], 'callback', @toggle_grid3, 'fontsize', size_font, 'value', 0);
-pk_check(2, 1)              = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.17 0.965 0.01 0.03], 'callback', @show_pk3, 'fontsize', size_font, 'value', 0);
-pk_check(2, 2)              = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.505 0.965 0.01 0.03], 'callback', @show_pk4, 'fontsize', size_font, 'value', 0);
-data_check(2, 1)            = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.09 0.925 0.01 0.03], 'callback', @show_data3, 'fontsize', size_font, 'value', 0);
-data_check(2, 2)            = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.455 0.925 0.01 0.03], 'callback', @show_data4, 'fontsize', size_font, 'value', 0);
-int_check(2)                = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.14 0.88 0.01 0.03], 'callback', @show_int2, 'fontsize', size_font, 'value', 0);
-int_check(3)                = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.625 0.88 0.01 0.03], 'callback', @show_int3, 'fontsize', size_font, 'value', 0);
-core_check(2)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.175 0.88 0.01 0.03], 'callback', @show_core2, 'fontsize', size_font, 'value', 0);
-core_check(3)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.66 0.88 0.01 0.03], 'callback', @show_core3, 'fontsize', size_font, 'value', 0);
-nearest_check               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.775 0.925 0.01 0.03], 'fontsize', size_font, 'value', 0);
-match_check                 = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.825 0.925 0.01 0.03], 'fontsize', size_font, 'value', 1);
+distfix_check(1)            = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.50 0.005 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+distfix_check(2)            = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.98 0.005 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+zfix_check(2)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.02 0.88 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+zfix_check(3)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.54 0.88 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+cbfix_check1(2)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.485 0.88 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+cbfix_check1(3)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.97 0.88 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+cbfix_check2(2)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.50 0.88 0.01 0.02], 'callback', @narrow_cb2, 'fontsize', size_font, 'value', 1, 'backgroundcolor', get(fgui(2), 'color'));
+cbfix_check2(3)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.985 0.88 0.01 0.02], 'callback', @narrow_cb3, 'fontsize', size_font, 'value', 1, 'backgroundcolor', get(fgui(2), 'color'));
+grid_check(2)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.39 0.88 0.01 0.02], 'callback', @toggle_grid2, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+grid_check(3)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.88 0.88 0.01 0.02], 'callback', @toggle_grid3, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+pk_check(2, 1)              = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.17 0.965 0.01 0.02], 'callback', @show_pk3, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+pk_check(2, 2)              = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.51 0.965 0.01 0.02], 'callback', @show_pk4, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+data_check(2, 1)            = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.09 0.925 0.01 0.02], 'callback', @show_data3, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+data_check(2, 2)            = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.455 0.925 0.01 0.02], 'callback', @show_data4, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+int_check(2)                = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.14 0.88 0.01 0.02], 'callback', @show_int2, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+int_check(3)                = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.625 0.88 0.01 0.02], 'callback', @show_int3, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+core_check(2)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.175 0.88 0.01 0.02], 'callback', @show_core2, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+core_check(3)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.66 0.88 0.01 0.02], 'callback', @show_core3, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+nearest_check               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.775 0.925 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
+match_check                 = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.825 0.925 0.01 0.02], 'fontsize', size_font, 'value', 1, 'backgroundcolor', get(fgui(2), 'color'));
 
 figure(fgui(1))
 
@@ -449,8 +428,20 @@ linkprop(z_max_edit(2:3), 'string');
         if (any(p_bed(:, curr_rad)) && any(ishandle(p_bed(:, curr_rad))))
             delete(p_bed((logical(p_bed(:, curr_rad)) & ishandle(p_bed(:, curr_rad))), curr_rad))
         end
+        if (logical(p_beddepth(curr_rad)) && ishandle(p_beddepth(curr_rad)))
+            delete(p_beddepth(curr_rad))
+        end
+        if (any(p_coredepth{curr_rad}) && any(ishandle(p_coredepth{curr_rad})))
+            delete(p_coredepth{curr_rad}(logical(p_coredepth{curr_rad}) & ishandle(p_coredepth{curr_rad})))
+        end
+        if (any(p_corenamedepth{curr_rad}) && any(ishandle(p_corenamedepth{curr_rad})))
+            delete(p_corenamedepth{curr_rad}(logical(p_corenamedepth{curr_rad}) & ishandle(p_corenamedepth{curr_rad})))
+        end
         if (any(p_data(:, curr_rad)) && any(ishandle(p_data(:, curr_rad))))
             delete(p_data((logical(p_data(:, curr_rad)) & ishandle(p_data(:, curr_rad))), curr_rad))
+        end
+        if (any(p_pkdepth{curr_rad}) && any(ishandle(p_pkdepth{curr_rad})))
+            delete(p_pkdepth{curr_rad}(logical(p_pkdepth{curr_rad}) & ishandle(p_pkdepth{curr_rad})))
         end
         for ii = 1:2
             for jj = 1:3
@@ -458,8 +449,10 @@ linkprop(z_max_edit(2:3), 'string');
                     delete(p_int1{ii, jj}(logical(p_int1{ii, jj}) & ishandle(p_int1{ii, jj})))
                 end
             end
-            if (any(p_int2{ii}) && any(ishandle(p_int2{ii})))
-                delete(p_int2{ii}(logical(p_int2{ii}) & ishandle(p_int2{ii})))
+            for jj = 1:2
+                if (any(p_int2{ii, jj}) && any(ishandle(p_int2{ii, jj})))
+                    delete(p_int2{ii, jj}(logical(p_int2{ii, jj}) & ishandle(p_int2{ii, jj})))
+                end
             end
             if (any(p_core{ii, curr_rad}) && any(ishandle(p_core{ii, curr_rad})))
                 delete(p_core{ii, curr_rad}(logical(p_core{ii, curr_rad}) & ishandle(p_core{ii, curr_rad})))
@@ -480,6 +473,7 @@ linkprop(z_max_edit(2:3), 'string');
         end
         set([pk_check(:, curr_rad); data_check(:, curr_rad); int_check'], 'value', 0)
         set([layer_list(:, curr_rad); intnum_list; data_list(curr_rad)], 'string', 'N/A', 'value', 1)
+        set(disp_check(2), 'visible', 'off')
         axes(ax(curr_ax))
     end
 
@@ -488,12 +482,12 @@ linkprop(z_max_edit(2:3), 'string');
     function clear_data(source, eventdata)
         [bed_avail(curr_rad), data_done(curr_rad), gimp_avail(curr_rad), pk_done(curr_rad), surf_avail(curr_rad)] ...
                             = deal(false);
-        [amp_mean{curr_rad}, colors{curr_rad}, depth{curr_rad}, dist_lin{curr_rad}, elev{curr_rad}, elev_bed{curr_rad}, elev_smooth{curr_rad}, elev_surf{curr_rad}, file_pk_short{curr_rad}, ind_decim{curr_rad}, ...
-         ind_corr{curr_rad}, ind_int_core{curr_rad}, layer_str{curr_rad}, pk{curr_rad}, p_core{1, curr_rad}, p_core{2, curr_rad}, p_corename{1, curr_rad}, p_corename{2, curr_rad}, p_int1{1, 1}, p_int1{1, 2}, ...
-         p_int1{1, 3}, p_int1{2, 1}, p_int1{2, 2}, p_int1{2, 3}, p_int2{1}, p_int2{2}, p_pk{1, curr_rad}, p_pk{2, curr_rad}, twtt{curr_rad}, x{curr_rad}, y{curr_rad}] ...
+        [amp_elev{curr_rad}, colors{curr_rad}, depth{curr_rad}, dist_lin{curr_rad}, elev{curr_rad}, elev_bed{curr_rad}, elev_smooth{curr_rad}, elev_surf{curr_rad}, file_pk_short{curr_rad}, ind_decim{curr_rad}, ind_corr{curr_rad}, ind_int_core{curr_rad}, layer_str{curr_rad}, pk{curr_rad}, ...
+         p_core{1, curr_rad}, p_core{2, curr_rad}, p_coredepth{curr_rad}, p_corename{1, curr_rad}, p_corename{2, curr_rad}, p_corenamedepth{curr_rad}, p_int1{1, 1}, p_int1{1, 2}, p_int1{1, 3}, p_int1{2, 1}, p_int1{2, 2}, p_int1{2, 3}, p_int2{1, 1}, p_int2{1, 2}, p_int2{2, 1}, p_int2{2, 2}, ...
+         p_pk{1, curr_rad}, p_pk{2, curr_rad}, p_pkdepth{curr_rad}, twtt{curr_rad}, x{curr_rad}, y{curr_rad}] ...
                             = deal([]);
         [curr_layer(curr_rad), curr_trans(curr_rad), curr_subtrans(curr_rad), curr_year(curr_rad), dt(curr_rad), num_data(curr_rad), num_decim(curr_rad), num_sample(curr_rad), p_bed(1, curr_rad), ...
-            p_bed(2, curr_rad), p_data(1, curr_rad), p_data(2, curr_rad), p_surf(1, curr_rad), p_surf(2, curr_rad)] ...
+         p_bed(2, curr_rad), p_beddepth(curr_rad), p_data(1, curr_rad), p_data(2, curr_rad), p_surf(1, curr_rad), p_surf(2, curr_rad)] ...
                             = deal(0);
         [curr_ind_int, ii, ind_x_pk, ind_y_pk, jj, num_int, tmp1, tmp2, tmp3, tmp4, tmp5] ...
                             = deal(0);
@@ -625,45 +619,62 @@ linkprop(z_max_edit(2:3), 'string');
                     delete(p_corename{jj, ii}(logical(p_corename{jj, ii}) & ishandle(p_corename{jj, ii})))
                 end
             end
+            if (any(p_coredepth{ii}) && any(ishandle(p_coredepth{ii})))
+                delete(p_coredepth{ii}(logical(p_coredepth{ii}) & ishandle(p_coredepth{ii})))
+            end
+            if (any(p_corenamedepth{ii}) && any(ishandle(p_corenamedepth{ii})))
+                delete(p_corenamedepth{ii}(logical(p_corenamedepth{ii}) & ishandle(p_corenamedepth{ii})))
+            end
         end
         
+        
         for ii = 1:2
-            if ~isempty(int_core{curr_year(ii)}{curr_trans(ii)})
-                
-                ind_int_core{ii}    = [];
-                for jj = 1:size(int_core{curr_year(ii)}{curr_trans(ii)}, 1)
-                    try %#ok<TRYNC>
-                        [tmp1, tmp2]= min(sqrt(((pk{ii}.x_gimp - int_core{curr_year(ii)}{curr_trans(ii)}(jj, 4)) .^ 2) + ((pk{ii}.y_gimp - int_core{curr_year(ii)}{curr_trans(ii)}(jj, 5)) .^ 2)));
-                        if (tmp1 < rad_threshold)
-                            ind_int_core{ii} ...
-                                    = [ind_int_core{ii} tmp2];
-                        end
+            
+            if isempty(int_core{curr_year(ii)}{curr_trans(ii)})
+                continue
+            end
+            
+            ind_int_core{ii}= [];
+            for jj = 1:size(int_core{curr_year(ii)}{curr_trans(ii)}, 1)
+                try %#ok<TRYNC>
+                    [tmp1, tmp2] ...
+                            = min(sqrt(((pk{ii}.x_gimp - int_core{curr_year(ii)}{curr_trans(ii)}(jj, 4)) .^ 2) + ((pk{ii}.y_gimp - int_core{curr_year(ii)}{curr_trans(ii)}(jj, 5)) .^ 2)));
+                    if (tmp1 < rad_threshold)
+                        ind_int_core{ii} ...
+                            = [ind_int_core{ii} tmp2];
                     end
                 end
-                
-                if isempty(ind_int_core{ii})
-                    continue
-                else
-                    num_int_core(ii)= length(ind_int_core{ii});
-                end
-                
-                for jj = 1:2
-                    [p_core{jj, ii}, p_corename{jj, ii}] = deal(zeros(1, num_int_core(ii)));
-                    for kk = 1:num_int_core(ii)
-                        if (jj == 1)
-                            axes(ax(1)) %#ok<LAXES>
-                            p_core{jj, ii}(kk) = plot3(repmat(x_core_gimp(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)), 1, 2), repmat(y_core_gimp(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)), 1, 2), ...
-                                                       [elev_min_ref elev_max_ref], 'color', 'k', 'linewidth', 2, 'visible', 'off');
-                            p_corename{jj, ii}(kk) = text(double(x_core_gimp(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)) + 1), double(y_core_gimp(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)) + 1), ...
-                                                          double(elev_max_ref - 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)}, 'color', 'k', 'fontsize', size_font, 'visible', 'off');
-                        else
-                            axes(ax(ii + 1)) %#ok<LAXES>
-                            p_core{jj, ii}(kk) = plot(repmat(double(pk{ii}.dist_lin_gimp(ind_int_core{ii}(kk))), 1, 2), [elev_min_ref elev_max_ref], 'color', [0.5 0.5 0.5], 'linewidth', 2, 'visible', 'off');
-                            p_corename{jj, ii}(kk) = text(double(pk{ii}.dist_lin_gimp(ind_int_core{ii}(kk)) + 1), double(elev_max_ref - 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)}, ...
-                                                          'color', [0.5 0.5 0.5], 'fontsize', size_font, 'visible', 'off');
-                        end
+            end
+            
+            if isempty(ind_int_core{ii})
+                continue
+            else
+                num_int_core(ii) ...
+                            = length(ind_int_core{ii});
+            end
+            
+            for jj = 1:2
+                [p_core{jj, ii}, p_corename{jj, ii}] ...
+                            = deal(zeros(1, num_int_core(ii)));
+                for kk = 1:num_int_core(ii)
+                    if (jj == 1)
+                        axes(ax(1))
+                        p_core{jj, ii}(kk) = plot3(repmat(x_core_gimp(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)), 1, 2), repmat(y_core_gimp(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)), 1, 2), ...
+                                                   [elev_min_ref elev_max_ref], 'color', 'k', 'linewidth', 2, 'visible', 'off');
+                        p_corename{jj, ii}(kk) = text(double(x_core_gimp(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)) + 1), double(y_core_gimp(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)) + 1), ...
+                                                      double(elev_max_ref - 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)}, 'color', 'k', 'fontsize', size_font, 'visible', 'off');
+                    else
+                        axes(ax(ii + 1))
+                        p_core{jj, ii}(kk) = plot(repmat(double(pk{ii}.dist_lin_gimp(ind_int_core{ii}(kk))), 1, 2), [elev_min_ref elev_max_ref], 'color', [0.5 0.5 0.5], 'linewidth', 2, 'visible', 'off');
+                        p_corename{jj, ii}(kk) = text(double(pk{ii}.dist_lin_gimp(ind_int_core{ii}(kk)) + 1), double(elev_max_ref - 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)}, 'color', [0.5 0.5 0.5], 'fontsize', size_font, 'visible', 'off');
                     end
                 end
+            end
+            [p_coredepth{ii}, p_corenamedepth{ii}] ...
+                            = deal(zeros(1, num_int_core(ii)));
+            for jj = 1:num_int_core(ii)
+                p_coredepth{ii}(jj) = plot(repmat(double(pk{ii}.dist_lin_gimp(ind_int_core{ii}(jj))), 1, 2), [depth_min_ref depth_max_ref], 'color', [0.5 0.5 0.5], 'linewidth', 2, 'visible', 'off');
+                p_corenamedepth{ii}(jj) = text(double(pk{ii}.dist_lin_gimp(ind_int_core{ii}(jj)) + 1), double(depth_min_ref + 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(jj, 3)}, 'color', [0.5 0.5 0.5], 'fontsize', size_font, 'visible', 'off');
             end
         end
         
@@ -833,12 +844,12 @@ linkprop(z_max_edit(2:3), 'string');
                 clear_data
                 set(subtrans_list, 'string', 'N/A', 'value', 1)
                 if ((curr_rad == 1) && pk_done(2))
-                    curr_rad    = 2;
+                    curr_rad= 2;
                     clear_plots
                     clear_data
                     set(int_list, 'string', 'N/A', 'value', 1)
                     set(int_list, 'string', 'N/A', 'value', 1)
-                    curr_rad    = 1;
+                    curr_rad= 1;
                 end
             end
             
@@ -865,7 +876,7 @@ linkprop(z_max_edit(2:3), 'string');
                     set(status_box(1), 'string', 'Chosen picks filename does not match selected transect. Continue loading? Y: yes; otherwise: no...')
                     waitforbuttonpress
                     if ~strcmpi(get(fgui(1), 'currentcharacter'), 'Y')
-                        set(status_box(1), 'string', 'Loading of picks file cancelled by user.')
+                        set(status_box(1), 'string', 'Loading of picks file cancelled.')
                         return
                     end
                 end
@@ -1088,21 +1099,19 @@ linkprop(z_max_edit(2:3), 'string');
         % display merged picks
         colors{curr_rad}    = repmat(colors_def, ceil(pk{curr_rad}.num_layer / size(colors_def, 1)), 1); % extend predefined color pattern
         colors{curr_rad}    = colors{curr_rad}(1:pk{curr_rad}.num_layer, :);
-        [p_pk{1, curr_rad}, p_pk{2, curr_rad}] ...
+        [p_pk{1, curr_rad}, p_pk{2, curr_rad}, p_pkdepth{curr_rad}] ...
                             = deal(zeros(1, pk{curr_rad}.num_layer));
         layer_str{curr_rad} = num2cell(1:pk{curr_rad}.num_layer);
         for ii = 1:pk{curr_rad}.num_layer %#ok<*FXUP>
-            if ~any(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))
+            if all(isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))
                 p_pk{1, curr_rad}(ii) ...
                             = plot3(0, 0, 0, 'w.', 'markersize', 1, 'visible', 'off');
                 layer_str{curr_rad}{ii} ...
                             = [num2str(ii) ' H'];
             else
                 p_pk{1, curr_rad}(ii) ...
-                            = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
-                                    y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
-                                    elev_smooth{curr_rad}(ii, ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
-                                    '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
+                            = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
+                                    elev_smooth{curr_rad}(ii, ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
             end
         end
         
@@ -1113,44 +1122,50 @@ linkprop(z_max_edit(2:3), 'string');
         % display surface and bed
         if surf_avail(curr_rad)
             p_surf(curr_gui, curr_rad) ...
-                            = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), ...
-                                    y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), ...
+                            = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), ...
                                     elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
         end
         if bed_avail(curr_rad)
             p_bed(curr_gui, curr_rad) ...
-                            = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), ...
-                                    y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), ...
+                            = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), ...
                                     elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
         end
         
         % display picks, surface and bed in 2D GUI
         axes(ax(curr_ax + curr_rad))
         for ii = 1:pk{curr_rad}.num_layer
-            if ~any(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))
-                p_pk{2, curr_rad}(ii) ...
-                            = plot(0, 0, 'w.', 'markersize', 1, 'visible', 'off');
+            if all(isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))
+                [p_pk{2, curr_rad}(ii), p_pkdepth{curr_rad}(ii)] ...
+                            = deal(plot(0, 0, 'w.', 'markersize', 1, 'visible', 'off'));
             else
                 p_pk{2, curr_rad}(ii) ...
-                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
-                                   elev_smooth{curr_rad}(ii, ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
+                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), elev_smooth{curr_rad}(ii, ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
+                                   '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
+                p_pkdepth{curr_rad}(ii) ...
+                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), pk{curr_rad}.depth_smooth(ii, ind_decim{curr_rad}(~isnan(pk{curr_rad}.depth_smooth(ii, ind_decim{curr_rad})))), ...
                                    '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
             end
         end
         if surf_avail(curr_rad)
             p_surf(2, curr_rad) ...
-                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), ...
-                                   elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
+                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
             if any(isnan(elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad}))))))
                 set(p_surf(2, curr_rad), 'marker', '.', 'linestyle', 'none', 'markersize', 12)
             end
         end
         if bed_avail(curr_rad)
             p_bed(2, curr_rad) ...
-                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), ...
-                                   elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
+                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
             if any(isnan(elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad}))))))
                 set(p_bed(2, curr_rad), 'marker', '.', 'linestyle', 'none', 'markersize', 12)
+            end
+            if surf_avail(curr_rad)
+                tmp1        = find(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})) & ~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})));
+                p_beddepth(curr_rad) ...
+                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(tmp1)), (elev_bed{curr_rad}(ind_decim{curr_rad}(tmp1)) - elev_surf{curr_rad}(ind_decim{curr_rad}(tmp1))), 'g--', 'linewidth', 2, 'visible', 'off');
+                if (length(tmp1) < length(ind_decim{curr_rad}))
+                    set(p_beddepth(curr_rad), 'marker', '.', 'linestyle', 'none', 'markersize', 12)
+                end
             end
         end
         axes(ax(curr_ax))
@@ -1234,47 +1249,59 @@ linkprop(z_max_edit(2:3), 'string');
         if (curr_rad == 2)
             for ii = 1:2
                 for jj = 1:3
-                    p_int1{ii, jj} = zeros(1, num_int);
+                    p_int1{ii, jj} ...
+                            = zeros(1, num_int);
                 end
+                p_int2{ii, 1} ...
+                            = zeros(1, pk{2}.num_layer);
+                p_int2{ii, 2} ...
+                            = zeros(1, pk{1}.num_layer);
             end
-            p_int2{1}       = zeros(1, pk{2}.num_layer);
-            p_int2{2}       = zeros(1, pk{1}.num_layer);
             axes(ax(1))
             for ii = 1:num_int
-                p_int1{1, 1}(ii) = plot3(repmat(x{1}(curr_ind_int(ii, 1)), 1, 2), repmat(y{1}(curr_ind_int(ii, 1)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
+                p_int1{1, 1}(ii) ...
+                            = plot3(repmat(x{1}(curr_ind_int(ii, 1)), 1, 2), repmat(y{1}(curr_ind_int(ii, 1)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
             end
             axes(ax(2))
             for ii = 1:num_int
-                p_int1{1, 2}(ii) = plot(repmat(dist_lin{1}(curr_ind_int(ii, 1)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
+                p_int1{1, 2}(ii) ...
+                            = plot(repmat(dist_lin{1}(curr_ind_int(ii, 1)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
+                p_int1{2, 2}(ii) ...
+                            = plot(repmat(dist_lin{1}(curr_ind_int(ii, 1)), 1, 2), [depth_min_ref depth_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
             end
             for ii = 1:pk{2}.num_layer
-                p_int2{1}(ii) = plot(dist_lin{1}(curr_ind_int(:, 1)), elev_smooth{2}(ii, curr_ind_int(:, 2)), 'ko', 'markersize', 8, 'markerfacecolor', colors{2}(ii, :), 'visible', 'off');
+                p_int2{1, 1}(ii) ...
+                            = plot(dist_lin{1}(curr_ind_int(:, 1)), elev_smooth{2}(ii, curr_ind_int(:, 2)), 'ko', 'markersize', 8, 'markerfacecolor', colors{2}(ii, :), 'visible', 'off');
+                p_int2{2, 1}(ii) ...
+                            = plot(dist_lin{1}(curr_ind_int(:, 1)), pk{2}.depth_smooth(ii, curr_ind_int(:, 2)), 'ko', 'markersize', 8, 'markerfacecolor', colors{2}(ii, :), 'visible', 'off');
             end
             axes(ax(3))
             for ii = 1:num_int
-                p_int1{1, 3}(ii) = plot(repmat(dist_lin{2}(curr_ind_int(ii, 2)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
+                p_int1{1, 3}(ii) ...
+                            = plot(repmat(dist_lin{2}(curr_ind_int(ii, 2)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
+                p_int1{2, 3}(ii) ...
+                            = plot(repmat(dist_lin{2}(curr_ind_int(ii, 2)), 1, 2), [depth_min_ref depth_max_ref], 'm--', 'linewidth', 2, 'visible', 'off');
             end
             for ii = 1:pk{1}.num_layer
-                p_int2{2}(ii) = plot(dist_lin{2}(curr_ind_int(:, 2)), elev_smooth{1}(ii, curr_ind_int(:, 1)), 'ko', 'markersize', 8, 'markerfacecolor', colors{1}(ii, :), 'visible', 'off');
+                p_int2{1, 2}(ii) ...
+                            = plot(dist_lin{2}(curr_ind_int(:, 2)), elev_smooth{1}(ii, curr_ind_int(:, 1)), 'ko', 'markersize', 8, 'markerfacecolor', colors{1}(ii, :), 'visible', 'off');
+                p_int2{2, 2}(ii) ...
+                            = plot(dist_lin{2}(curr_ind_int(:, 2)), pk{1}.depth_smooth(ii, curr_ind_int(:, 1)), 'ko', 'markersize', 8, 'markerfacecolor', colors{1}(ii, :), 'visible', 'off');
             end
-            for ii = 1:size(pk{1}.ind_layer)
-                set(p_int2{2}(pk{1}.ind_layer(ii, 1)), 'marker', 's')
-            end
-            for ii = 1:size(pk{2}.ind_layer)
-                set(p_int2{1}(pk{2}.ind_layer(ii, 1)), 'marker', 's')
-            end
+            
+            set([p_int2{1, 2}(pk{1}.ind_layer(:, 1)) p_int2{2, 2}(pk{1}.ind_layer(:, 1))], 'marker', 's')
+            set([p_int2{1, 1}(pk{2}.ind_layer(:, 1)) p_int2{2, 1}(pk{2}.ind_layer(:, 1))], 'marker', 's')
+            
             for ii = 1:size(pk{1}.ind_layer, 1)
                 if ((pk{1}.ind_layer(ii, 2) == curr_year(2)) && (pk{1}.ind_layer(ii, 3) == curr_trans(2)) && (pk{1}.ind_layer(ii, 4) == curr_subtrans(2))) % match to current transect
                     if (length(find((pk{1}.ind_layer(:, end) == pk{1}.ind_layer(ii, end)))) > 1)
-                        tmp1 = find((pk{1}.ind_layer(:, end) == pk{1}.ind_layer(ii, end)));
-                        colors{1}(pk{1}.ind_layer(tmp1(2:end), 1), :) = repmat(colors{1}(pk{1}.ind_layer(tmp1(1), 1), :), length(tmp1(2:end)), 1);
-                        set(p_pk{1, 1}(pk{1}.ind_layer(ii, 1)), 'color', colors{1}(pk{1}.ind_layer(tmp1(1), 1), :))
-                        set(p_pk{2, 1}(pk{1}.ind_layer(ii, 1)), 'color', colors{1}(pk{1}.ind_layer(tmp1(1), 1), :))
+                        tmp1= find((pk{1}.ind_layer(:, end) == pk{1}.ind_layer(ii, end)));
+                        colors{1}(pk{1}.ind_layer(tmp1(2:end), 1), :) ...
+                            = repmat(colors{1}(pk{1}.ind_layer(tmp1(1), 1), :), length(tmp1(2:end)), 1);
+                        set([p_pk{1, 1}(pk{1}.ind_layer(ii, 1)) p_pk{2, 1}(pk{1}.ind_layer(ii, 1)) p_pkdepth{1}(pk{1}.ind_layer(ii, 1))], 'color', colors{1}(pk{1}.ind_layer(tmp1(1), 1), :))
                     end
-                    set(p_int2{1}(pk{1}.ind_layer(ii, 5)), 'marker', '^', 'markerfacecolor', colors{1}(pk{1}.ind_layer(ii, 1), :))
-                    set(p_int2{2}(pk{1}.ind_layer(ii, 1)), 'marker', '^', 'markerfacecolor', colors{1}(pk{1}.ind_layer(ii, 1), :))
-                    set(p_pk{1, 2}(pk{1}.ind_layer(ii, 5)), 'color', colors{1}(pk{1}.ind_layer(ii, 1), :))
-                    set(p_pk{2, 2}(pk{1}.ind_layer(ii, 5)), 'color', colors{1}(pk{1}.ind_layer(ii, 1), :))
+                    set([p_int2{1}(pk{1}.ind_layer(ii, 5)) p_int2{1, 2}(pk{1}.ind_layer(ii, 1)) p_int2{2, 2}(pk{1}.ind_layer(ii, 1))], 'marker', '^', 'markerfacecolor', colors{1}(pk{1}.ind_layer(ii, 1), :))
+                    set([p_pk{1, 2}(pk{1}.ind_layer(ii, 5)) p_pk{2, 2}(pk{1}.ind_layer(ii, 5)) p_pkdepth{2}(pk{1}.ind_layer(ii, 5))], 'color', colors{1}(pk{1}.ind_layer(ii, 1), :))
                 end
             end
             set(int_check, 'value', 1)
@@ -1282,6 +1309,9 @@ linkprop(z_max_edit(2:3), 'string');
             show_int2
             show_int3
         end
+        
+        disp_type           = 'elev.';
+        set(disp_group, 'selectedobject', disp_check(1))
         
         % show gui2 display items
         switch curr_rad
@@ -1314,7 +1344,7 @@ linkprop(z_max_edit(2:3), 'string');
             curr_rad        = 2;
         end
         
-        set(status_box(1), 'string', ['Loaded ' file_pk_short{curr_rad} '.'])        
+        set(status_box(1), 'string', ['Loaded ' file_pk_short{curr_rad} '.'])
     end
 
 %% Load radar data
@@ -1398,38 +1428,37 @@ linkprop(z_max_edit(2:3), 'string');
                                 = deal('');
         end
         
-        if ~isempty(file_data{curr_rad})
-            
-            pause(0.1)
-            
-            if ischar(file_data{curr_rad})
-                file_data{curr_rad} ...
-                                = {file_data(curr_rad)};
-            end
-            
-            num_data(curr_rad) ...
-                            = length(file_data{curr_rad});
-            if (num_data(curr_rad) ~= length(pk{curr_rad}.file_block))
-                set(status_box(2), 'string', ['Number of data blocks selected (' num2str(num_data(curr_rad)) ') does not match number of blocks in intersection list (' num2str(length(pk{curr_rad}.file_block)) ').'])
-                return
-            end
-            
-            if (~strcmp(file_data{curr_rad}{1}, [pk{curr_rad}.file_block{1} '.mat']) && ~isempty(pk{curr_rad}.file_block{1}))
-                set(status_box(2), 'string', 'Correct intersecting blocks may not have been selected. Try again.')
-                return
-            end
-            
-            % get rid of all data handle if somehow present
-            if data_done(curr_rad)
-                data_done(curr_rad) ...
-                                = false;
-            end
-            
-            load_data_breakout
-            
-        else
+        if isempty(file_data{curr_rad})
             set(status_box(2), 'string', 'No radar data loaded.')
+            return
         end
+        
+        pause(0.1)
+        
+        if ischar(file_data{curr_rad})
+            file_data{curr_rad} ...
+                            = {file_data(curr_rad)};
+        end
+        
+        num_data(curr_rad)  = length(file_data{curr_rad});
+        if (num_data(curr_rad) ~= length(pk{curr_rad}.file_block))
+            set(status_box(2), 'string', ['Number of data blocks selected (' num2str(num_data(curr_rad)) ') does not match number of blocks in intersection list (' num2str(length(pk{curr_rad}.file_block)) ').'])
+            return
+        end
+        
+        if (~strcmp(file_data{curr_rad}{1}, [pk{curr_rad}.file_block{1} '.mat']) && ~isempty(pk{curr_rad}.file_block{1}))
+            set(status_box(2), 'string', 'Correct intersecting blocks may not have been selected. Try again.')
+            return
+        end
+        
+        % get rid of all data handle if somehow present
+        if data_done(curr_rad)
+            data_done(curr_rad) ...
+                            = false;
+        end
+        
+        load_data_breakout
+        
     end
 
     function load_data_breakout(source, eventdata)
@@ -1460,12 +1489,12 @@ linkprop(z_max_edit(2:3), 'string');
                 
                 [dt(curr_rad), twtt{curr_rad}, num_sample(curr_rad)] ...
                             = deal(tmp1.dt, tmp1.twtt, tmp1.num_sample);
-                amp_mean{curr_rad} ...
+                amp_elev{curr_rad} ...
                             = NaN(num_sample(curr_rad), num_decim(curr_rad));
                 tmp2        = (1 + ceil(decim(curr_rad) / 2)):decim(curr_rad):(pk{curr_rad}.num_trace(ii) - ceil(decim(curr_rad) / 2));
                 tmp3        = floor(decim(curr_rad) / 2);
                 for jj = 1:length(tmp2)
-                    amp_mean{curr_rad}(:, jj) ...
+                    amp_elev{curr_rad}(:, jj) ...
                             = nanmean(tmp1.amp(:, (tmp2(jj) - tmp3):(tmp2(jj) + tmp3)), 2);
                 end
                 
@@ -1488,19 +1517,19 @@ linkprop(z_max_edit(2:3), 'string');
                             = 1;
                 tmp5(tmp5 > pk{curr_rad}.num_trace(ii)) ...
                             = pk{curr_rad}.num_trace(ii);
-                if (size(amp_mean{curr_rad}, 1) > size(tmp1.amp, 1))
+                if (size(amp_elev{curr_rad}, 1) > size(tmp1.amp, 1))
                     for jj = 1:length(tmp3)
-                        amp_mean{curr_rad}(:, tmp3(jj)) ...
-                            = [nanmean(tmp1.amp(:, tmp4(jj):tmp5(jj)), 2); NaN((size(amp_mean{curr_rad}, 1) - size(tmp1.amp, 1)), 1)];
+                        amp_elev{curr_rad}(:, tmp3(jj)) ...
+                            = [nanmean(tmp1.amp(:, tmp4(jj):tmp5(jj)), 2); NaN((size(amp_elev{curr_rad}, 1) - size(tmp1.amp, 1)), 1)];
                     end
-                elseif (size(amp_mean{curr_rad}, 1) < size(tmp1.amp, 1))
+                elseif (size(amp_elev{curr_rad}, 1) < size(tmp1.amp, 1))
                     for jj = 1:length(tmp3)
-                        amp_mean{curr_rad}(:, tmp3(jj)) ...
-                            = nanmean(tmp1.amp(1:size(amp_mean{curr_rad}, 1), tmp4(jj):tmp5(jj)), 2);
+                        amp_elev{curr_rad}(:, tmp3(jj)) ...
+                            = nanmean(tmp1.amp(1:size(amp_elev{curr_rad}, 1), tmp4(jj):tmp5(jj)), 2);
                     end
                 else
                     for jj = 1:length(tmp3)
-                        amp_mean{curr_rad}(:, tmp3(jj)) ...
+                        amp_elev{curr_rad}(:, tmp3(jj)) ...
                             = nanmean(tmp1.amp(:, tmp4(jj):tmp5(jj)), 2);
                     end
                 end
@@ -1511,12 +1540,11 @@ linkprop(z_max_edit(2:3), 'string');
         end
         
         % convert to dB
-        amp_mean{curr_rad}(isinf(amp_mean{curr_rad})) ...
+        amp_elev{curr_rad}(isinf(amp_elev{curr_rad})) ...
                             = NaN;
-        amp_mean{curr_rad}  = 10 .* log10(abs(amp_mean{curr_rad}));
-        num_sample(curr_rad)= size(amp_mean{curr_rad}, 1);
+        amp_elev{curr_rad}  = 10 .* log10(abs(amp_elev{curr_rad}));
+        num_sample(curr_rad)= size(amp_elev{curr_rad}, 1);
         depth{curr_rad}     = ((speed_ice / 2) .* twtt{curr_rad}); % simple monotonically increasing depth vector
-        tmp1                = NaN(size(amp_mean{curr_rad}), 'single');
         if surf_avail(curr_rad)
             tmp2            = interp1(twtt{curr_rad}, 1:num_sample(curr_rad), pk{curr_rad}.twtt_surf(ind_decim{curr_rad}), 'nearest', 'extrap'); % surface traveltime indices
             if any(isnan(tmp2))
@@ -1534,30 +1562,36 @@ linkprop(z_max_edit(2:3), 'string');
             tmp3(isnan(tmp3)) ...
                             = interp1(find(~isnan(tmp3)), tmp3(~isnan(tmp3)), find(isnan(tmp3)), 'linear', 'extrap');
         end
+        amp_depth{curr_rad} = NaN(size(amp_elev{curr_rad}), 'single');
         for ii = 1:num_decim(curr_rad)
-            tmp1(1:(num_sample(curr_rad) - tmp2(ii) + 1), ii) ...
-                            = amp_mean{curr_rad}(tmp2(ii):num_sample(curr_rad), ii); % shift data up to surface
+            amp_depth{curr_rad}(1:(num_sample(curr_rad) - tmp2(ii) + 1), ii) ...
+                            = amp_elev{curr_rad}(tmp2(ii):num_sample(curr_rad), ii); % shift data up to surface
         end
-        [amp_mean{curr_rad}, ind_corr{curr_rad}] ...
-                            = topocorr(tmp1, depth{curr_rad}, tmp3); % topographically correct data
-        tmp1                = 0;
-        amp_mean{curr_rad}  = flipud(amp_mean{curr_rad}); % flip for axes
+        [amp_elev{curr_rad}, ind_corr{curr_rad}] ...
+                            = topocorr(amp_depth{curr_rad}, depth{curr_rad}, tmp3); % topographically correct data
+        amp_elev{curr_rad}  = flipud(amp_elev{curr_rad}); % flip for axes
         ind_corr{curr_rad}  = max(ind_corr{curr_rad}) - ind_corr{curr_rad} + 1;
         depth{curr_rad}     = (speed_ice / 2) .* (0:dt(curr_rad):((num_sample(curr_rad) - 1) * dt(curr_rad)))'; % simple monotonically increasing depth vector
         elev{curr_rad}      = flipud(max(elev_surf{curr_rad}(ind_decim{curr_rad})) - depth{curr_rad}); % elevation vector
         
         % assign traveltime and distance reference values/sliders based on data
-        [elev_min_ref, db_min_ref(curr_ax), elev_max_ref, db_max_ref(curr_ax), elev_min(curr_ax), db_min(curr_ax), elev_max(curr_ax), db_max(curr_ax)] ...
-                            = deal(nanmin([nanmin(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_min_ref]), nanmin(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), ...
-                                   nanmax([nanmax(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_max_ref]), nanmax(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), ...
-                                   nanmin([nanmin(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_min_ref]), nanmin(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))), ...
-                                   nanmax([max(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_max_ref]), nanmax(amp_mean{curr_rad}(~isinf(amp_mean{curr_rad}(:)))));
+        [elev_min_ref, db_min_ref(curr_ax), elev_max_ref, db_max_ref(curr_ax), elev_min(curr_ax), db_min(curr_ax), elev_max(curr_ax), db_max(curr_ax), depth_min(curr_rad), depth_max(curr_rad)] ...
+                            = deal(nanmin([nanmin(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_min_ref]), nanmin(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:)))), nanmax([nanmax(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_max_ref]), ...
+                                   nanmax(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:)))), nanmin([nanmin(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_min_ref]), nanmin(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:)))), ...
+                                   nanmax([max(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_max_ref]), nanmax(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:)))), min(depth{curr_rad}), max(depth{curr_rad}));
+        if data_done(curr_rad_alt)
+            [depth_min_ref, depth_max_ref] ...
+                            = deal(min([depth{1}; depth{2}]), max([depth{1}; depth{2}]));
+        else
+            [depth_min_ref, depth_max_ref] ...
+                            = deal(min(depth{curr_rad}), max(depth{curr_rad}));
+        end
         set(cb_min_slide(curr_ax), 'min', db_min_ref(curr_ax), 'max', db_max_ref(curr_ax), 'value', db_min_ref(curr_ax))
         set(cb_max_slide(curr_ax), 'min', db_min_ref(curr_ax), 'max', db_max_ref(curr_ax), 'value', db_max_ref(curr_ax))
         set(cb_min_edit(curr_ax), 'string', sprintf('%3.0f', db_min_ref(curr_ax)))
         set(cb_max_edit(curr_ax), 'string', sprintf('%3.0f', db_max_ref(curr_ax)))
         update_z_range
-                
+        
         if all(pk_done)
             for ii = 1:3
                 if (any(p_int1{1, ii}) && any(ishandle(p_int1{1, ii})))
@@ -1591,12 +1625,26 @@ linkprop(z_max_edit(2:3), 'string');
                     end
                 end
             end
+            if (any(p_coredepth{curr_rad}) && any(ishandle(p_coredepth{curr_rad})))
+                set(p_coredepth{curr_rad}(logical(p_coredepth{curr_rad}) & ishandle(p_coredepth{curr_rad})), 'ydata', [depth_min_ref depth_max_ref])
+            end
+            for ii = 1:length(p_corenamedepth{curr_rad})
+                if (logical(p_corenamedepth{curr_rad}(ii)) && ishandle(p_corenamedepth{curr_rad}(ii)))
+                    tmp1    = get(p_corenamedepth{curr_rad}(ii), 'position');
+                    set(p_corenamedepth{curr_rad}(ii), 'position', [tmp1(1:2) (depth_max_ref + 50)])
+                end
+            end
         end
         
         % plot data
         data_done(curr_rad) = true;
         set(data_check(curr_gui, curr_rad), 'value', 1)
-        plot_db
+        disp_type           = 'elev.';
+        set(disp_group, 'selectedobject', disp_check(1))
+        if surf_avail
+            set(disp_check(2), 'visible', 'on')
+        end
+        plot_elev
         if (curr_rad == 2)
             set(intnum_list, 'value', 1)
             change_int
@@ -1606,31 +1654,31 @@ linkprop(z_max_edit(2:3), 'string');
 
 %% Choose the current layer
 
-    function choose_layer1(source, eventdata)
+    function pk_select1(source, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                         = deal(1, 1, 1, 2);
-        choose_layer
+        pk_select
     end
 
-    function choose_layer2(source, eventdata)
+    function pk_select2(source, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                         = deal(1, 1, 2, 1);
-        choose_layer
+        pk_select
     end
 
-    function choose_layer3(source, eventdata)
+    function pk_select3(source, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                         = deal(2, 2, 1, 2);
-        choose_layer
+        pk_select
     end
 
-    function choose_layer4(source, eventdata)
+    function pk_select4(source, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                         = deal(2, 3, 2, 1);
-        choose_layer
+        pk_select
     end
 
-    function choose_layer(source, eventdata)
+    function pk_select(source, eventdata)
         set(rad_group, 'selectedobject', rad_check(curr_rad))
         curr_layer(curr_rad)= get(layer_list(curr_gui, curr_rad), 'value');
         if pk_done(curr_rad)
@@ -1639,21 +1687,27 @@ linkprop(z_max_edit(2:3), 'string');
                 if (any(p_pk{ii, curr_rad}) && any(ishandle(p_pk{ii, curr_rad})))
                     set(p_pk{ii, curr_rad}(logical(p_pk{ii, curr_rad}) & ishandle(p_pk{ii, curr_rad})), 'markersize', 12)
                 end
-                if (any(p_int2{curr_rad_alt}) && any(ishandle(p_int2{curr_rad_alt})))
-                    set(p_int2{curr_rad_alt}(logical(p_int2{curr_rad_alt}) & ishandle(p_int2{curr_rad_alt})), 'markersize', 8)
+                if (any(p_int2{ii, curr_rad_alt}) && any(ishandle(p_int2{ii, curr_rad_alt})))
+                    set(p_int2{ii, curr_rad_alt}(logical(p_int2{ii, curr_rad_alt}) & ishandle(p_int2{ii, curr_rad_alt})), 'markersize', 8)
                 end
                 if (logical(p_pk{ii, curr_rad}(curr_layer(curr_rad))) && ishandle(p_pk{ii, curr_rad}(curr_layer(curr_rad))))
                     set(p_pk{ii, curr_rad}(curr_layer(curr_rad)), 'markersize', 24)
                 end
                 if all(pk_done)
-                    if (logical(p_int2{curr_rad_alt}(curr_layer(curr_rad))) && ishandle(p_int2{curr_rad_alt}(curr_layer(curr_rad))))
-                        set(p_int2{curr_rad_alt}(curr_layer(curr_rad)), 'markersize', 16)
+                    if (logical(p_int2{ii, curr_rad_alt}(curr_layer(curr_rad))) && ishandle(p_int2{ii, curr_rad_alt}(curr_layer(curr_rad))))
+                        set(p_int2{ii, curr_rad_alt}(curr_layer(curr_rad)), 'markersize', 16)
                     end
                 end
             end
+            if (any(p_pkdepth{curr_rad}) && any(ishandle(p_pkdepth{curr_rad})))
+                set(p_pkdepth{curr_rad}(logical(p_pkdepth{curr_rad}) & ishandle(p_pk{ii, curr_rad})), 'markersize', 12)
+            end
+            if (logical(p_pkdepth{curr_rad}(curr_layer(curr_rad))) && ishandle(p_pkdepth{curr_rad}(curr_layer(curr_rad))))
+                set(p_pkdepth{curr_rad}(curr_layer(curr_rad)), 'markersize', 24)
+            end
         end
         if ischar(tmp1)
-            if strcmp(tmp1, 'rechoose')
+            if strcmp(tmp1, 'reselect')
                 return
             end
         end
@@ -1662,8 +1716,7 @@ linkprop(z_max_edit(2:3), 'string');
             switch curr_rad
                 case 1
                     if ~isempty(find(((pk{2}.ind_layer(:, 5) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1))
-                        curr_layer(2) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 5) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & ...
-                                                              (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1), 1);
+                        curr_layer(2) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 5) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1), 1);
                         for ii = 1:2
                             if (any(p_pk{ii, 2}) && any(ishandle(p_pk{ii, 2})))
                                 set(p_pk{ii, 2}(logical(p_pk{ii, 2}) & ishandle(p_pk{ii, 2})), 'markersize', 12)
@@ -1671,26 +1724,30 @@ linkprop(z_max_edit(2:3), 'string');
                             if (logical(p_pk{ii, 2}(curr_layer(2))) && ishandle(p_pk{ii, 2}(curr_layer(2))))
                                 set(p_pk{ii, 2}(curr_layer(2)), 'markersize', 24)
                             end
-                            if (any(p_int2{1}) && any(ishandle(p_int2{1})))
-                                set(p_int2{1}(logical(p_int2{1}) & ishandle(p_int2{1})), 'markersize', 8)
+                            for jj = 1:2
+                                if (any(p_int2{ii, jj}) && any(ishandle(p_int2{ii, jj})))
+                                    set(p_int2{ii, jj}(logical(p_int2{ii, jj}) & ishandle(p_int2{ii, jj})), 'markersize', 8)
+                                end
                             end
-                            if (any(p_int2{2}) && any(ishandle(p_int2{2})))
-                                set(p_int2{2}(logical(p_int2{2}) & ishandle(p_int2{2})), 'markersize', 8)
+                            if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                                set(p_int2{ii, 1}(curr_layer(2)), 'markersize', 16)
                             end
-                            if (logical(p_int2{1}(curr_layer(2))) && ishandle(p_int2{1}(curr_layer(2))))
-                                set(p_int2{1}(curr_layer(2)), 'markersize', 16)
+                            if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                                set(p_int2{ii, 2}(curr_layer(1)), 'markersize', 16)
                             end
-                            if (logical(p_int2{2}(curr_layer(1))) && ishandle(p_int2{2}(curr_layer(1))))
-                                set(p_int2{2}(curr_layer(1)), 'markersize', 16)
-                            end
+                        end
+                        if (any(p_pkdepth{2}) && any(ishandle(p_pkdepth{2})))
+                            set(p_pkdepth{2}(logical(p_pkdepth{2}) & ishandle(p_pkdepth{2})), 'markersize', 12)
+                        end
+                        if (logical(p_pkdepth{2}(curr_layer(2))) && ishandle(p_pkdepth{2}(curr_layer(2))))
+                            set(p_pkdepth{2}(curr_layer(2)), 'markersize', 24)
                         end
                         tmp1 = 'matched';
                     end
                     set(layer_list(:, 2), 'value', curr_layer(2))
                 case 2
                     if ~isempty(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1))
-                        curr_layer(1) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & ...
-                                                              (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1), 5);
+                        curr_layer(1) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1), 5);
                         for ii = 1:2
                             if (any(p_pk{ii, 1}) && any(ishandle(p_pk{ii, 1})))
                                 set(p_pk{ii, 1}(logical(p_pk{ii, 1}) & ishandle(p_pk{ii, 1})), 'markersize', 12)
@@ -1698,18 +1755,23 @@ linkprop(z_max_edit(2:3), 'string');
                             if (logical(p_pk{ii, 1}(curr_layer(1))) && ishandle(p_pk{ii, 1}(curr_layer(1))))
                                 set(p_pk{ii, 1}(curr_layer(1)), 'markersize', 24)
                             end
-                            if (any(p_int2{1}) && any(ishandle(p_int2{1})))
-                                set(p_int2{1}(logical(p_int2{1}) & ishandle(p_int2{1})), 'markersize', 8)
+                            for jj = 1:2
+                                if (any(p_int2{ii, jj}) && any(ishandle(p_int2{ii, jj})))
+                                    set(p_int2{ii, jj}(logical(p_int2{ii, jj}) & ishandle(p_int2{ii, jj})), 'markersize', 8)
+                                end
                             end
-                            if (any(p_int2{2}) && any(ishandle(p_int2{2})))
-                                set(p_int2{2}(logical(p_int2{2}) & ishandle(p_int2{2})), 'markersize', 8)
+                            if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                                set(p_int2{ii, 1}(curr_layer(2)), 'markersize', 16)
                             end
-                            if (logical(p_int2{1}(curr_layer(2))) && ishandle(p_int2{1}(curr_layer(2))))
-                                set(p_int2{1}(curr_layer(2)), 'markersize', 16)
+                            if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                                set(p_int2{ii, 2}(curr_layer(1)), 'markersize', 16)
                             end
-                            if (logical(p_int2{2}(curr_layer(1))) && ishandle(p_int2{2}(curr_layer(1))))
-                                set(p_int2{2}(curr_layer(1)), 'markersize', 16)
-                            end
+                        end
+                        if (any(p_pkdepth{1}) && any(ishandle(p_pkdepth{1})))
+                            set(p_pkdepth{1}(logical(p_pkdepth{1}) & ishandle(p_pkdepth{1})), 'markersize', 12)
+                        end
+                        if (logical(p_pkdepth{1}(curr_layer(1))) && ishandle(p_pkdepth{1}(curr_layer(1))))
+                            set(p_pkdepth{1}(curr_layer(1)), 'markersize', 24)
                         end
                         tmp1 = 'matched';
                     end
@@ -1723,8 +1785,8 @@ linkprop(z_max_edit(2:3), 'string');
                 [curr_rad, curr_rad_alt] ...
                             = deal(curr_rad_alt, curr_rad);
                 set(layer_list(curr_gui, curr_rad), 'value', curr_layer(curr_rad))
-                tmp1        = 'rechoose';
-                choose_layer
+                tmp1        = 'reselect';
+                pk_select
             end
         else
             set(status_box, 'string', ['Layer #' num2str(curr_layer(curr_rad)) ' selected.'])
@@ -1755,9 +1817,18 @@ linkprop(z_max_edit(2:3), 'string');
             set(pk_check(2, curr_rad), 'value', 1)
             show_pk
         end
-        set(status_box(2), 'string', 'Choose a layer to highlight...')
+        set(status_box(2), 'string', 'Choose a layer to select...')
         [ind_x_pk, ind_y_pk]= ginput(1);
-        [tmp1, tmp2]        = unique(elev_smooth{curr_rad}(:, interp1(dist_lin{curr_rad}(ind_decim{curr_rad}), ind_decim{curr_rad}, ind_x_pk, 'nearest', 'extrap')));
+        choose_pk_breakout
+    end
+
+    function choose_pk_breakout(source, eventdata)
+        switch disp_type
+            case 'elev.'
+                [tmp1, tmp2]= unique(elev_smooth{curr_rad}(:, interp1(dist_lin{curr_rad}(ind_decim{curr_rad}), ind_decim{curr_rad}, ind_x_pk, 'nearest', 'extrap')));
+            case 'depth'
+                [tmp1, tmp2]= unique(pk{curr_rad}.depth_smooth(:, interp1(dist_lin{curr_rad}(ind_decim{curr_rad}), ind_decim{curr_rad}, ind_x_pk, 'nearest', 'extrap')));
+        end
         if (length(tmp1(~isnan(tmp1))) > 1)
             curr_layer(curr_rad) ...
                             = interp1(tmp1(~isnan(tmp1)), tmp2(~isnan(tmp1)), ind_y_pk, 'nearest', 'extrap');
@@ -1769,7 +1840,7 @@ linkprop(z_max_edit(2:3), 'string');
             return
         end
         set(layer_list(:, curr_rad), 'value', curr_layer(curr_rad))
-        choose_layer
+        pk_select
         set(status_box(curr_gui), 'string', ['Layer #' num2str(curr_layer(curr_rad)) ' selected.'])
     end
 
@@ -1794,8 +1865,7 @@ linkprop(z_max_edit(2:3), 'string');
         end
         axes(ax(curr_ax))
         if gimp_avail(curr_rad)
-            xlim([pk{curr_rad}.dist_lin_gimp(find(~isnan(pk{curr_rad}.elev_smooth_gimp(curr_layer(curr_rad), :)), 1)) pk{curr_rad}.dist_lin_gimp(find(~isnan(pk{curr_rad}.elev_smooth_gimp(curr_layer(curr_rad), :)), ...
-                  1, 'last'))])
+            xlim([pk{curr_rad}.dist_lin_gimp(find(~isnan(pk{curr_rad}.elev_smooth_gimp(curr_layer(curr_rad), :)), 1)) pk{curr_rad}.dist_lin_gimp(find(~isnan(pk{curr_rad}.elev_smooth_gimp(curr_layer(curr_rad), :)), 1, 'last'))])
         else
             xlim([pk{curr_rad}.dist_lin(find(~isnan(pk{curr_rad}.elev_smooth(curr_layer(curr_rad), :)), 1)) pk{curr_rad}.dist_lin(find(~isnan(pk{curr_rad}.elev_smooth(curr_layer(curr_rad), :)), 1, 'last'))])
         end
@@ -1826,41 +1896,70 @@ linkprop(z_max_edit(2:3), 'string');
         end
         set(dist_min_edit(curr_rad), 'string', sprintf('%3.1f', dist_min(curr_rad)))
         set(dist_max_edit(curr_rad), 'string', sprintf('%3.1f', dist_max(curr_rad)))
-        if gimp_avail(curr_rad)
-            ylim([min(pk{curr_rad}.elev_smooth_gimp(curr_layer(curr_rad), ind_decim{curr_rad})) max(pk{curr_rad}.elev_smooth_gimp(curr_layer(curr_rad), ind_decim{curr_rad}))])
-        else
-            ylim([min(pk{curr_rad}.elev_smooth(curr_layer(curr_rad), ind_decim{curr_rad})) max(pk{curr_rad}.elev_smooth(curr_layer(curr_rad), ind_decim{curr_rad}))])
-        end
-        tmp1        = get(ax(curr_ax), 'ylim');
-        [tmp1(1), tmp1(2)] ...
-            = deal((tmp1(1) - diff(tmp1)), (tmp1(2) + diff(tmp1)));
-        if (tmp1(1) < elev_min_ref)
-            tmp1(1) = elev_min_ref;
-        end
-        if (tmp1(2) > elev_max_ref)
-            tmp1(2) = elev_max_ref;
-        end
-        ylim(tmp1)
-        [elev_min(curr_ax), elev_max(curr_ax)] ...
+        switch disp_type
+            case 'elev.'
+                ylim([min(elev_smooth{curr_rad}(curr_layer(curr_rad), ind_decim{curr_rad})) max(elev_smooth{curr_rad}(curr_layer(curr_rad), ind_decim{curr_rad}))])
+                tmp1        = get(ax(curr_ax), 'ylim');
+                [tmp1(1), tmp1(2)] ...
+                            = deal((tmp1(1) - diff(tmp1)), (tmp1(2) + diff(tmp1)));
+                if (tmp1(1) < elev_min_ref)
+                    tmp1(1) = elev_min_ref;
+                end
+                if (tmp1(2) > elev_max_ref)
+                    tmp1(2) = elev_max_ref;
+                end
+                ylim(tmp1)
+                [elev_min(curr_ax), elev_max(curr_ax)] ...
                             = deal(tmp1(1), tmp1(2));
-        if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-        elseif (elev_min(curr_ax) > get(z_min_slide(curr_ax), 'max'))
-            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
-        else
-            set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
+                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                elseif (elev_min(curr_ax) > get(z_min_slide(curr_ax), 'max'))
+                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                else
+                    set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                end
+                if (elev_max(curr_ax) < get(z_max_slide(curr_ax), 'min'))
+                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+                elseif (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                else
+                    set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                end
+                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+            case 'depth'
+                ylim([min(pk{curr_rad}.depth_smooth(curr_layer(curr_rad), ind_decim{curr_rad})) max(pk{curr_rad}.depth_smooth(curr_layer(curr_rad), ind_decim{curr_rad}))])
+                tmp1        = get(ax_radar, 'ylim');
+                [tmp1(1), tmp1(2)] ...
+                            = deal((tmp1(1) - diff(tmp1)), (tmp1(2) + diff(tmp1)));
+                if (tmp1(1) < depth_min_ref)
+                    tmp1(1) = depth_min_ref;
+                end
+                if (tmp1(2) > depth_max_ref)
+                    tmp1(2) = depth_max_ref;
+                end
+                ylim(tmp1)
+                [depth_min(curr_rad), depth_max(curr_rad)] ...
+                            = deal(tmp1(1), tmp1(2));
+                if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
+                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                else
+                    set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                end
+                if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
+                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+                elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                else
+                    set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                end
+                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
         end
-        if (elev_max(curr_ax) < get(z_max_slide(curr_ax), 'min'))
-            set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
-        elseif (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-            set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
-        else
-            set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
-        end
-        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
         narrow_cb
-        set(status_box(2), 'string', ['Focused on Layer #' num2str(curr_layer(curr_rad)) '.'])
+        set(status_box(2), 'string', ['Focused on layer #' num2str(curr_layer(curr_rad)) '.'])
     end
 
 %% Switch to previous layer in list
@@ -1895,19 +1994,7 @@ linkprop(z_max_edit(2:3), 'string');
             curr_layer(curr_rad) ...
                             = curr_layer(curr_rad) - 1;
             set(layer_list(:, curr_rad), 'value', curr_layer(curr_rad))
-            if (any(p_pk{1, curr_rad}) && any(ishandle(p_pk{1, curr_rad})))
-                set(p_pk{1, curr_rad}(logical(p_pk{1, curr_rad}) & ishandle(p_pk{1, curr_rad})), 'markersize', 12)
-            end
-            if (logical(p_pk{1, curr_rad}(curr_layer(curr_rad))) && ishandle(p_pk{1, curr_rad}(curr_layer(curr_rad))))
-                set(p_pk{1, curr_rad}(curr_layer(curr_rad)), 'markersize', 24)
-            end
-            if (any(p_pk{2, curr_rad}) && any(ishandle(p_pk{2, curr_rad})))
-                set(p_pk{2, curr_rad}(logical(p_pk{1, curr_rad}) & ishandle(p_pk{2, curr_rad})), 'markersize', 12)
-            end
-            if (logical(p_pk{2, curr_rad}(curr_layer(curr_rad))) && ishandle(p_pk{2, curr_rad}(curr_layer(curr_rad))))
-                set(p_pk{2, curr_rad}(curr_layer(curr_rad)), 'markersize', 24)
-            end
-            choose_layer
+            pk_select
         end
     end
 
@@ -1943,19 +2030,7 @@ linkprop(z_max_edit(2:3), 'string');
             curr_layer(curr_rad) ...
                             = curr_layer(curr_rad) + 1;
             set(layer_list(:, curr_rad), 'value', curr_layer(curr_rad))
-            if (any(p_pk{1, curr_rad}) && any(ishandle(p_pk{1, curr_rad})))
-                set(p_pk{1, curr_rad}(logical(p_pk{1, curr_rad}) & ishandle(p_pk{1, curr_rad})), 'markersize', 12)
-            end
-            if (logical(p_pk{1, curr_rad}(curr_layer(curr_rad))) && ishandle(p_pk{1, curr_rad}(curr_layer(curr_rad))))
-                set(p_pk{1, curr_rad}(curr_layer(curr_rad)), 'markersize', 24)
-            end
-            if (any(p_pk{2, curr_rad}) && any(ishandle(p_pk{2, curr_rad})))
-                set(p_pk{2, curr_rad}(logical(p_pk{1, curr_rad}) & ishandle(p_pk{2, curr_rad})), 'markersize', 12)
-            end
-            if (logical(p_pk{2, curr_rad}(curr_layer(curr_rad))) && ishandle(p_pk{2, curr_rad}(curr_layer(curr_rad))))
-                set(p_pk{2, curr_rad}(curr_layer(curr_rad)), 'markersize', 24)
-            end
-            choose_layer
+            pk_select
         end
     end
 
@@ -1966,7 +2041,7 @@ linkprop(z_max_edit(2:3), 'string');
         curr_gui            = 2;
         
         if ~all(pk_done)
-            set(status_box(2), 'string', 'Picks must be loaded for both master and intersecting transects.')
+            set(status_box(curr_gui), 'string', 'Picks must be loaded for both master and intersecting transects.')
             return
         end
         
@@ -1995,11 +2070,14 @@ linkprop(z_max_edit(2:3), 'string');
             if (logical(p_pk{ii, 2}(curr_layer(2))) && ishandle(p_pk{ii, 2}(curr_layer(2))))
                 set(p_pk{ii, 2}(curr_layer(2)), 'color', tmp2)
             end
-            if (logical(p_int2{1}(curr_layer(2))) && ishandle(p_int2{1}(curr_layer(2))))
-                set(p_int2{1}(curr_layer(2)), 'markerfacecolor', tmp2)
+            if (logical(p_pkdepth{2}(curr_layer(2))) && ishandle(p_pkdepth{2}(curr_layer(2))))
+                set(p_pkdepth{2}(curr_layer(2)), 'color', tmp2)
             end
-            if (logical(p_int2{2}(curr_layer(1))) && ishandle(p_int2{2}(curr_layer(1))))
-                set(p_int2{2}(curr_layer(1)), 'markerfacecolor', tmp2)
+            if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                set(p_int2{ii, 1}(curr_layer(2)), 'markerfacecolor', tmp2)
+            end
+            if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                set(p_int2{ii, 2}(curr_layer(1)), 'markerfacecolor', tmp2)
             end
         end
         
@@ -2014,8 +2092,11 @@ linkprop(z_max_edit(2:3), 'string');
                     if (any(p_pk{ii, 1}(pk{1}.ind_layer(tmp1, 1))) && any(ishandle(p_pk{ii, 1}(pk{1}.ind_layer(tmp1, 1)))))
                         set(p_pk{ii, 1}(pk{1}.ind_layer(tmp1, 1)), 'color', tmp2)
                     end
-                    if (any(p_int2{2}(pk{1}.ind_layer(tmp1, 1))) && any(ishandle(p_int2{2}(pk{1}.ind_layer(tmp1, 1)))))
-                        set(p_int2{2}(pk{1}.ind_layer(tmp1, 1)), 'markerfacecolor', tmp2)
+                    if (any(p_pkdepth{1}(pk{1}.ind_layer(tmp1, 1))) && any(ishandle(p_pkdepth{1}(pk{1}.ind_layer(tmp1, 1)))))
+                        set(p_pkdepth{1}(pk{1}.ind_layer(tmp1, 1)), 'color', tmp2)
+                    end
+                    if (any(p_int2{ii, 2}(pk{1}.ind_layer(tmp1, 1))) && any(ishandle(p_int2{ii, 2}(pk{1}.ind_layer(tmp1, 1)))))
+                        set(p_int2{ii, 2}(pk{1}.ind_layer(tmp1, 1)), 'markerfacecolor', tmp2)
                     end
                 end
             end
@@ -2025,11 +2106,11 @@ linkprop(z_max_edit(2:3), 'string');
         pk{2}.ind_layer     = [pk{2}.ind_layer; [curr_layer(2) curr_year(1) curr_trans(1) curr_subtrans(1) curr_layer(1) NaN]];
         
         for ii = 1:2
-            if (logical(p_int2{1}(curr_layer(2))) && ishandle(p_int2{1}(curr_layer(2))))
-                set(p_int2{1}(curr_layer(2)), 'marker', '^')
+            if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                set(p_int2{ii, 1}(curr_layer(2)), 'marker', '^')
             end
-            if (logical(p_int2{2}(curr_layer(1))) && ishandle(p_int2{2}(curr_layer(1))))
-                set(p_int2{2}(curr_layer(1)), 'marker', '^')
+            if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                set(p_int2{ii, 2}(curr_layer(1)), 'marker', '^')
             end
         end
         
@@ -2051,79 +2132,79 @@ linkprop(z_max_edit(2:3), 'string');
         
         waitforbuttonpress
         
-        if strcmpi(get(fgui(2), 'currentcharacter'), 'Y')
-            
-            set(status_box(2), 'string', ['Unmatching master transect layer #' num2str(curr_layer(1)) ' from intersecting transect layer # ' num2str(curr_layer(2)) '...'])
-            pause(0.1)
-            
-            if (~isempty(find(((pk{1}.ind_layer(:, 1) == curr_layer(1)) & (pk{1}.ind_layer(:, 5) == curr_layer(2))), 1)) && ...
-                ~isempty(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 5) == curr_layer(1))), 1)))
-                pk{1}.ind_layer = pk{1}.ind_layer(setdiff(1:size(pk{1}.ind_layer, 1), find(((pk{1}.ind_layer(:, 1) == curr_layer(1)) & (pk{1}.ind_layer(:, 5) == curr_layer(2))))), :);
-                pk{2}.ind_layer = pk{2}.ind_layer(setdiff(1:size(pk{2}.ind_layer, 1), find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 5) == curr_layer(1))))), :);
-            else
-                set(status_box(2), 'string', 'Current layer pair not matched. Unmatching cancelled.')
-                return
-            end
-            
-            for ii = 1:2
-                if (logical(p_pk{ii, 2}(curr_layer(2))) && ishandle(p_pk{ii, 2}(curr_layer(2))))
-                    set(p_pk{ii, 2}(curr_layer(2)), 'color', colors{2}(curr_layer(2), :))
-                end
-                if (logical(p_int2{1}(curr_layer(2))) && ishandle(p_int2{1}(curr_layer(2))))
-                    set(p_int2{1}(curr_layer(2)), 'markerfacecolor', colors{2}(curr_layer(2), :))
-                end
-                if (logical(p_int2{2}(curr_layer(1))) && ishandle(p_int2{2}(curr_layer(1))))
-                    set(p_int2{2}(curr_layer(1)), 'markerfacecolor', colors{1}(curr_layer(1), :))
-                end
-            end
-            
-            if ~isempty(find((pk{1}.ind_layer(:, 1) == curr_layer(1)), 1))
-                for ii = 1:2
-                    if (logical(p_int2{2}(curr_layer(1))) && ishandle(p_int2{2}(curr_layer(1))))
-                        set(p_int2{2}(curr_layer(1)), 'marker', 's')
-                    end
-                end
-            else
-                for ii = 1:2
-                    if (logical(p_int2{2}(curr_layer(1))) && ishandle(p_int2{2}(curr_layer(1))))
-                        set(p_int2{2}(curr_layer(1)), 'marker', 'o')
-                    end
-                end
-            end
-            if isempty(find((pk{1}.ind_layer(:, 5) == curr_layer(2)), 1))
-                for ii = 1:2
-                    if (logical(p_int2{2}(curr_layer(1))) && ishandle(p_int2{2}(curr_layer(1))))
-                        set(p_int2{2}(curr_layer(1)), 'marker', 'o')
-                    end
-                end
-            end
-            if ~isempty(find((pk{2}.ind_layer(:, 1) == curr_layer(2)), 1))
-                for ii = 1:2
-                    if (logical(p_int2{1}(curr_layer(2))) && ishandle(p_int2{1}(curr_layer(2))))
-                        set(p_int2{1}(curr_layer(2)), 'marker', 's')
-                    end
-                end
-            else
-                for ii = 1:2
-                    if (logical(p_int2{1}(curr_layer(2))) && ishandle(p_int2{1}(curr_layer(2))))
-                        set(p_int2{1}(curr_layer(2)), 'marker', 'o')
-                    end
-                end
-            end
-            if isempty(find((pk{2}.ind_layer(:, 5) == curr_layer(1)), 1))
-                for ii = 1:2
-                    if (logical(p_int2{1}(curr_layer(2))) && ishandle(p_int2{1}(curr_layer(2))))
-                        set(p_int2{1}(curr_layer(2)), 'marker', 'o')
-                    end
-                end
-            end
-            
-            set(status_box(2), 'string', ['Intersecting layer # ' num2str(curr_layer(2)) ' unmatched from master layer #' num2str(curr_layer(1)) '.'])
-            
-        else
-            set(status_box(2), 'string', 'Unmatching cancelled by user.')
+        if ~strcmpi(get(fgui(2), 'currentcharacter'), 'Y')
+            set(status_box(2), 'string', 'Unmatching cancelled.')
             return
         end
+        
+        set(status_box(2), 'string', ['Unmatching master transect layer #' num2str(curr_layer(1)) ' from intersecting transect layer # ' num2str(curr_layer(2)) '...'])
+        pause(0.1)
+        
+        if (~isempty(find(((pk{1}.ind_layer(:, 1) == curr_layer(1)) & (pk{1}.ind_layer(:, 5) == curr_layer(2))), 1)) && ~isempty(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 5) == curr_layer(1))), 1)))
+            pk{1}.ind_layer = pk{1}.ind_layer(setdiff(1:size(pk{1}.ind_layer, 1), find(((pk{1}.ind_layer(:, 1) == curr_layer(1)) & (pk{1}.ind_layer(:, 5) == curr_layer(2))))), :);
+            pk{2}.ind_layer = pk{2}.ind_layer(setdiff(1:size(pk{2}.ind_layer, 1), find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 5) == curr_layer(1))))), :);
+        else
+            set(status_box(2), 'string', 'Current layer pair not matched. Unmatching cancelled.')
+            return
+        end
+        
+        for ii = 1:2
+            if (logical(p_pk{ii, 2}(curr_layer(2))) && ishandle(p_pk{ii, 2}(curr_layer(2))))
+                set(p_pk{ii, 2}(curr_layer(2)), 'color', colors{2}(curr_layer(2), :))
+            end
+            if (logical(p_pkdepth{ii}(curr_layer(2))) && ishandle(p_pkdepth{ii}(curr_layer(2))))
+                set(p_pkdepth{ii}(curr_layer(2)), 'color', colors{2}(curr_layer(2), :))
+            end
+            if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                set(p_int2{ii, 1}(curr_layer(2)), 'markerfacecolor', colors{2}(curr_layer(2), :))
+            end
+            if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                set(p_int2{ii, 2}(curr_layer(1)), 'markerfacecolor', colors{1}(curr_layer(1), :))
+            end
+        end
+        
+        if ~isempty(find((pk{1}.ind_layer(:, 1) == curr_layer(1)), 1))
+            for ii = 1:2
+                if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                    set(p_int2{ii, 2}(curr_layer(1)), 'marker', 's')
+                end
+            end
+        else
+            for ii = 1:2
+                if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                    set(p_int2{ii, 2}(curr_layer(1)), 'marker', 'o')
+                end
+            end
+        end
+        if isempty(find((pk{1}.ind_layer(:, 5) == curr_layer(2)), 1))
+            for ii = 1:2
+                if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                    set(p_int2{ii, 2}(curr_layer(1)), 'marker', 'o')
+                end
+            end
+        end
+        if ~isempty(find((pk{2}.ind_layer(:, 1) == curr_layer(2)), 1))
+            for ii = 1:2
+                if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                    set(p_int2{ii, 1}(curr_layer(2)), 'marker', 's')
+                end
+            end
+        else
+            for ii = 1:2
+                if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                    set(p_int2{ii, 1}(curr_layer(2)), 'marker', 'o')
+                end
+            end
+        end
+        if isempty(find((pk{2}.ind_layer(:, 5) == curr_layer(1)), 1))
+            for ii = 1:2
+                if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                    set(p_int2{ii, 1}(curr_layer(2)), 'marker', 'o')
+                end
+            end
+        end
+        
+        set(status_box(2), 'string', ['Intersecting layer # ' num2str(curr_layer(2)) ' unmatched from master layer #' num2str(curr_layer(1)) '.'])
     end
 
 %% Save merged picks
@@ -2551,39 +2632,81 @@ linkprop(z_max_edit(2:3), 'string');
     end
 
     function slide_z_min(source, eventdata)
-        if (get(z_min_slide(curr_ax), 'value') < elev_max(curr_ax))
-            if get(zfix_check(curr_ax), 'value')
-                tmp1        = elev_max(curr_ax) - elev_min(curr_ax);
-            end
-            elev_min(curr_ax) = get(z_min_slide(curr_ax), 'value');
-            if get(zfix_check(curr_ax), 'value')
-                elev_max(curr_ax) = elev_min(curr_ax) + tmp1;
-                if (elev_max(curr_ax) > elev_max_ref)
-                    elev_max(curr_ax) = elev_max_ref;
-                    elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
-                    if (elev_min(curr_ax) < elev_min_ref)
-                        elev_min(curr_ax) = elev_min_ref;
+        if ((curr_gui == 1) || strcmp(disp_type, 'elev.'))
+            if (get(z_min_slide(curr_ax), 'value') < elev_max(curr_ax))
+                if get(zfix_check(curr_ax), 'value')
+                    tmp1    = elev_max(curr_ax) - elev_min(curr_ax);
+                end
+                elev_min(curr_ax) = get(z_min_slide(curr_ax), 'value');
+                if get(zfix_check(curr_ax), 'value')
+                    elev_max(curr_ax) = elev_min(curr_ax) + tmp1;
+                    if (elev_max(curr_ax) > elev_max_ref)
+                        elev_max(curr_ax) = elev_max_ref;
+                        elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
+                        if (elev_min(curr_ax) < elev_min_ref)
+                            elev_min(curr_ax) = elev_min_ref;
+                        end
+                        if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
+                            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                        else
+                            set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                        end
                     end
-                    if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                    if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
                     else
-                        set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                        set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
                     end
                 end
-                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-                if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                update_z_range
+            else
+                if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
+                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                else
+                    set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                end
+            end
+        elseif((depth_max_ref - (get(z_min_slide(curr_ax), 'value') - depth_min_ref)) > depth_min(curr_rad))
+            if get(zfix_check(curr_ax), 'value')
+                tmp1            = depth_max(curr_rad) - depth_min(curr_rad);
+            end
+            depth_max(curr_rad) = depth_max_ref - (get(z_min_slide(curr_ax), 'value') - depth_min_ref);
+            if get(zfix_check(curr_ax), 'value')
+                depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
+                if (depth_min(curr_rad) < depth_min_ref)
+                    depth_min(curr_rad) = depth_min_ref;
+                    depth_max(curr_rad) = depth_min(curr_rad) + tmp1;
+                    if (depth_max(curr_rad) > depth_max_ref)
+                        depth_max(curr_rad) = depth_max_ref;
+                    end
+                    if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                    elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
+                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                    else
+                        set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                    end
+                end
+                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
+                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+                elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
                     set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
                 else
-                    set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                    set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
                 end
             end
-            set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+            set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
             update_z_range
         else
-            if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
+            if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
                 set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+            elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
+                set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
             else
-                set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
             end
         end
         set(z_min_slide(curr_ax), 'enable', 'off')
@@ -2807,36 +2930,79 @@ linkprop(z_max_edit(2:3), 'string');
     end
 
     function slide_z_max(source, eventdata)
-        if (get(z_max_slide(curr_ax), 'value') > elev_min(curr_ax))
-            if get(zfix_check(curr_ax), 'value')
-                tmp1        = elev_max(curr_ax) - elev_min(curr_ax);
-            end
-            elev_max(curr_ax) = get(z_max_slide(curr_ax), 'value');
-            if get(zfix_check(curr_ax), 'value')
-                elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
-                if (elev_min(curr_ax) < elev_min_ref)
-                    elev_min(curr_ax) = elev_min_ref;
-                    elev_max(curr_ax) = elev_min(curr_ax) + tmp1;
-                    if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+        if ((curr_gui == 1) || strcmp(disp_type, 'elev.'))
+            
+            if (get(z_max_slide(curr_ax), 'value') > elev_min(curr_ax))
+                if get(zfix_check(curr_ax), 'value')
+                    tmp1    = elev_max(curr_ax) - elev_min(curr_ax);
+                end
+                elev_max(curr_ax) = get(z_max_slide(curr_ax), 'value');
+                if get(zfix_check(curr_ax), 'value')
+                    elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
+                    if (elev_min(curr_ax) < elev_min_ref)
+                        elev_min(curr_ax) = elev_min_ref;
+                        elev_max(curr_ax) = elev_min(curr_ax) + tmp1;
+                        if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+                            set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                        else
+                            set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                        end
+                    end
+                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                    if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
+                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
                     else
-                        set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                        set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
                     end
                 end
-                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-                if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                update_z_range
+            else
+                if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
                 else
-                    set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                    set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
                 end
             end
-            set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+        elseif ((depth_max_ref - (get(z_max_slide(curr_ax), 'value') - depth_min_ref)) < depth_max(curr_rad))
+            if get(zfix_check(curr_ax), 'value')
+                tmp1        = depth_max(curr_rad) - depth_min(curr_rad);
+            end
+            depth_min(curr_rad) = depth_max_ref - (get(z_max_slide(curr_ax), 'value') - depth_min_ref);
+            if get(zfix_check(curr_ax), 'value')
+                depth_max(curr_rad) = depth_min(curr_rad) + tmp1;
+                if (depth_max(curr_rad) > depth_max_ref)
+                    depth_max(curr_rad) = depth_max_ref;
+                    depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
+                    if (depth_min(curr_rad) < depth_min_ref)
+                        depth_min(curr_rad) = depth_min_ref;
+                    end
+                    if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
+                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+                    elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                    else
+                        set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                    end
+                end
+                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide, 'min'))
+                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide, 'max'))
+                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                else
+                    set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                end
+            end
+            set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
             update_z_range
         else
-            if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+            if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
+                set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+            elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
                 set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
             else
-                set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
             end
         end
         set(z_max_slide(curr_ax), 'enable', 'off')
@@ -2942,12 +3108,38 @@ linkprop(z_max_edit(2:3), 'string');
 
     function reset_z_min(source, eventdata)
         elev_min(curr_ax)   = elev_min_ref;
-        if (elev_min_ref < get(z_min_slide(curr_ax), 'min'))
-            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-        else
-            set(z_min_slide(curr_ax), 'value', elev_min_ref)
+        switch curr_gui
+            case 1
+                if (elev_min_ref < get(z_min_slide(curr_ax), 'min'))
+                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                else
+                    set(z_min_slide(curr_ax), 'value', elev_min_ref)
+                end
+                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min_ref))
+            case 2
+                depth_max(curr_rad) ...
+                            = depth_max_ref;
+                switch disp_type
+                    case 'elev.'
+                        elev_min(curr_ax) ...
+                            = elev_min_ref;
+                        if (elev_min_ref < get(z_min_slide(curr_ax), 'min'))
+                            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                        else
+                            set(z_min_slide(curr_ax), 'value', elev_min_ref)
+                        end
+                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min_ref))
+                    case 'depth'
+                        if (depth_min_ref < get(z_min_slide(curr_ax), 'min'))
+                            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                        elseif (depth_min_ref > get(z_min_slide(curr_ax), 'max'))
+                            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                        else
+                            set(z_min_slide(curr_ax), 'value', depth_min_ref)
+                        end
+                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max_ref))
+                end
         end
-        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min_ref))
         update_z_range
     end
 
@@ -3047,13 +3239,37 @@ linkprop(z_max_edit(2:3), 'string');
     end
 
     function reset_z_max(source, eventdata)
-        elev_max(curr_ax)  = elev_max_ref;
-        if (elev_max_ref > get(z_max_slide(curr_ax), 'max'))
-            set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
-        else
-            set(z_max_slide(curr_ax), 'value', elev_max_ref)
+        elev_max(curr_ax)   = elev_max_ref;
+        switch curr_gui
+            case 1                
+                if (elev_max_ref > get(z_max_slide(curr_ax), 'max'))
+                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                else
+                    set(z_max_slide(curr_ax), 'value', elev_max_ref)
+                end
+                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max_ref))
+            case 2
+                depth_min(curr_rad) ...
+                            = depth_min_ref;
+                switch disp_type
+                    case 'elev.'
+                        if (elev_max_ref > get(z_max_slide(curr_ax), 'max'))
+                            set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                        else
+                            set(z_max_slide(curr_ax), 'value', elev_max_ref)
+                        end
+                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max_ref))
+                    case 'depth'
+                        if (depth_min_ref < get(z_min_slide(curr_ax), 'min'))
+                            set(z_min_slide, 'value', get(z_min_slide(curr_ax), 'min'))
+                        elseif (depth_min_ref > get(z_min_slide(curr_ax), 'max'))
+                            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                        else
+                            set(z_min_slide(curr_ax), 'value', depth_min_ref)
+                        end
+                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max_ref))
+                end
         end
-        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max_ref))
         update_z_range
     end
 
@@ -3127,12 +3343,17 @@ linkprop(z_max_edit(2:3), 'string');
     end
 
     function update_z_range(source, eventdata)
-        set(rad_group, 'selectedobject', rad_check(curr_rad))        
+        set(rad_group, 'selectedobject', rad_check(curr_rad))
         axes(ax(curr_ax))
         if (curr_gui == 1)
             zlim([elev_min(curr_ax) elev_max(curr_ax)])
         else
-            ylim([elev_min(curr_ax) elev_max(curr_ax)])
+            switch disp_type
+                case 'elev.'
+                    ylim([elev_min(curr_ax) elev_max(curr_ax)])
+                case 'depth'
+                    ylim([depth_min(curr_rad) depth_max(curr_rad)])
+            end
         end
         narrow_cb
         switch curr_ax
@@ -3140,7 +3361,9 @@ linkprop(z_max_edit(2:3), 'string');
                 [curr_ax, curr_rad] ...
                            = deal(3, 2);
                 [elev_min(3), elev_max(3)] ...
-                           = deal(elev_min(2), elev_max(2));       
+                           = deal(elev_min(2), elev_max(2));
+                [depth_min(2), depth_max(2)] ...
+                            = deal(depth_min(1), depth_max(1));
                 narrow_cb
                 [curr_ax, curr_rad] ...
                            = deal(2, 1);
@@ -3148,7 +3371,9 @@ linkprop(z_max_edit(2:3), 'string');
                 [curr_ax, curr_rad] ...
                            = deal(2, 1);
                 [elev_min(2), elev_max(2)] ...
-                            = deal(elev_min(3), elev_max(3));                       
+                            = deal(elev_min(3), elev_max(3));
+                [depth_min(1), depth_max(1)] ...
+                            = deal(depth_min(2), depth_max(2));
                 narrow_cb
                 [curr_ax, curr_rad] ...
                            = deal(3, 2);
@@ -3195,38 +3420,74 @@ linkprop(z_max_edit(2:3), 'string');
             dist_max(curr_rad) = tmp1(2);
         end
         tmp1                = get(ax(curr_ax), 'ylim');
-        if (tmp1(1) < elev_min_ref)
-            reset_y_min
-        else
-            if (tmp1(1) < get(z_min_slide(curr_ax), 'min'))
-                set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-            else
-                set(z_min_slide(curr_ax), 'value', tmp1(1))
-            end
-            set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', tmp1(1)))
-            elev_min(curr_ax) = tmp1(1);
-        end
-        if (tmp1(2) > elev_max_ref)
-            reset_y_max
-        else
-            if (tmp1(2) > get(z_max_slide(curr_ax), 'max'))
-                set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
-            else
-                set(z_max_slide(curr_ax), 'value', tmp1(2))
-            end
-            set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', tmp1(2)))
-            elev_max(curr_ax) = tmp1(2);
+        switch disp_type
+            case 'elev.'
+                if (tmp1(1) < elev_min_ref)
+                    reset_y_min
+                else
+                    if (tmp1(1) < get(z_min_slide(curr_ax), 'min'))
+                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                    else
+                        set(z_min_slide(curr_ax), 'value', tmp1(1))
+                    end
+                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', tmp1(1)))
+                    elev_min(curr_ax) ...
+                            = tmp1(1);
+                end
+                if (tmp1(2) > elev_max_ref)
+                    reset_y_max
+                else
+                    if (tmp1(2) > get(z_max_slide(curr_ax), 'max'))
+                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                    else
+                        set(z_max_slide(curr_ax), 'value', tmp1(2))
+                    end
+                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', tmp1(2)))
+                    elev_max(curr_ax) = tmp1(2);
+                end
+            case 'depth'
+                tmp2        = [depth_min(curr_rad) depth_max(curr_rad)];
+                if (tmp1(1) < depth_min_ref)
+                    reset_z_min
+                else
+                    if (tmp1(1) < get(z_min_slide(curr_ax), 'min'))
+                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                    elseif (tmp1(1) > get(z_min_slide(curr_ax), 'max'))
+                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                    else
+                        set(z_min_slide(curr_ax), 'value', tmp1(1))
+                    end
+                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', tmp1(1)))
+                    depth_min(curr_rad) ...
+                            = tmp1(1);
+                end
+                if (tmp1(2) > depth_max_ref)
+                    reset_z_max
+                else
+                    if (tmp1(2) < get(z_max_slide(curr_ax), 'min'))
+                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+                    elseif (tmp1(2) > get(z_max_slide(curr_ax), 'max'))
+                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                    else
+                        set(z_max_slide(curr_ax), 'value', tmp1(2))
+                    end
+                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', tmp1(2)))
+                    depth_max(curr_rad) ...
+                            = tmp1(2);
+                end
         end
         narrow_cb
     end
 
-%% Plot data (amp.)
+%% Plot data in terms of elevation
 
-    function plot_db(source, eventdata)
+    function plot_elev(source, eventdata)
+        curr_gui            = 2;
         if ~data_done(curr_rad)
-            set(status_box(2), 'string', 'Data not loaded yet.')
+            set(status_box(curr_gui), 'string', 'Data not loaded yet.')
             return
         end
+        set(status_box(curr_gui), 'string', 'Plotting data in terms of elevation...')
         if (logical(p_data(curr_gui, curr_rad)) && ishandle(p_data(curr_gui, curr_rad)))
             delete(p_data(curr_gui, curr_rad))
         end
@@ -3242,15 +3503,30 @@ linkprop(z_max_edit(2:3), 'string');
                     zlim([elev_min(curr_ax) elev_max(curr_ax)])
                     p_data(curr_gui, curr_rad) ...
                             = surf(repmat(x{curr_rad}(ind_decim{curr_rad}), num_sample(curr_rad), 1), repmat(y{curr_rad}(ind_decim{curr_rad}), num_sample(curr_rad), 1), ...
-                                   repmat(elev{curr_rad}, 1, num_decim(curr_rad)), double(amp_mean{curr_rad}), 'facecolor', 'flat', 'edgecolor', 'none', 'facelighting', 'none');
+                                   repmat(elev{curr_rad}, 1, num_decim(curr_rad)), double(amp_elev{curr_rad}), 'facecolor', 'flat', 'edgecolor', 'none', 'facelighting', 'none');
                     set(status_box(1), 'string', 'Displayed. Changing view will be slower.')
                     reset_xyz
                 case 2
-                    axis xy
-                    ylim([elev_min(curr_ax) elev_max(curr_ax)])
-                    p_data(curr_gui, curr_rad) ...
-                            = imagesc(dist_lin{curr_rad}(ind_decim{curr_rad}), elev{curr_rad}, amp_mean{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
-                    reset_xz
+                    for ii = find(data_done)
+                        [curr_ax, curr_rad] ...
+                            = deal((ii + 1), ii);
+                        set(data_check, 'value', 1)
+                        axes(ax(curr_ax))
+                        set(z_min_slide(curr_ax), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max(curr_ax))
+                        set(z_max_slide(curr_ax), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min(curr_ax))
+                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                        axis xy
+                        ylim([elev_min(curr_ax) elev_max(curr_ax)])
+                        p_data(curr_gui, ii) ...
+                            = imagesc(dist_lin{curr_rad}(ind_decim{curr_rad}), elev{curr_rad}, amp_elev{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
+                        reset_xz
+                        narrow_cb
+                        show_data
+                        show_core
+                        show_pk
+                        show_int
+                    end
             end
         end
         narrow_cb
@@ -3260,19 +3536,53 @@ linkprop(z_max_edit(2:3), 'string');
         show_int
     end
 
+%% Plot data in terms of depth
+
+    function plot_depth(source, eventdata)
+        curr_gui            = 2;
+        if ~all(data_done)
+            set(status_box(curr_gui), 'string', 'Data not loaded yet.')
+            return
+        end
+        set(status_box(curr_gui), 'string', 'Plotting data in terms of depth...')
+        if (any(p_data(curr_gui, :)) && any(ishandle(p_data(curr_gui, :))))
+            delete(p_data(curr_gui, (logical(p_data(curr_gui, :)) & ishandle(p_data(curr_gui, :)))))
+        end
+        for ii = 2:3
+            [curr_ax, curr_rad] ...
+                            = deal(ii, (ii - 1));
+            set(data_check(curr_gui, curr_rad), 'value', 1)
+            axes(ax(curr_ax)) %#ok<*LAXES>
+            set(z_min_slide(curr_ax), 'min', depth_min_ref, 'max', depth_max_ref, 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+            set(z_max_slide(curr_ax), 'min', depth_min_ref, 'max', depth_max_ref, 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+            set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+            set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+            axis ij
+            ylim([depth_min(curr_rad) depth_max(curr_rad)])
+            p_data(curr_gui, curr_rad) ...
+                            = imagesc(dist_lin{curr_rad}(ind_decim{curr_rad}), depth{curr_rad}, amp_depth{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
+            reset_xz
+            narrow_cb
+            show_data
+            show_core
+            show_pk
+            show_int
+        end
+    end
+
 %% Show radar data
 
     function show_data1(source, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(1, 1, 1, 2);
-        plot_db
+        plot_elev
         show_data
     end
 
     function show_data2(source, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(1, 1, 2, 1);
-        plot_db
+        plot_elev
         show_data
     end
 
@@ -3331,17 +3641,42 @@ linkprop(z_max_edit(2:3), 'string');
         set(rad_group, 'selectedobject', rad_check(curr_rad))
         if pk_done(curr_rad)
             if get(pk_check(curr_gui, curr_rad), 'value')
-                if (any(p_pk{curr_gui, curr_rad}) && any(ishandle(p_pk{curr_gui, curr_rad})))
-                    set(p_pk{curr_gui, curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'on')
-                    uistack(p_pk{curr_gui, curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pk{curr_gui, curr_rad})), 'top')
-                end
-                if (logical(p_surf(curr_gui, curr_rad)) && ishandle(p_surf(curr_gui, curr_rad)))
-                    set(p_surf(curr_gui, curr_rad), 'visible', 'on')
-                    uistack(p_surf(curr_gui, curr_rad), 'top')
-                end
-                if (logical(p_bed(curr_gui, curr_rad)) && ishandle(p_bed(curr_gui, curr_rad)))
-                    set(p_bed(curr_gui, curr_rad), 'visible', 'on')
-                    uistack(p_bed(curr_gui, curr_rad), 'top')
+                if ((curr_gui == 1) || strcmp(disp_type, 'elev.'))
+                    if (any(p_pk{curr_gui, curr_rad}) && any(ishandle(p_pk{curr_gui, curr_rad})))
+                        set(p_pk{curr_gui, curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'on')
+                        uistack(p_pk{curr_gui, curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pk{curr_gui, curr_rad})), 'top')
+                    end
+                    if (logical(p_surf(curr_gui, curr_rad)) && ishandle(p_surf(curr_gui, curr_rad)))
+                        set(p_surf(curr_gui, curr_rad), 'visible', 'on')
+                        uistack(p_surf(curr_gui, curr_rad), 'top')
+                    end
+                    if (logical(p_bed(curr_gui, curr_rad)) && ishandle(p_bed(curr_gui, curr_rad)))
+                        set(p_bed(curr_gui, curr_rad), 'visible', 'on')
+                        uistack(p_bed(curr_gui, curr_rad), 'top')
+                    end
+                    if (any(p_pkdepth{curr_rad}) && any(ishandle(p_pkdepth{curr_rad})))
+                        set(p_pkdepth{curr_rad}(logical(p_pkdepth{curr_rad}) & ishandle(p_pkdepth{curr_rad})), 'visible', 'off')
+                    end
+                    if (logical(p_beddepth(curr_rad)) && ishandle(p_beddepth(curr_rad)))
+                        set(p_beddepth(curr_rad), 'visible', 'off')
+                    end
+                else
+                    if (any(p_pkdepth{curr_rad}) && any(ishandle(p_pkdepth{curr_rad})))
+                        set(p_pkdepth{curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pkdepth{curr_rad})), 'visible', 'on')
+                        uistack(p_pkdepth{curr_rad}(logical(p_pkdepth{curr_rad}) & ishandle(p_pkdepth{curr_rad})), 'top')
+                    end
+                    if (logical(p_beddepth(curr_rad)) && ishandle(p_beddepth(curr_rad)))
+                        set(p_beddepth(curr_rad), 'visible', 'on')
+                    end
+                    if (any(p_pk{curr_gui, curr_rad}) && any(ishandle(p_pk{curr_gui, curr_rad})))
+                        set(p_pk{curr_gui, curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'off')
+                    end
+                    if (logical(p_surf(curr_gui, curr_rad)) && ishandle(p_surf(curr_gui, curr_rad)))
+                        set(p_surf(curr_gui, curr_rad), 'visible', 'off')
+                    end
+                    if (logical(p_bed(curr_gui, curr_rad)) && ishandle(p_bed(curr_gui, curr_rad)))
+                        set(p_bed(curr_gui, curr_rad), 'visible', 'off')
+                    end
                 end
                 show_int
             else
@@ -3353,6 +3688,12 @@ linkprop(z_max_edit(2:3), 'string');
                 end
                 if (logical(p_bed(curr_gui, curr_rad)) && ishandle(p_bed(curr_gui, curr_rad)))
                     set(p_bed(curr_gui, curr_rad), 'visible', 'off')
+                end
+                if (any(p_pkdepth{curr_rad}) && any(ishandle(p_pkdepth{curr_rad})))
+                    set(p_pkdepth{curr_rad}(logical(p_pkdepth{curr_rad}) & ishandle(p_pkdepth{curr_rad})), 'visible', 'off')
+                end
+                if (logical(p_beddepth(curr_rad)) && ishandle(p_beddepth(curr_rad)))
+                    set(p_beddepth(curr_rad), 'visible', 'off')
                 end
             end
         elseif get(pk_check(curr_gui, curr_rad), 'value')
@@ -3384,24 +3725,46 @@ linkprop(z_max_edit(2:3), 'string');
         set(rad_group, 'selectedobject', rad_check(curr_rad))
         if all(pk_done)
             if get(int_check(curr_ax), 'value')
-                if (any(p_int1{1, curr_ax}) && any(ishandle(p_int1{1, curr_ax})))
-                    set(p_int1{1, curr_ax}(logical(p_int1{1, curr_ax}) & ishandle(p_int1{1, curr_ax})), 'visible', 'on')
-                    uistack(p_int1{1, curr_ax}(logical(p_int1{1, curr_ax}) & ishandle(p_int1{1, curr_ax})), 'top')
-                end
-                if (any(p_int1{2, curr_ax}) && any(ishandle(p_int1{2, curr_ax})))
-                    set(p_int1{2, curr_ax}(logical(p_int1{2, curr_ax}) & ishandle(p_int1{2, curr_ax})), 'visible', 'off')
-                end
-                if (any(p_int2{curr_rad}) && any(ishandle(p_int2{curr_rad})))
-                    set(p_int2{curr_rad}(logical(p_int2{curr_rad}) & ishandle(p_int2{curr_rad})), 'visible', 'on')
-                    uistack(p_int2{curr_rad}(logical(p_int2{curr_rad}) & ishandle(p_int2{curr_rad})), 'top')
+                if ((curr_gui == 1) || strcmp(disp_type, 'elev.'))
+                    if (any(p_int1{1, curr_ax}) && any(ishandle(p_int1{1, curr_ax})))
+                        set(p_int1{1, curr_ax}(logical(p_int1{1, curr_ax}) & ishandle(p_int1{1, curr_ax})), 'visible', 'on')
+                        uistack(p_int1{1, curr_ax}(logical(p_int1{1, curr_ax}) & ishandle(p_int1{1, curr_ax})), 'top')
+                    end
+                    if (curr_gui == 2)
+                        if any(p_int2{1, curr_rad}) && any(ishandle(p_int2{1, curr_rad}))
+                            set(p_int2{1, curr_rad}(logical(p_int2{1, curr_rad}) & ishandle(p_int2{1, curr_rad})), 'visible', 'on')
+                            uistack(p_int2{1, curr_rad}(logical(p_int2{1, curr_rad}) & ishandle(p_int2{1, curr_rad})), 'top')
+                        end
+                        if (any(p_int1{2, curr_ax}) && any(ishandle(p_int1{2, curr_ax})))
+                            set(p_int1{2, curr_ax}(logical(p_int1{2, curr_ax}) & ishandle(p_int1{2, curr_ax})), 'visible', 'off')
+                        end
+                        if any(p_int2{2, curr_rad}) && any(ishandle(p_int2{2, curr_rad}))
+                            set(p_int2{2, curr_rad}(logical(p_int2{2, curr_rad}) & ishandle(p_int2{2, curr_rad})), 'visible', 'off')
+                        end
+                    end
+                else
+                    if (any(p_int1{2, curr_ax}) && any(ishandle(p_int1{2, curr_ax})))
+                        set(p_int1{2, curr_ax}(logical(p_int1{2, curr_ax}) & ishandle(p_int1{2, curr_ax})), 'visible', 'on')
+                        uistack(p_int1{2, curr_ax}(logical(p_int1{2, curr_ax}) & ishandle(p_int1{2, curr_ax})), 'top')
+                    end
+                    if any(p_int2{2, curr_rad}) && any(ishandle(p_int2{2, curr_rad}))
+                        set(p_int2{2, curr_rad}(logical(p_int2{2, curr_rad}) & ishandle(p_int2{2, curr_rad})), 'visible', 'on')
+                        uistack(p_int2{2, curr_rad}(logical(p_int2{2, curr_rad}) & ishandle(p_int2{2, curr_rad})), 'top')
+                    end
+                    if (any(p_int1{1, curr_ax}) && any(ishandle(p_int1{1, curr_ax})))
+                        set(p_int1{1, curr_ax}(logical(p_int1{1, curr_ax}) & ishandle(p_int1{1, curr_ax})), 'visible', 'off')
+                    end
+                    if any(p_int2{1, curr_rad}) && any(ishandle(p_int2{1, curr_rad}))
+                        set(p_int2{1, curr_rad}(logical(p_int2{1, curr_rad}) & ishandle(p_int2{1, curr_rad})), 'visible', 'off')
+                    end
                 end
             else
                 for ii = 1:2
                     if (any(p_int1{ii, curr_ax}) && any(ishandle(p_int1{ii, curr_ax})))
                         set(p_int1{ii, curr_ax}(logical(p_int1{ii, curr_ax}) & ishandle(p_int1{ii, curr_ax})), 'visible', 'off')
                     end
-                    if (any(p_int2{curr_rad}) && any(ishandle(p_int2{curr_rad})))
-                        set(p_int2{curr_rad}(logical(p_int2{curr_rad}) & ishandle(p_int2{curr_rad})), 'visible', 'off')
+                    if (any(p_int2{ii, curr_rad}) && any(ishandle(p_int2{ii, curr_rad})))
+                        set(p_int2{ii, curr_rad}(logical(p_int2{ii, curr_rad}) & ishandle(p_int2{ii, curr_rad})), 'visible', 'off')
                     end
                 end
             end
@@ -3434,13 +3797,49 @@ linkprop(z_max_edit(2:3), 'string');
         set(rad_group, 'selectedobject', rad_check(curr_rad))
         if (core_done && ~isempty(ind_int_core{curr_rad}))
             if get(core_check(curr_ax), 'value')
-                if (any(p_core{curr_gui, curr_rad}) && any(ishandle(p_core{curr_gui, curr_rad})))
-                    set(p_core{curr_gui, curr_rad}(logical(p_core{curr_gui, curr_rad}) & ishandle(p_core{curr_gui, curr_rad})), 'visible', 'on')
-                    uistack(p_core{curr_gui, curr_rad}(logical(p_core{curr_gui, curr_rad}) & ishandle(p_core{curr_gui, curr_rad})), 'top')
-                end
-                if (any(p_corename{curr_gui, curr_rad}) && any(ishandle(p_corename{curr_gui, curr_rad})))
-                    set(p_corename{curr_gui, curr_rad}(logical(p_corename{curr_gui, curr_rad}) & ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'on')
-                    uistack(p_corename{curr_gui, curr_rad}(logical(p_corename{curr_gui, curr_rad}) & ishandle(p_corename{curr_gui, curr_rad})), 'top')
+                switch curr_gui
+                    case 1
+                        if (any(p_core{curr_gui, curr_rad}) && any(ishandle(p_core{curr_gui, curr_rad})))
+                            set(p_core{curr_gui, curr_rad}(logical(p_core{curr_gui, curr_rad}) & ishandle(p_core{curr_gui, curr_rad})), 'visible', 'on')
+                            uistack(p_core{curr_gui, curr_rad}(logical(p_core{curr_gui, curr_rad}) & ishandle(p_core{curr_gui, curr_rad})), 'top')
+                        end
+                        if (any(p_corename{curr_gui, curr_rad}) && any(ishandle(p_corename{curr_gui, curr_rad})))
+                            set(p_corename{curr_gui, curr_rad}(logical(p_corename{curr_gui, curr_rad}) & ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'on')
+                            uistack(p_corename{curr_gui, curr_rad}(logical(p_corename{curr_gui, curr_rad}) & ishandle(p_corename{curr_gui, curr_rad})), 'top')
+                        end
+                    case 2
+                        switch disp_type
+                            case 'elev.'
+                                if (any(p_core{curr_gui, curr_rad}) && any(ishandle(p_core{curr_gui, curr_rad})))
+                                    set(p_core{curr_gui, curr_rad}(logical(p_core{curr_gui, curr_rad}) & ishandle(p_core{curr_gui, curr_rad})), 'visible', 'on')
+                                    uistack(p_core{curr_gui, curr_rad}(logical(p_core{curr_gui, curr_rad}) & ishandle(p_core{curr_gui, curr_rad})), 'top')
+                                end
+                                if (any(p_corename{curr_gui, curr_rad}) && any(ishandle(p_corename{curr_gui, curr_rad})))
+                                    set(p_corename{curr_gui, curr_rad}(logical(p_corename{curr_gui, curr_rad}) & ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'on')
+                                    uistack(p_corename{curr_gui, curr_rad}(logical(p_corename{curr_gui, curr_rad}) & ishandle(p_corename{curr_gui, curr_rad})), 'top')
+                                end
+                                if (any(p_coredepth{curr_rad}) && any(ishandle(p_coredepth{curr_rad})))
+                                    set(p_coredepth{curr_rad}(logical(p_coredepth{curr_rad}) & ishandle(p_coredepth{curr_rad})), 'visible', 'off')
+                                end
+                                if (any(p_corenamedepth{curr_rad}) && any(ishandle(p_corenamedepth{curr_rad})))
+                                    set(p_corenamedepth{curr_rad}(logical(p_corenamedepth{curr_rad}) & ishandle(p_corenamedepth{curr_rad})), 'visible', 'off')
+                                end
+                            case 'depth'
+                                if (any(p_coredepth{curr_rad}) && any(ishandle(p_coredepth{curr_rad})))
+                                    set(p_coredepth{curr_rad}(logical(p_coredepth{curr_rad}) & ishandle(p_coredepth{curr_rad})), 'visible', 'off')
+                                    uistack(p_coredepth{curr_rad}(logical(p_coredepth{curr_rad}) & ishandle(p_coredepth{curr_rad})), 'top')
+                                end
+                                if (any(p_corenamedepth{curr_rad}) && any(ishandle(p_corenamedepth{curr_rad})))
+                                    set(p_corenamedepth{curr_rad}(logical(p_corenamedepth{curr_rad}) & ishandle(p_corenamedepth{curr_rad})), 'visible', 'off')
+                                    uistack(p_corenamedepth{curr_rad}(logical(p_corenamedepth{curr_rad}) & ishandle(p_corenamedepth{curr_rad})), 'top')
+                                end
+                                if (any(p_core{curr_gui, curr_rad}) && any(ishandle(p_core{curr_gui, curr_rad})))
+                                    set(p_core{curr_gui, curr_rad}(logical(p_core{curr_gui, curr_rad}) & ishandle(p_core{curr_gui, curr_rad})), 'visible', 'off')
+                                end
+                                if (any(p_corename{curr_gui, curr_rad}) && any(ishandle(p_corename{curr_gui, curr_rad})))
+                                    set(p_corename{curr_gui, curr_rad}(logical(p_corename{curr_gui, curr_rad}) & ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'off')
+                                end
+                        end
                 end
             else
                 if (any(p_core{curr_gui, curr_rad}) && any(ishandle(p_core{curr_gui, curr_rad})))
@@ -3448,6 +3847,14 @@ linkprop(z_max_edit(2:3), 'string');
                 end
                 if (any(p_corename{curr_gui, curr_rad}) && any(ishandle(p_corename{curr_gui, curr_rad})))
                     set(p_corename{curr_gui, curr_rad}(logical(p_corename{curr_gui, curr_rad}) & ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'off')
+                end
+                if (curr_gui == 2)
+                    if (any(p_coredepth{curr_rad}) && any(ishandle(p_coredepth{curr_rad})))
+                        set(p_coredepth{curr_rad}(logical(p_coredepth{curr_rad}) & ishandle(p_coredepth{curr_rad})), 'visible', 'off')
+                    end
+                    if (any(p_corenamedepth{curr_rad}) && any(ishandle(p_corenamedepth{curr_rad})))
+                        set(p_corenamedepth{curr_rad}(logical(p_corenamedepth{curr_rad}) & ishandle(p_corenamedepth{curr_rad})), 'visible', 'off')
+                    end
                 end
             end
         elseif get(core_check(curr_ax), 'value')
@@ -3499,9 +3906,15 @@ linkprop(z_max_edit(2:3), 'string');
             if (any(p_bed(:, curr_rad)) && any(ishandle(p_bed(:, curr_rad))))
                 delete(p_bed((logical(p_bed(:, curr_rad)) & ishandle(p_bed(:, curr_rad))), curr_rad))
             end
+            if (any(p_beddepth) && any(ishandle(p_beddepth)))
+                delete(p_beddepth((logical(p_beddepth) & ishandle(p_beddepth))))
+            end
             for ii = 1:2
                 if (any(p_pk{ii, curr_rad}) && any(ishandle(p_pk{ii, curr_rad})))
                     delete(p_pk{ii, curr_rad}(logical(p_pk{ii, curr_rad}) & ishandle(p_pk{ii, curr_rad})))
+                end
+                if (any(p_pkdepth{curr_rad}) && any(ishandle(p_pkdepth{curr_rad})))
+                    delete(p_pkdepth{curr_rad}(logical(p_pkdepth{curr_rad}) & ishandle(p_pkdepth{curr_rad})))
                 end
             end
             if (any(p_surf(:, curr_rad)) && any(ishandle(p_surf(:, curr_rad))))
@@ -3515,10 +3928,8 @@ linkprop(z_max_edit(2:3), 'string');
                     p_pk{1, curr_rad}(ii) = plot3(0, 0, 0, 'w.', 'markersize', 1);
                     layer_str{curr_rad}{ii} = [num2str(ii) ' H'];
                 else
-                    p_pk{1, curr_rad}(ii) = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
-                        y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
-                        elev_smooth{curr_rad}(ii, ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
-                        '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
+                    p_pk{1, curr_rad}(ii) = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
+                                                  elev_smooth{curr_rad}(ii, ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
                 end
             end
             switch curr_rad
@@ -3528,12 +3939,11 @@ linkprop(z_max_edit(2:3), 'string');
                     axes(ax(3))
             end
             for ii = 1:pk{curr_rad}.num_layer
-                if ~any(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))
+                if all(isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))
                     p_pk{2, curr_rad}(ii) = plot(0, 0, 'w.', 'markersize', 1);
                 else
-                    p_pk{2, curr_rad}(ii) = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
-                        elev_smooth{curr_rad}(ii, ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
-                        '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
+                    p_pk{2, curr_rad}(ii) = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), elev_smooth{curr_rad}(ii, ind_decim{curr_rad}(~isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))), ...
+                                                 '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
                 end
             end
             % check to see if surface and bed picks are available
@@ -3543,13 +3953,11 @@ linkprop(z_max_edit(2:3), 'string');
                             = true;
                     axes(ax(1))
                     p_surf(1, curr_rad) ...
-                            = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), ...
-                                    y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), ...
+                            = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), ...
                                     elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
                     axes(ax(1 + curr_rad))
                     p_surf(2, curr_rad) ...
-                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), ...
-                                   elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
+                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
                     if any(isnan(elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad}))))))
                         set(p_surf(2, curr_rad), 'marker', '.', 'linestyle', 'none', 'markersize', 12)
                     end
@@ -3564,19 +3972,26 @@ linkprop(z_max_edit(2:3), 'string');
                             = true;
                     axes(ax(1))
                     p_bed(1, curr_rad) ...
-                        = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), ...
-                        y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), ...
+                        = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), ...
                         elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
                     axes(ax(1 + curr_rad))
                     p_bed(2, curr_rad) ...
-                        = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), ...
-                        elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
+                        = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
                     if any(isnan(elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad}))))))
                         set(p_bed(2, curr_rad), 'marker', '.', 'linestyle', 'none', 'markersize', 12)
                     end
                 else
                     bed_avail(curr_rad) ...
                             = false;
+                end
+            end
+            axes(ax(curr_rad + 1))
+            for ii = 1:pk{curr_rad}.num_layer
+                if all(isnan(pk{curr_rad}.depth_smooth(ii, ind_decim{curr_rad})))
+                    p_pkdepth{curr_rad}(ii) = plot(0, 0, 'w.', 'markersize', 1);
+                else
+                    p_pkdepth{curr_rad}(ii) = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(pk{curr_rad}.depth_smooth(ii, ind_decim{curr_rad})))), pk{curr_rad}.depth_smooth(ii, ind_decim{curr_rad}(~isnan(pk{curr_rad}.depth_smooth(ii, ind_decim{curr_rad})))), ...
+                                                   '.', 'color', colors{curr_rad}(ii, :), 'markersize', 12, 'visible', 'off');
                 end
             end
             if curr_layer(curr_rad)
@@ -3646,8 +4061,7 @@ linkprop(z_max_edit(2:3), 'string');
                 end
             end
             [dist_min(1), dist_max(1), dist_min(2), dist_max(2)] ...
-                            = deal((dist_lin{1}(curr_ind_int(curr_int, 1)) - 10), (dist_lin{1}(curr_ind_int(curr_int, 1)) + 10), ...
-                                   (dist_lin{2}(curr_ind_int(curr_int, 2)) - 10), (dist_lin{2}(curr_ind_int(curr_int, 2)) + 10));
+                            = deal((dist_lin{1}(curr_ind_int(curr_int, 1)) - 10), (dist_lin{1}(curr_ind_int(curr_int, 1)) + 10), (dist_lin{2}(curr_ind_int(curr_int, 2)) - 10), (dist_lin{2}(curr_ind_int(curr_int, 2)) + 10));
             if (dist_min(1) < dist_min_ref(1))
                 dist_min(1) = dist_min_ref(1);
             end
@@ -3733,7 +4147,12 @@ linkprop(z_max_edit(2:3), 'string');
             tmp1(1, :)      = interp1(dist_lin{curr_rad}(ind_decim{curr_rad}), 1:num_decim(curr_rad), [dist_min(curr_rad) dist_max(curr_rad)], 'nearest', 'extrap');
             tmp1(2, :)      = interp1(elev{curr_rad}, 1:num_sample(curr_rad), [elev_min(curr_ax) elev_max(curr_ax)], 'nearest', 'extrap');
             tmp1(2, :)      = flipud(tmp1(2, :));
-            tmp1            = amp_mean{curr_rad}(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
+            switch disp_type
+                case 'elev'
+                    tmp1    = amp_elev{curr_rad}(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
+                case 'depth'
+                    tmp1    = amp_depth{curr_rad}(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
+            end
             tmp2            = NaN(1, 2);
             [tmp2(1), tmp2(2)] ...
                             = deal(nanmean(tmp1(~isinf(tmp1))), nanstd(tmp1(~isinf(tmp1))));
@@ -3766,6 +4185,18 @@ linkprop(z_max_edit(2:3), 'string');
             set(cb_min_edit(curr_ax), 'string', sprintf('%3.0f', db_min(curr_ax)))
             set(cb_max_edit(curr_ax), 'string', sprintf('%3.0f', db_max(curr_ax)))
             caxis([db_min(curr_ax) db_max(curr_ax)])
+        end
+    end
+
+%% Switch display type
+
+    function disp_radio(~, eventdata)
+        disp_type           = get(eventdata.NewValue, 'string');
+        switch disp_type
+            case 'elev.'
+                plot_elev
+            case 'depth'
+                plot_depth
         end
     end
 
@@ -4081,80 +4512,173 @@ linkprop(z_max_edit(2:3), 'string');
             case 'z'
                 choose_pk1
             case 'downarrow'
-                tmp1        = elev_max(curr_ax) - elev_min(curr_ax);
-                tmp2        = elev_min(curr_ax) - (0.25 * tmp1);
-                if (tmp2 < elev_min_ref)
-                    elev_min(curr_ax) = elev_min_ref;
+                if ((curr_gui == 1) || strcmp(disp_type, 'elev.'))
+                    tmp1 = elev_max(curr_ax) - elev_min(curr_ax);
+                    tmp2 = elev_min(curr_ax) - (0.25 * tmp1);
+                    if (tmp2 < elev_min_ref)
+                        elev_min(curr_ax) = elev_min_ref;
+                    else
+                        elev_min(curr_ax) = tmp2;
+                    end
+                    elev_max(curr_ax)    = elev_min(curr_ax) + tmp1;
+                    if (elev_max(curr_ax) > elev_max_ref)
+                        elev_max(curr_ax) = elev_max_ref;
+                    end
+                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                    if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
+                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                    else
+                        set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                    end
+                    if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                    else
+                        set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                    end
                 else
-                    elev_min(curr_ax) = tmp2;
-                end
-                elev_max(curr_ax)    = elev_min(curr_ax) + tmp1;
-                if (elev_max(curr_ax) > elev_max_ref)
-                    elev_max(curr_ax) = elev_max_ref;
-                end
-                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-                if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                else
-                    set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
-                end
-                if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
-                else
-                    set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                    tmp1 = depth_max(curr_rad) - depth_min(curr_rad);
+                    tmp2 = depth_max(curr_rad) + (0.25 * tmp1);
+                    if (tmp2 > depth_max_ref)
+                        depth_max(curr_rad) = depth_max_ref;
+                    else
+                        depth_max(curr_rad) = tmp2;
+                    end
+                    depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
+                    if (depth_min(curr_rad) < depth_min_ref)
+                        depth_min(curr_rad) = depth_min_ref;
+                    end
+                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+                    if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                    elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
+                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                    else
+                        set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                    end
+                    if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
+                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+                    elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                    else
+                        set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                    end
                 end
                 switch curr_ax
                     case 2
                         [curr_ax, curr_rad] = deal(3, 2);
-                        tmp1        = elev_max(curr_ax) - elev_min(curr_ax);
-                        tmp2        = elev_min(curr_ax) - (0.25 * tmp1);
-                        if (tmp2 < elev_min_ref)
-                            elev_min(curr_ax) = elev_min_ref;
-                        else
-                            elev_min(curr_ax) = tmp2;
-                        end
-                        elev_max(curr_ax)    = elev_min(curr_ax) + tmp1;
-                        if (elev_max(curr_ax) > elev_max_ref)
-                            elev_max(curr_ax) = elev_max_ref;
-                        end
-                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-                        if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                        else
-                            set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
-                        end
-                        if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                            set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
-                        else
-                            set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                        switch disp_type
+                            case 'elev.'
+                                tmp1 = elev_max(curr_ax) - elev_min(curr_ax);
+                                tmp2 = elev_min(curr_ax) - (0.25 * tmp1);
+                                if (tmp2 < elev_min_ref)
+                                    elev_min(curr_ax) = elev_min_ref;
+                                else
+                                    elev_min(curr_ax) = tmp2;
+                                end
+                                elev_max(curr_ax)    = elev_min(curr_ax) + tmp1;
+                                if (elev_max(curr_ax) > elev_max_ref)
+                                    elev_max(curr_ax) = elev_max_ref;
+                                end
+                                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                                if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
+                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                else
+                                    set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                                end
+                                if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                else
+                                    set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                                end
+                            case 'depth'
+                                tmp1 = depth_max(curr_rad) - depth_min(curr_rad);
+                                tmp2 = depth_max(curr_rad) + (0.25 * tmp1);
+                                if (tmp2 > depth_max_ref)
+                                    depth_max(curr_rad) = depth_max_ref;
+                                else
+                                    depth_max(curr_rad) = tmp2;
+                                end
+                                depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
+                                if (depth_min(curr_rad) < depth_min_ref)
+                                    depth_min(curr_rad) = depth_min_ref;
+                                end
+                                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+                                if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
+                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                                else
+                                    set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                                end
+                                if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
+                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+                                elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                else
+                                    set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                                end
                         end
                         [curr_ax, curr_rad] = deal(2, 1);
                     case 3
                         [curr_ax, curr_rad] = deal(2, 1);
-                        tmp1        = elev_max(curr_ax) - elev_min(curr_ax);
-                        tmp2        = elev_min(curr_ax) - (0.25 * tmp1);
-                        if (tmp2 < elev_min_ref)
-                            elev_min(curr_ax) = elev_min_ref;
-                        else
-                            elev_min(curr_ax) = tmp2;
-                        end
-                        elev_max(curr_ax)    = elev_min(curr_ax) + tmp1;
-                        if (elev_max(curr_ax) > elev_max_ref)
-                            elev_max(curr_ax) = elev_max_ref;
-                        end
-                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-                        if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                        else
-                            set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
-                        end
-                        if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                            set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
-                        else
-                            set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                        switch disp_type
+                            case 'elev.'
+                                tmp1 = elev_max(curr_ax) - elev_min(curr_ax);
+                                tmp2 = elev_min(curr_ax) - (0.25 * tmp1);
+                                if (tmp2 < elev_min_ref)
+                                    elev_min(curr_ax) = elev_min_ref;
+                                else
+                                    elev_min(curr_ax) = tmp2;
+                                end
+                                elev_max(curr_ax)    = elev_min(curr_ax) + tmp1;
+                                if (elev_max(curr_ax) > elev_max_ref)
+                                    elev_max(curr_ax) = elev_max_ref;
+                                end
+                                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                                if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
+                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                else
+                                    set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                                end
+                                if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                else
+                                    set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                                end
+                            case 'depth'
+
+                                tmp1 = depth_max(curr_rad) - depth_min(curr_rad);
+                                tmp2 = depth_max(curr_rad) + (0.25 * tmp1);
+                                if (tmp2 > depth_max_ref)
+                                    depth_max(curr_rad) = depth_max_ref;
+                                else
+                                    depth_max(curr_rad) = tmp2;
+                                end
+                                depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
+                                if (depth_min(curr_rad) < depth_min_ref)
+                                    depth_min(curr_rad) = depth_min_ref;
+                                end
+                                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+                                if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
+                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                                else
+                                    set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                                end
+                                if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
+                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+                                elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                else
+                                    set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                                end                                
                         end
                         [curr_ax, curr_rad] = deal(3, 2);
                 end
@@ -4210,80 +4734,166 @@ linkprop(z_max_edit(2:3), 'string');
                 end
                 update_dist_range
             case 'uparrow'
-                tmp1        = elev_max(curr_ax) - elev_min(curr_ax);
-                tmp2        = elev_max(curr_ax) + (0.25 * tmp1);
-                if (tmp2 > elev_max_ref)
-                    elev_max(curr_ax) = elev_max_ref;
+                if ((curr_gui == 1) || strcmp(disp_type, 'elev.'))
+                    tmp1 = elev_max(curr_ax) - elev_min(curr_ax);
+                    tmp2 = elev_max(curr_ax) + (0.25 * tmp1);
+                    if (tmp2 > elev_max_ref)
+                        elev_max(curr_ax) = elev_max_ref;
+                    else
+                        elev_max(curr_ax) = tmp2;
+                    end
+                    elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
+                    if (elev_min(curr_ax) < elev_min_ref)
+                        elev_min(curr_ax) = elev_min_ref;
+                    end
+                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                    if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
+                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                    else
+                        set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                    end
+                    if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                    else
+                        set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                    end
                 else
-                    elev_max(curr_ax) = tmp2;
-                end
-                elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
-                if (elev_min(curr_ax) < elev_min_ref)
-                    elev_min(curr_ax) = elev_min_ref;
-                end
-                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-                if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                else
-                    set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
-                end
-                if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
-                else
-                    set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                    tmp1 = depth_max(curr_rad) - depth_min(curr_rad);
+                    tmp2 = depth_min(curr_rad) - (0.25 * tmp1);
+                    if (tmp2 < depth_min_ref)
+                        depth_min(curr_rad) = depth_min_ref;
+                    else
+                        depth_min(curr_rad) = tmp2;
+                    end
+                    depth_max(curr_rad) = depth_min(curr_rad) + tmp1;
+                    depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
+                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+                    if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                    elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
+                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                    else
+                        set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                    end
+                    if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
+                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+                    elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                    else
+                        set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                    end
                 end
                 switch curr_ax
                     case 2
                         [curr_ax, curr_rad] = deal(3, 2);
-                        tmp1        = elev_max(curr_ax) - elev_min(curr_ax);
-                        tmp2        = elev_max(curr_ax) + (0.25 * tmp1);
-                        if (tmp2 > elev_max_ref)
-                            elev_max(curr_ax) = elev_max_ref;
-                        else
-                            elev_max(curr_ax) = tmp2;
-                        end
-                        elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
-                        if (elev_min(curr_ax) < elev_min_ref)
-                            elev_min(curr_ax) = elev_min_ref;
-                        end
-                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-                        if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                        else
-                            set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
-                        end
-                        if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                            set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
-                        else
-                            set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                        switch disp_type
+                            case 'elev.'
+                                tmp1 = elev_max(curr_ax) - elev_min(curr_ax);
+                                tmp2 = elev_max(curr_ax) + (0.25 * tmp1);
+                                if (tmp2 > elev_max_ref)
+                                    elev_max(curr_ax) = elev_max_ref;
+                                else
+                                    elev_max(curr_ax) = tmp2;
+                                end
+                                elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
+                                if (elev_min(curr_ax) < elev_min_ref)
+                                    elev_min(curr_ax) = elev_min_ref;
+                                end
+                                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                                if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
+                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                else
+                                    set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                                end
+                                if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                else
+                                    set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                                end
+                            case 'depth'
+                                tmp1 = depth_max(curr_rad) - depth_min(curr_rad);
+                                tmp2 = depth_min(curr_rad) - (0.25 * tmp1);
+                                if (tmp2 < depth_min_ref)
+                                    depth_min(curr_rad) = depth_min_ref;
+                                else
+                                    depth_min(curr_rad) = tmp2;
+                                end
+                                depth_max(curr_rad) = depth_min(curr_rad) + tmp1;
+                                depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
+                                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+                                if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
+                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                                else
+                                    set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                                end
+                                if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
+                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+                                elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                else
+                                    set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                                end
                         end
                         [curr_ax, curr_rad] = deal(2, 1);
                     case 3
                         [curr_ax, curr_rad] = deal(2, 1);
-                        tmp1        = elev_max(curr_ax) - elev_min(curr_ax);
-                        tmp2        = elev_max(curr_ax) + (0.25 * tmp1);
-                        if (tmp2 > elev_max_ref)
-                            elev_max(curr_ax) = elev_max_ref;
-                        else
-                            elev_max(curr_ax) = tmp2;
-                        end
-                        elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
-                        if (elev_min(curr_ax) < elev_min_ref)
-                            elev_min(curr_ax) = elev_min_ref;
-                        end
-                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-                        if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                        else
-                            set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
-                        end
-                        if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                            set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
-                        else
-                            set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                        switch disp_type
+                            case 'elev.'
+                                tmp1 = elev_max(curr_ax) - elev_min(curr_ax);
+                                tmp2 = elev_max(curr_ax) + (0.25 * tmp1);
+                                if (tmp2 > elev_max_ref)
+                                    elev_max(curr_ax) = elev_max_ref;
+                                else
+                                    elev_max(curr_ax) = tmp2;
+                                end
+                                elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
+                                if (elev_min(curr_ax) < elev_min_ref)
+                                    elev_min(curr_ax) = elev_min_ref;
+                                end
+                                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                                if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
+                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                else
+                                    set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                                end
+                                if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
+                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                else
+                                    set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                                end
+                            case 'depth'
+                                tmp1 = depth_max(curr_rad) - depth_min(curr_rad);
+                                tmp2 = depth_min(curr_rad) - (0.25 * tmp1);
+                                if (tmp2 < depth_min_ref)
+                                    depth_min(curr_rad) = depth_min_ref;
+                                else
+                                    depth_min(curr_rad) = tmp2;
+                                end
+                                depth_max(curr_rad) = depth_min(curr_rad) + tmp1;
+                                depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
+                                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+                                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+                                if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
+                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
+                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                                else
+                                    set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                                end
+                                if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
+                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
+                                elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
+                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                else
+                                    set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                                end
                         end
                         [curr_ax, curr_rad] = deal(3, 2);
                 end
@@ -4309,6 +4919,43 @@ linkprop(z_max_edit(2:3), 'string');
                 tmp4        = [(elev_min(curr_ax) - (0.25 * tmp3)) (elev_max(curr_ax) + (0.25 * tmp3))];
                 set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
                 panzoom
+        end
+    end
+
+%% Mouse click
+
+    function mouse_click(source, eventdata)
+        tmp1                = get(source, 'currentpoint'); % picked x/y pixels
+        tmp2                = get(fgui(2), 'position'); % figure x0/y0/w/h normalized
+        tmp3                = [get(ax(2), 'position'); get(ax(3), 'position')]; % axis 1 x0/y0/w/h; 2 x0/y0/w/h normalized
+        tmp4                = [(tmp2(1) + (tmp2(3) * tmp3(1, 1))) (tmp2(1) + (tmp2(3) * (tmp3(1, 1) + tmp3(1, 3)))); (tmp2(2) + (tmp2(4) * tmp3(1, 2))) (tmp2(2) + (tmp2(4) * (tmp3(1, 2) + tmp3(1, 4))))]; % 1 x0/y1;y0/y1 pixels
+        tmp5                = [(tmp2(1) + (tmp2(3) * tmp3(2, 1))) (tmp2(1) + (tmp2(3) * (tmp3(2, 1) + tmp3(2, 3)))); (tmp2(2) + (tmp2(4) * tmp3(2, 2))) (tmp2(2) + (tmp2(4) * (tmp3(2, 2) + tmp3(2, 4))))]; % 2 x0/y1;y0/y1 pixels
+        if ((tmp1(1) > (tmp4(1, 1))) && (tmp1(1) < (tmp4(1, 2))) && (tmp1(2) > (tmp4(2, 1))) && (tmp1(2) < (tmp4(2, 2))))
+            [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+                            = deal(2, 2, 1, 2);
+            switch disp_type
+                case 'elev.'
+                    tmp1    = [((tmp1(1) - tmp4(1, 1)) / diff(tmp4(1, :))) ((tmp1(2) - tmp4(2, 1)) / diff(tmp4(2, :)))];
+                case 'depth'
+                    tmp1    = [((tmp1(1) - tmp4(1, 1)) / diff(tmp4(1, :))) ((tmp4(2, 2) - tmp1(2)) / diff(tmp4(2, :)))];
+            end
+            tmp2            = [get(ax(curr_ax), 'xlim'); get(ax(curr_ax), 'ylim')];
+            [ind_x_pk, ind_y_pk] ...
+                            = deal(((tmp1(1) * diff(tmp2(1, :))) + tmp2(1, 1)), ((tmp1(2) * diff(tmp2(2, :))) + tmp2(2, 1)));
+            choose_pk_breakout
+        elseif ((tmp1(1) > (tmp5(1, 1))) && (tmp1(1) < (tmp5(1, 2))) && (tmp1(2) > (tmp5(2, 1))) && (tmp1(2) < (tmp5(2, 2))))
+            [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
+                            = deal(2, 3, 2, 1);
+            switch disp_type
+                case 'elev.'
+                    tmp1    = [((tmp1(1) - tmp5(1, 1)) / diff(tmp5(1, :))) ((tmp1(2) - tmp5(2, 1)) / diff(tmp5(2, :)))];
+                case 'depth'
+                    tmp1    = [((tmp1(1) - tmp5(1, 1)) / diff(tmp5(1, :))) ((tmp5(2, 2) - tmp1(2)) / diff(tmp5(2, :)))];
+            end
+            tmp2            = [get(ax(curr_ax), 'xlim'); get(ax(curr_ax), 'ylim')];
+            [ind_x_pk, ind_y_pk] ...
+                            = deal(((tmp1(1) * diff(tmp2(1, :))) + tmp2(1, 1)), ((tmp1(2) * diff(tmp2(2, :))) + tmp2(2, 1)));
+            choose_pk_breakout
         end
     end
 
