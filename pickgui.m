@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 02/14/14
+% Last updated: 02/16/14
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -618,6 +618,10 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(status_box, 'string', 'Data that has already been flattened should not be trimmed twice.')
             return
         end
+        if ref_done
+            set(status_box, 'string', 'Cannot trim once reference layers are loaded.')
+            return
+        end
         if ~strcmp(disp_type, 'twtt')
             set(disp_group, 'selectedobject', disp_check(1))
             disp_type       = 'twtt';
@@ -850,6 +854,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         smooth_done         = true(1, pk.num_layer);
         trim_y
         pause(0.1)
+        set(status_box, 'string', 'Continuing pick loading...')
         
         % change old variable names
         if isfield(pk, 'num_layer_keep')
@@ -882,9 +887,12 @@ set(disp_group, 'selectedobject', disp_check(1))
             if depth_avail
                 p_phasedepth= zeros(1, pk.num_phase);
                 for ii = 1:pk.num_phase
-                    tmp1    = ind_decim(~isnan(ind_y_phase(ii, ind_decim)) & ~isnan(ind_surf(ind_decim)));
+                        tmp1= ind_decim(~isnan(ind_y_phase(ii, ind_decim)) & ~isnan(ind_surf(ind_decim)));
+                        tmp2= round(ind_y_phase(ii, tmp1) - ind_surf(tmp1) + 1);
+                        tmp2(tmp2 <= 0) ...
+                            = 1;
                     p_phasedepth(ii) ...
-                            = plot(dist_lin(tmp1), (1e6 .* block.twtt(round(ind_y_phase(ii, tmp1) - ind_surf(tmp1) + 1))), 'b', 'linewidth', 1, 'visible', 'off');
+                            = plot(dist_lin(tmp1), (1e6 .* block.twtt(tmp2)), 'b', 'linewidth', 1, 'visible', 'off');
                 end
                 p_startphasedepth ...
                             = plot((ones(1, pk.num_phase) .* dist_lin(pk.ind_x_start_phase)), (1e6 .* (block.twtt(pk.ind_y_start_phase) - (1e6 .* (block.twtt_surf(pk.ind_x_start_phase) - block.twtt(1))))), 'm.', 'markersize', 12, 'visible', 'off');
@@ -922,9 +930,12 @@ set(disp_group, 'selectedobject', disp_check(1))
                     p_arespdepth ...
                             = zeros(1, pk.num_aresp);
                     for ii = 1:pk.num_aresp
-                        tmp1 = ind_decim(~isnan(ind_y_aresp(ii, ind_decim)) & ~isnan(ind_surf(ind_decim)));
+                        tmp1= ind_decim(~isnan(ind_y_aresp(ii, ind_decim)) & ~isnan(ind_surf(ind_decim)));
+                        tmp2= round(ind_y_aresp(ii, tmp1) - ind_surf(tmp1) + 1);
+                        tmp2(tmp2 <= 0) ...
+                            = 1;
                         p_arespdepth(ii) ...
-                            = plot(dist_lin(tmp1), (1e6 .* block.twtt(round(ind_y_aresp(ii, tmp1) - ind_surf(tmp1) + 1))), 'c', 'linewidth', 1, 'visible', 'off');
+                            = plot(dist_lin(tmp1), (1e6 .* block.twtt(tmp2)), 'c', 'linewidth', 1, 'visible', 'off');
                     end
                     p_startarespdepth ...
                             = plot((ones(1, pk.num_aresp) .* dist_lin(pk.ind_x_start_aresp)), (1e6 .* (block.twtt(pk.ind_y_start_aresp) - (1e6 .* (block.twtt_surf(pk.ind_x_start_aresp) - block.twtt(1))))), 'm.', 'markersize', 12, 'visible', 'off');
@@ -975,6 +986,8 @@ set(disp_group, 'selectedobject', disp_check(1))
         % plot layers in twtt/~depth
         [p_pk, p_pkdepth, p_pkflat, p_pksmooth, p_pksmoothdepth, p_pksmoothflat] ...
                             = deal(zeros(1, pk.num_layer));
+        [ind_y_flat_mean, ind_y_flat_smooth] ...
+                            = deal(NaN(pk.num_layer, num_decim_flat));
         tmp3                = [];
         for ii = 1:pk.num_layer
             if ~isempty(ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim))))
@@ -1077,33 +1090,33 @@ set(disp_group, 'selectedobject', disp_check(1))
             
             % flatten layers
             warning('off', 'MATLAB:interp1:NaNinY')
-            tmp1            = NaN(pk.num_layer, block.num_trace);
-            [ind_y_flat_mean, ind_y_flat_smooth] ...
-                            = deal(NaN(pk.num_layer, num_decim_flat));
+            tmp1            = NaN(pk.num_layer, num_decim_flat);
             for ii = 1:pk.num_layer
-                tmp1(ii, :) = pk.layer(ii).ind_y;
+                tmp1(ii, :) = pk.layer(ii).ind_y(ind_decim_flat);
             end
             for ii = 1:num_decim_flat
-                if ~sum(isnan(ind_y_flat(:, ind_decim_flat(ii))))
-                    [~, tmp3] ...
-                            = unique(ind_y_flat(:, ind_decim_flat(ii)));
-                    if any(~isnan(tmp1(:, ind_decim_flat(ii))))
-                        ind_y_flat_mean(~isnan(tmp1(:, ind_decim_flat(ii))), ii) ...
-                            = interp1(ind_y_flat(tmp3, ind_decim_flat(ii)), tmp3, tmp1(~isnan(tmp1(:, ind_decim_flat(ii))), ind_decim_flat(ii)), 'nearest', 'extrap');
-                    end
+                if sum(isnan(ind_y_flat(:, ind_decim_flat(ii))))
+                    continue
+                end
+                [~, tmp3]   = unique(ind_y_flat(:, ind_decim_flat(ii)));
+                if any(~isnan(tmp1(:, ii)))
+                    ind_y_flat_mean(~isnan(tmp1(:, ii)), ii) ...
+                            = interp1(ind_y_flat(tmp3, ind_decim_flat(ii)), tmp3, tmp1(~isnan(tmp1(:, ii)), ii), 'nearest', 'extrap');
                 end
             end
             
-            [tmp1, tmp2]    = deal(NaN(pk.num_layer, num_decim_flat));
+            tmp1            = NaN(pk.num_layer, num_decim_flat);
             for ii = 1:pk.num_layer
                 tmp1(ii, :) = pk.layer(ii).ind_y_smooth(ind_decim_flat);
             end
-            tmp4            = find(~sum(isnan(ind_y_flat(:, ind_decim_flat))));
-            for ii = 1:length(tmp4)
-                [~, tmp3]   = unique(ind_y_flat(:, tmp4(ii)));
+            for ii = 1:num_decim_flat
+                if sum(isnan(ind_y_flat(:, ind_decim_flat(ii))))
+                    continue
+                end
+                [~, tmp3]   = unique(ind_y_flat(:, ind_decim_flat(ii)));
                 if any(~isnan(tmp1(:, ii)))
                     ind_y_flat_smooth(~isnan(tmp1(:, ii)), ii) ...
-                            = interp1(ind_y_flat(tmp3, tmp4(ii)), tmp3, tmp1(~isnan(tmp1(:, ii)), ii), 'nearest', 'extrap');
+                            = interp1(ind_y_flat(tmp3, ind_decim_flat(ii)), tmp3, tmp1(~isnan(tmp1(:, ii)), ii), 'nearest', 'extrap');
                 end
             end
             warning('on', 'MATLAB:interp1:NaNinY')
@@ -1336,11 +1349,11 @@ set(disp_group, 'selectedobject', disp_check(1))
             switch ref_start_or_end
                 case 'start'
                     for ii = 1:pk_ref.num_layer
-                        p_refdepth(ii) = plot(dist_lin(1:decim:block.ind_overlap(1)), (1e6 .* (pk_ref.layer(ii).twtt_smooth(pk_ref.ind_overlap(2):decim:end) - pk_ref.twtt_surf(pk_ref.ind_overlap(2):decim:end))), 'y.', 'markersize', 12, 'visible', 'off');
+                        p_refdepth(ii) = plot(dist_lin(1:decim:block.ind_overlap(1)), (1e6 .* (pk_ref.layer(ii).twtt_smooth(pk_ref.ind_overlap(2):decim:end) - pk_ref.twtt_surf(pk_ref.ind_overlap(2):decim:end) + block.twtt(1))), 'y.', 'markersize', 12, 'visible', 'off');
                     end
                 case 'end'
                     for ii = 1:pk_ref.num_layer
-                        p_refdepth(ii) = plot(dist_lin(block.ind_overlap(2):decim:end), (1e6 .* (pk_ref.layer(ii).twtt_smooth(1:decim:pk_ref.ind_overlap(1)) - pk_ref.twtt_surf(1:decim:pk_ref.ind_overlap(1)))), 'y.', 'markersize', 12, 'visible', 'off');
+                        p_refdepth(ii) = plot(dist_lin(block.ind_overlap(2):decim:end), (1e6 .* (pk_ref.layer(ii).twtt_smooth(1:decim:pk_ref.ind_overlap(1)) - pk_ref.twtt_surf(1:decim:pk_ref.ind_overlap(1)) + block.twtt(1))), 'y.', 'markersize', 12, 'visible', 'off');
                     end
             end
         end
@@ -1441,12 +1454,12 @@ set(disp_group, 'selectedobject', disp_check(1))
                     p_phasedepth ...
                             = zeros(1, pk.num_phase);
                     for ii = 1:pk.num_phase
-                        tmp1= find(~isnan(ind_y_phase(ii, ind_decim)) & ~isnan(ind_surf(ind_decim)));
-                        tmp2= round(ind_y_phase(ii, ind_decim(tmp1)) - ind_surf(ind_decim(tmp1)) + 1);
+                        tmp1= ind_decim(~isnan(ind_y_phase(ii, ind_decim)) & ~isnan(ind_surf(ind_decim)));
+                        tmp2= round(ind_y_phase(ii, tmp1) - ind_surf(tmp1) + 1);
                         tmp2(tmp2 <= 0) ...
                             = 1;
                         p_phasedepth(ii) ...
-                            = plot(dist_lin(ind_decim(tmp1)), (1e6 .* block.twtt(tmp2)), 'b', 'linewidth', 1, 'visible', 'off'); % plot the phase-tracked layers
+                            = plot(dist_lin(tmp1), (1e6 .* block.twtt(tmp2)), 'b', 'linewidth', 1, 'visible', 'off'); % plot the phase-tracked layers
                     end
                     p_startphasedepth ...
                             = plot((ones(1, pk.num_phase) .* dist_lin(pk.ind_x_start_phase)), (1e6 .* block.twtt(pk.ind_y_start_phase - ind_surf(pk.ind_x_start_phase) + 1)), 'm.', 'markersize', 12, 'visible', 'off');
@@ -1728,12 +1741,12 @@ set(disp_group, 'selectedobject', disp_check(1))
                     p_arespdepth ...
                             = zeros(1, pk.num_aresp);
                     for ii = 1:pk.num_aresp
-                        tmp1= find(~isnan(ind_y_aresp(ii, ind_decim)) & ~isnan(ind_surf(ind_decim)));
-                        tmp2= round(ind_y_aresp(ii, ind_decim(tmp1)) - ind_surf(ind_decim(tmp1)) + 1);
+                        tmp1= ind_decim(~isnan(ind_y_aresp(ii, ind_decim)) & ~isnan(ind_surf(ind_decim)));
+                        tmp2= round(ind_y_aresp(ii, tmp1) - ind_surf(tmp1) + 1);
                         tmp2(tmp2 <= 0) ...
                             = 1;
                         p_arespdepth(ii) ...
-                            = plot(dist_lin(ind_decim(tmp1)), (1e6 .* block.twtt(tmp2)), 'c', 'linewidth', 1, 'visible', 'off');
+                            = plot(dist_lin(tmp1), (1e6 .* block.twtt(tmp2)), 'c', 'linewidth', 1, 'visible', 'off');
                     end
                     p_startarespdepth ...
                             = plot((ones(1, pk.num_aresp) .* dist_lin(pk.ind_x_start_aresp)), (1e6 .* block.twtt(pk.ind_y_start_aresp - ind_surf(pk.ind_x_start_aresp) + 1)), 'r.', 'markersize', 12, 'visible', 'off'); % plot the starting y indices
@@ -2534,8 +2547,10 @@ set(disp_group, 'selectedobject', disp_check(1))
             if smooth_done(ii)
                 ind_y_flat_smooth(ii, :) ...
                             = round(interp1(ind_decim_flat_old, ind_y_flat_smooth(ii, :), ind_decim_flat, 'linear', 'extrap'));
-                p_pksmoothflat(ii) ...
+                if ~isempty(find(~isnan(ind_y_flat_smooth(ii, :)), 1))
+                    p_pksmoothflat(ii) ...
                             = plot(dist_lin(ind_decim_flat(~isnan(ind_y_flat_smooth(ii, :)))), (1e6 .* block.twtt(ind_y_flat_smooth(ii, ~isnan(ind_y_flat_smooth(ii, :))))), 'g.', 'markersize', 12, 'visible', 'off');
+                end
             end
         end
         warning('on', 'MATLAB:interp1:NaNinY')
@@ -3752,9 +3767,9 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = plot(dist_lin(tmp2(~isnan(tmp3))), (1e6 .* block.twtt(round(tmp3(~isnan(tmp3))))), 'g.', 'markersize', 24, 'visible', 'off');
             end
             if flat_done
-                tmp1        = ind_decim_flat(~isnan(ind_y_flat_smooth(curr_layer, :)));
+                tmp1        = find(~isnan(ind_y_flat_smooth(curr_layer, :)));
                 p_pksmoothflat(curr_layer) ...
-                            = plot(dist_lin(tmp1), (1e6 .* block.twtt(round(ind_y_flat_smooth(curr_layer, tmp1)))), 'g.', 'markersize', 24, 'visible', 'off');
+                            = plot(dist_lin(ind_decim_flat(tmp1)), (1e6 .* block.twtt(round(ind_y_flat_smooth(curr_layer, tmp1)))), 'g.', 'markersize', 24, 'visible', 'off');
             end
             show_smooth
         end
@@ -3889,9 +3904,9 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         if (flat_done && any(p_pksmoothflat([curr_layer tmp1])) && any(ishandle(p_pksmoothflat([curr_layer tmp1]))))
             delete(p_pksmoothflat([curr_layer tmp1]))
-            tmp2            = ind_decim_flat(~isnan(ind_y_flat_smooth(curr_layer, :)));
+            tmp2            = find(~isnan(ind_y_flat_smooth(curr_layer, :)));
             p_pksmoothflat(curr_layer) ...
-                            = plot(dist_lin(tmp2), (1e6 .* block.twtt(round(ind_y_flat_smooth(curr_layer, tmp2)))), 'g.', 'markersize', 24, 'visible', 'off');
+                            = plot(dist_lin(ind_decim_flat(tmp2)), (1e6 .* block.twtt(round(ind_y_flat_smooth(curr_layer, tmp2)))), 'g.', 'markersize', 24, 'visible', 'off');
         end
         
         tmp3                = setdiff(1:pk.num_layer, tmp1);
@@ -4098,19 +4113,35 @@ set(disp_group, 'selectedobject', disp_check(1))
             
             if (length(find(tmp3 < pk.twtt_match)) == 1) % found a single matching layer within the threshold
                 pk.ind_match(ii) ...
-                            = pk_ref.ind_match(logical(tmp3 < pk.twtt_match));
+                    = pk_ref.ind_match(logical(tmp3 < pk.twtt_match));
                 % brighten layer colors once successful
-                set(p_pk(ii), 'color', 'r')
-                set(p_pksmooth(ii), 'color', 'g')
-                set(p_ref(logical(tmp3 < pk.twtt_match)), 'color', 'y')
+                if (logical(p_pk(ii)) && ishandle(p_pk(ii)))
+                    set(p_pk(ii), 'color', 'r')
+                end
+                if (logical(p_pksmooth(ii)) && ishandle(p_pksmooth(ii)))
+                    set(p_pksmooth(ii), 'color', 'g')
+                end
+                if (logical(p_ref(logical(tmp3 < pk.twtt_match))) && ishandle(p_ref(logical(tmp3 < pk.twtt_match))))
+                    set(p_ref(logical(tmp3 < pk.twtt_match)), 'color', 'y')
+                end
                 if depth_avail
-                    set(p_pkdepth(ii), 'color', 'r')
-                    set(p_pksmoothdepth(ii), 'color', 'g')
-                    set(p_refdepth(logical(tmp3 < pk.twtt_match)), 'color', 'y')
+                    if (logical(p_pkdepth(ii)) && ishandle(p_pkdepth(ii)))
+                        set(p_pkdepth(ii), 'color', 'r')
+                    end
+                    if (logical(p_pksmoothdepth(ii)) && ishandle(p_pksmoothdepth(ii)))
+                        set(p_pksmoothdepth(ii), 'color', 'g')
+                    end
+                    if (logical(p_refdepth(logical(tmp3 < pk.twtt_match))) && ishandle(p_refdepth(logical(tmp3 < pk.twtt_match))))
+                        set(p_refdepth(logical(tmp3 < pk.twtt_match)), 'color', 'y')
+                    end
                 end
                 if flat_done
-                    set(p_pkflat(ii), 'color', 'r')
-                    set(p_pksmoothflat(ii), 'color', 'g')
+                    if (logical(p_pkflat(ii)) && ishandle(p_pkflat(ii)))
+                        set(p_pkflat(ii), 'color', 'r')
+                    end
+                    if (logical(p_pksmoothflat(ii)) && ishandle(p_pksmoothflat(ii)))
+                        set(p_pksmoothflat(ii), 'color', 'g')
+                    end
                 end
             end
         end
