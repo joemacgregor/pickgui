@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 02/16/14
+% Last updated: 02/21/14
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -159,10 +159,10 @@ uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Flatten', 'units', 'normalize
 uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Manually', 'units', 'normalized', 'position', [0.50 0.965 0.05 0.03], 'callback', @pk_man, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Semi-automatically', 'units', 'normalized', 'position', [0.47 0.925 0.08 0.03], 'callback', @pk_auto, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Delete', 'units', 'normalized', 'position', [0.77 0.885 0.05 0.03], 'callback', @pk_del, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Adjust', 'units', 'normalized', 'position', [0.77 0.925 0.05 0.03], 'callback', @adj_layer, 'fontsize', size_font, 'foregroundcolor', 'm')
-uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Merge', 'units', 'normalized', 'position', [0.82 0.925 0.04 0.03], 'callback', @merge_layer, 'fontsize', size_font, 'foregroundcolor', 'm')
-uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalized', 'position', [0.72 0.925 0.05 0.03], 'callback', @focus_layer, 'fontsize', size_font, 'foregroundcolor', 'm')
-uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Select', 'units', 'normalized', 'position', [0.72 0.885 0.05 0.03], 'callback', @pk_select, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Adjust', 'units', 'normalized', 'position', [0.77 0.925 0.05 0.03], 'callback', @pk_adj, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Merge', 'units', 'normalized', 'position', [0.82 0.925 0.04 0.03], 'callback', @pk_merge, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalized', 'position', [0.72 0.925 0.05 0.03], 'callback', @pk_focus, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Select', 'units', 'normalized', 'position', [0.72 0.885 0.05 0.03], 'callback', @pk_select_gui, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Next', 'units', 'normalized', 'position', [0.68 0.925 0.035 0.03], 'callback', @pk_next, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Last', 'units', 'normalized', 'position', [0.64 0.925 0.035 0.03], 'callback', @pk_last, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Test', 'units', 'normalized', 'position', [0.82 0.885 0.04 0.03], 'callback', @misctest, 'fontsize', size_font, 'foregroundcolor', 'r')
@@ -223,7 +223,7 @@ twtt_match_edit             = uicontrol(pkgui, 'style', 'edit', 'string', num2st
 % menus
 chunk_list                  = uicontrol(pkgui, 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.25 0.955 0.045 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', 'callback', @plot_chunk);
 cmap_list                   = uicontrol(pkgui, 'style', 'popupmenu', 'string', cmaps, 'value', 1, 'units', 'normalized', 'position', [0.89 0.865 0.05 0.05], 'callback', @change_cmap, 'fontsize', size_font);
-layer_list                  = uicontrol(pkgui, 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.68 0.875 0.0375 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', 'callback', @choose_layer);
+layer_list                  = uicontrol(pkgui, 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.68 0.875 0.0375 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', 'callback', @pk_select);
 
 % check boxes
 twttfix_check               = uicontrol(pkgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.04 0.85 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(pkgui, 'color'));
@@ -797,7 +797,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         clear_plots
         
-        [aresp_done, flat_done, keep_aresp_done, keep_phase_done, load_flat, match_done, phase_done, pk_done, smooth_done] ...
+        [aresp_done, flat_done, keep_aresp_done, keep_phase_done, load_flat, match_done, phase_done, pk_done] ...
                             = deal(false);
         
         if isfield(pk, 'poly_flat')
@@ -957,7 +957,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         % do same for manual layers
         if pk.num_man
             if any((pk.ind_y_man(:) < 1) | (pk.ind_y_man(:) > num_sample_trim)) % trimming not done when manual picks were done (no longer possible)
-                set(status_box, 'string', 'Cannot display manually picked layers due to trimming issue...');
+                set(status_box, 'string', 'Cannot display manually picked layers due to trimming issue...')
                 [pk.num_man, pk.ind_y_man] ...
                             = deal(0);
                 pause(0.1)
@@ -981,6 +981,26 @@ set(disp_group, 'selectedobject', disp_check(1))
                     end
                 end
             end
+        end
+        
+        % remove old fields
+        if isfield(pk.layer, 'ind_y_flat_mean')
+            pk.layer        = rmfield(pk.layer, 'ind_y_flat_mean');
+        end
+        if isfield(pk.layer, 'ind_y_flat_smooth')
+            pk.layer        = rmfield(pk.layer, 'ind_y_flat_smooth');
+        end
+        if isfield(pk.layer, 'type')
+            pk.layer        = rmfield(pk.layer, 'type');
+        end
+        if isfield(pk, 'ind_x_mean')
+            pk              = rmfield(pk, 'ind_x_mean');
+        end
+        if isfield(pk, 'keep_or_flat')
+            pk              = rmfield(pk, 'keep_or_flat');
+        end
+        if isfield(pk, 'num_ind_mean')
+            pk              = rmfield(pk, 'num_ind_mean');
         end
         
         % plot layers in twtt/~depth
@@ -1039,8 +1059,8 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
             end
             curr_layer      = interp1(1:length(tmp2), tmp2, curr_layer, 'nearest', 'extrap');
-            [pk.num_layer, pk.layer, p_pk, p_pkdepth, p_pkflat, smooth_done, p_pksmooth, p_pksmoothdepth, p_pksmoothflat] ...
-                            = deal(length(tmp2), pk.layer(tmp2), p_pk(tmp2), p_pkdepth(tmp2), p_pkflat(tmp2), smooth_done(tmp2), p_pksmooth(tmp2), p_pksmoothdepth(tmp2), p_pksmoothflat(tmp2));
+            [pk.num_layer, pk.layer, smooth_done, p_pk, p_pkdepth, p_pkflat, p_pksmooth, p_pksmoothdepth, p_pksmoothflat] ...
+                            = deal(length(tmp2), pk.layer(tmp2), smooth_done(tmp2), p_pk(tmp2), p_pkdepth(tmp2), p_pkflat(tmp2), p_pksmooth(tmp2), p_pksmoothdepth(tmp2), p_pksmoothflat(tmp2));
             set(layer_list, 'string', num2cell(1:pk.num_layer), 'value', curr_layer)
         end
         
@@ -1161,7 +1181,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             match_done      = true;
         end
         
-        set([aresp_check man_check phase_check pk_check smooth_check], 'value', 1)
+        set([pk_check smooth_check], 'value', 1)
         show_phase
         show_aresp
         show_ref
@@ -2499,7 +2519,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         set(disp_check(5), 'visible', 'on')
         mean_flat
-        choose_layer
+        pk_select
         set(status_box, 'string', 'Flattened radargram and layers.')
     end
 
@@ -2554,7 +2574,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
         end
         warning('on', 'MATLAB:interp1:NaNinY')
-        
+
+        pk_smooth
+       
         set(disp_group, 'selectedobject', disp_check(5))
         disp_type           = 'flat';
         plot_flat
@@ -2590,7 +2612,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         while true
             
-            set(status_box, 'string', 'Left-click: Pick; D: delete; U: undo; L: cut left; R: cut right; C: cut chunk; M: merge; Q: done.')
+            set(status_box, 'string', 'Left-click: Pick; D: delete; U: undo; L: cut left; R: cut right; C: cut chunk; M: merge; Q: done...')
             
             % get pick and convert to indices
             [ind_x_pk, ind_y_pk, button] ...
@@ -2607,6 +2629,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 case '~depth'
                     ind_y_pk= interp1(block.twtt, 1:num_sample_trim, (1e-6 * (ind_y_pk + (1e6 * (block.twtt_surf(ind_x_pk) - block.twtt(1))))), 'nearest', 'extrap');
             end
+            
             if (button == 1) % trace layer
                 
                 pk.num_layer= pk.num_layer + 1;
@@ -2615,28 +2638,31 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = deal([smooth_done false], [p_pksmooth 0], [p_pksmoothdepth 0], [p_pksmoothflat 0], [ind_y_flat_mean; NaN(1, num_decim_flat)], [ind_y_flat_smooth; NaN(1, num_decim_flat)]);
                 pk_prop
                 set(status_box, 'string', ['Layer #' num2str(curr_layer) ' picked.'])
+                pause(0.5)
                 
             elseif strcmpi(char(button), 'D') % delete layer
                 
                 if ~pk.num_layer
                     continue
                 end
-                tmp1        = NaN(pk.num_layer, 1);
-                for ii = 1:pk.num_layer
+                tmp1        = NaN((pk.num_layer - tmp3 + 1), 1);
+                for ii = 1:(pk.num_layer - tmp3 + 1)
                     switch disp_type
                         case 'twtt'
-                            tmp1(ii) = pk.layer(ii).ind_y(ind_x_pk); % y index at x index pick for each layer
+                            tmp1(ii) = pk.layer(tmp3 + ii - 1).ind_y(ind_x_pk); % y index at x index pick for each layer
                         case '~depth'
-                            tmp1(ii) = pk.layer(ii).ind_y(ind_x_pk) - ind_surf(ind_x_pk) + 1; % y index at x index pick for each layer
+                            tmp1(ii) = pk.layer(tmp3 + ii - 1).ind_y(ind_x_pk) - ind_surf(ind_x_pk) + 1;
                         case 'flat'
-                            tmp1(ii) = ind_y_flat_mean(ii, ind_x_pk);
+                            tmp1(ii) = ind_y_flat_mean((tmp3 + ii - 1), ind_x_pk);
                     end
                 end
-                try
-                    tmp1    = interp1(tmp1(~isnan(tmp1)), find(~isnan(tmp1)), ind_y_pk, 'nearest', 'extrap');
-                catch
+                if (length(tmp1(~isnan(tmp1))) > 1)
+                    tmp1= interp1(tmp1(~isnan(tmp1)), find(~isnan(tmp1)), ind_y_pk, 'nearest', 'extrap') + tmp3 - 1;
+                elseif (length(tmp1(~isnan(tmp1))) == 1)
+                    tmp1=find(~isnan(tmp1)) + tmp3 - 1;
+                else
                     set(status_box, 'string', 'Cannot determine which layer to delete. Pick a more distinct x index.')
-                    pause(0.1)
+                    pause(0.5)
                     continue
                 end
                 switch disp_type
@@ -2646,9 +2672,6 @@ set(disp_group, 'selectedobject', disp_check(1))
                         delete(p_pkdepth(tmp1))
                     case 'flat'
                         delete(p_pkflat(tmp1))
-                end
-                if smooth_done(tmp1)
-                    delete([p_pksmooth(tmp1) p_pksmoothdepth(tmp1) p_pksmoothflat(tmp1)])
                 end
                 tmp2        = setdiff(1:pk.num_layer, tmp1);
                 switch disp_type
@@ -2663,10 +2686,9 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 [pk.layer, smooth_done, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, pk.num_layer, ind_y_flat_mean, ind_y_flat_smooth] ...
                             = deal(pk.layer(tmp2), smooth_done(tmp2), p_pksmooth(tmp2), p_pksmoothdepth(tmp2), p_pksmoothflat(tmp2), (pk.num_layer - 1), ind_y_flat_mean(tmp2, :), ind_y_flat_smooth(tmp2, :));
+                tmp3        = tmp3 - 1;
                 set(status_box, 'string', ['Deleted layer #' num2str(tmp1) '.'])
-                if (tmp1 < tmp3)
-                    tmp3    = tmp3 - 1; % remove 1 from the set of old layers
-                end
+                pause(0.5)
                 
             elseif strcmpi(char(button), 'U') % undo
                 
@@ -2689,6 +2711,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 [pk.layer, smooth_done, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, pk.num_layer, ind_y_flat_mean, ind_y_flat_smooth] ...
                             = deal(pk.layer(1:(end - 1)), smooth_done(1:(end - 1)), p_pksmooth(1:(end - 1)), p_pksmoothdepth(1:(end - 1)), p_pksmoothflat(1:(end - 1)), (pk.num_layer - 1), ind_y_flat_mean(1:(end - 1), :), ind_y_flat_smooth(1:(end - 1), :));
                 set(status_box, 'string', 'Undid last layer.')
+                pause(0.5)
                 
             elseif (strcmpi(char(button), 'L') || strcmpi(char(button), 'R') || strcmpi(char(button), 'C'))  % delete portion of layer
                 
@@ -2699,17 +2722,15 @@ set(disp_group, 'selectedobject', disp_check(1))
                 try
                     for ii = 1:(pk.num_layer - tmp3 + 1) % y index at x index pick for each layer
                         switch disp_type
-                            case 'twtt'
+                            case {'twtt' '~depth'}
                                 tmp1(ii) = pk.layer(tmp3 + ii - 1).ind_y(ind_x_pk);
-                            case '~depth'
-                                tmp1(ii) = pk.layer(tmp3 + ii - 1).ind_y(ind_x_pk) - ind_surf(ind_x_pk) + 1;
                             case 'flat'
                                 tmp1(ii) = ind_y_flat_mean((tmp3 + ii - 1), ind_x_pk);
                         end
                     end
                 catch
                     set(status_box, 'string', 'Something went wrong compiling new layer y-indices. Try again.')
-                    pause(0.1)
+                    pause(0.5)
                     continue
                 end
                 tmp2        = find(~isnan(tmp1));
@@ -2719,6 +2740,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     tmp1    = tmp3 - 1 + tmp2;
                 else
                     set(status_box, 'string', 'Cannot determine which new layer to edit. Pick a more distinct x index.')
+                    pause(0.5)
                     continue
                 end
                 if strcmpi(char(button), 'C')
@@ -2786,21 +2808,22 @@ set(disp_group, 'selectedobject', disp_check(1))
                     [pk.layer, smooth_done, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, pk.num_layer, ind_y_flat_mean, ind_y_flat_smooth] ...
                             = deal(pk.layer(tmp4), smooth_done(tmp4), p_pksmooth(tmp4), p_pksmoothdepth(tmp4), p_pksmoothflat(tmp4), (pk.num_layer - 1), ind_y_flat_mean(tmp4, :), ind_y_flat_smooth(tmp4, :));
                     set(status_box, 'string', 'Deleted edited layer because it is now empty.')
+                    pause(0.5)
                 else
                     switch disp_type
                         case 'twtt'
                             p_pk(tmp1) ...
-                            = plot(dist_lin(ind_decim(~isnan(pk.layer(tmp1).ind_y(ind_decim)))), (1e6 .* block.twtt(pk.layer(tmp1).ind_y(ind_decim(~isnan(pk.layer(tmp1).ind_y(ind_decim)))))), '.', 'color', [1 0.7 0.7], 'markersize', 12);
+                                = plot(dist_lin(ind_decim(~isnan(pk.layer(tmp1).ind_y(ind_decim)))), (1e6 .* block.twtt(pk.layer(tmp1).ind_y(ind_decim(~isnan(pk.layer(tmp1).ind_y(ind_decim)))))), '.', 'color', [1 0.7 0.7], 'markersize', 12);
                         case '~depth'
                             tmp2 = ind_decim(~isnan(pk.layer(tmp1).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim)));
                             tmp4 = pk.layer(tmp1).ind_y(tmp2) - ind_surf(tmp2) + 1;
                             tmp4((tmp4 < 1) | (tmp4 > num_sample_trim)) ...
                                  = NaN;
                             p_pkdepth(tmp1) ...
-                            = plot(dist_lin(tmp2(~isnan(tmp4))), (1e6 .* block.twtt(round(tmp4(~isnan(tmp4))))), '.', 'color', [1 0.7 0.7], 'markersize', 12);
+                                = plot(dist_lin(tmp2(~isnan(tmp4))), (1e6 .* block.twtt(round(tmp4(~isnan(tmp4))))), '.', 'color', [1 0.7 0.7], 'markersize', 12);
                         case 'flat'
                             p_pkflat(tmp1) ...
-                            = plot(dist_lin(ind_decim_flat(~isnan(ind_y_flat_mean(tmp1, :)))), (1e6 .* block.twtt(ind_y_flat_mean(tmp1, ~isnan(ind_y_flat_mean(tmp1, :))))), '.', 'color', [1 0.7 0.7], 'markersize', 12);
+                                = plot(dist_lin(ind_decim_flat(~isnan(ind_y_flat_mean(tmp1, :)))), (1e6 .* block.twtt(ind_y_flat_mean(tmp1, ~isnan(ind_y_flat_mean(tmp1, :))))), '.', 'color', [1 0.7 0.7], 'markersize', 12);
                     end
                     switch char(button)
                         case {'l' 'L'}
@@ -2819,21 +2842,13 @@ set(disp_group, 'selectedobject', disp_check(1))
                     continue
                 end
                 tmp1        = NaN((pk.num_layer - tmp3 + 1), 1);
-                try
-                    for ii = 1:(pk.num_layer - tmp3 + 1)
-                        switch disp_type
-                            case 'twtt'
-                                tmp1(ii) = pk.layer(tmp3 + ii - 1).ind_y(ind_x_pk);
-                            case '~depth'
-                                tmp1(ii) = pk.layer(tmp3 + ii - 1).ind_y(ind_x_pk) - ind_surf(ind_x_pk) + 1;
-                            case 'flat'
-                                tmp1(ii) = ind_y_flat_mean((tmp3 + ii - 1), ind_x_pk);
-                        end
+                for ii = 1:(pk.num_layer - tmp3 + 1)
+                    switch disp_type
+                        case {'twtt' '~depth'}
+                            tmp1(ii) = pk.layer(tmp3 + ii - 1).ind_y(ind_x_pk);
+                        case 'flat'
+                            tmp1(ii) = ind_y_flat_mean((tmp3 + ii - 1), ind_x_pk);
                     end
-                catch
-                    set(status_box, 'string', 'Something went wrong compiling new layer y-indices. Try again.')
-                    pause(0.1)
-                    continue
                 end
                 tmp2        = find(~isnan(tmp1));
                 if ((length(tmp2) > 1) && (length(unique(tmp1(tmp2))) == length(tmp2)))
@@ -2842,7 +2857,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     tmp1    = tmp3 - 1 + tmp2;
                 else
                     set(status_box, 'string', 'Cannot determine which new layer to edit. Pick a more distinct x index.')
-                    pause(0.1)
+                    pause(0.5)
                     continue
                 end
                 
@@ -2864,21 +2879,15 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = interp1(block.twtt, 1:num_sample_trim, (1e-6 * (ind_y_pk + (1e6 * (block.twtt_surf(ind_x_pk) - block.twtt(1))))), 'nearest', 'extrap');
                 end
                 tmp2        = NaN((pk.num_layer - tmp3 + 1), 1);
-                try
-                    for ii = 1:(pk.num_layer - tmp3 + 1)
-                        switch disp_type
-                            case {'twtt' '~depth'}
-                                tmp2(ii) ...
-                                    = pk.layer(tmp3 + ii - 1).ind_y(ind_x_pk);
-                            case 'flat'
-                                tmp2(ii) ...
-                                    = ind_y_flat_mean((tmp3 + ii - 1), ind_x_pk);
-                        end
+                for ii = 1:(pk.num_layer - tmp3 + 1)
+                    switch disp_type
+                        case {'twtt' '~depth'}
+                            tmp2(ii) ...
+                                = pk.layer(tmp3 + ii - 1).ind_y(ind_x_pk);
+                        case 'flat'
+                            tmp2(ii) ...
+                                = ind_y_flat_mean((tmp3 + ii - 1), ind_x_pk);
                     end
-                catch
-                    set(status_box, 'string', 'Something went wrong compiling new layer y-indices. Try again.')
-                    pause(0.1)
-                    continue
                 end
                 tmp4        = find(~isnan(tmp2));
                 if ((length(tmp4) > 1) && (length(unique(tmp2(tmp4))) == length(tmp4)))
@@ -2887,7 +2896,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     tmp2    = tmp3 - 1 + tmp4;
                 else
                     set(status_box, 'string', 'Cannot determine which layer to merge with. Pick a more distinct x index.')
-                    pause(0.1)
+                    pause(0.5)
                     continue
                 end
                 
@@ -2929,6 +2938,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 [pk.layer, smooth_done, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, pk.num_layer, ind_y_flat_mean, ind_y_flat_smooth] ...
                             = deal(pk.layer(tmp4), smooth_done(tmp4), p_pksmooth(tmp4), p_pksmoothdepth(tmp4), p_pksmoothflat(tmp4), (pk.num_layer - 1), ind_y_flat_mean(tmp4, :), ind_y_flat_smooth(tmp4, :));
                 set(status_box, 'string', ['Layers #' num2str(tmp1) ' and ' num2str(tmp2) 'merged.'])
+                pause(0.5)
                 
             elseif strcmpi(char(button), 'E')
                 
@@ -2939,6 +2949,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 pk.num_win  = pk.num_win + 1;
                 set(num_win_edit, 'string', num2str(pk.num_win))
                 set(status_box, 'string', ['Vertical search window adjusted to +/- ' num2str(pk.num_win) ' samples.'])
+                pause(0.5)
             
             elseif strcmpi(char(button), 'S')
                 
@@ -2947,6 +2958,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = pk.num_win - 1;
                     set(num_win_edit, 'string', num2str(pk.num_win))
                     set(status_box, 'string', ['Vertical search window adjusted to +/- ' num2str(pk.num_win) ' samples.'])
+                    pause(0.5)
                 end
                 
             elseif (button == 28)
@@ -2964,7 +2976,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 
             elseif strcmpi(char(button), 'Q') % done picking lines
                 
-                set(status_box, 'string', 'Done picking flattened layers...')
+                set(status_box, 'string', 'Done picking layers...')
                 break
                 
             end
@@ -3120,17 +3132,17 @@ set(disp_group, 'selectedobject', disp_check(1))
         pk_done             = true;
         match_done          = false;
         pk_smooth
-        choose_layer
+        pk_select
     end
 
 %% Propagate layer from pick
 
     function pk_prop(source, eventdata)
         
+        pk.layer(curr_layer).ind_y ...
+                            = NaN(1, block.num_trace);
         switch disp_type
             case {'twtt' '~depth'}
-                pk.layer(curr_layer).ind_y ...
-                            = NaN(1, block.num_trace);
                 [~, pk.layer(curr_layer).ind_y(ind_x_pk)] ...
                             = max(block.amp((ind_y_pk - pk.num_win):(ind_y_pk + pk.num_win), ind_x_pk)); % y index of nearest min/max
                 pk.layer(curr_layer).ind_y(ind_x_pk) ...
@@ -3342,7 +3354,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 pk_sort
                 curr_layer  = find(tmp1 == pk.num_layer); % tmp1 from pk_sort
                 set(layer_list, 'string', num2cell(1:pk.num_layer), 'value', curr_layer);
-                choose_layer
+                pk_select
                 set(pk_check, 'value', 1)
                 show_pk
                 set(status_box, 'string', 'Manual layer successfully picked.')
@@ -3361,13 +3373,13 @@ set(disp_group, 'selectedobject', disp_check(1))
             tmp1(ii)        = nanmean(pk.layer(ii).ind_y);
         end
         [~, tmp1]           = sort(tmp1);
-        [pk.layer, p_pk, p_pkdepth, p_pkflat, smooth_done, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, ind_y_flat_mean, ind_y_flat_smooth] ...
-                            = deal(pk.layer(tmp1), p_pk(tmp1), p_pkdepth(tmp1), p_pkflat(tmp1), smooth_done(tmp1), p_pksmooth(tmp1), p_pksmoothdepth(tmp1), p_pksmoothflat(tmp1), ind_y_flat_mean(tmp1, :), ind_y_flat_smooth(tmp1, :));
+        [pk.layer, smooth_done, p_pk, p_pkdepth, p_pkflat, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, ind_y_flat_mean, ind_y_flat_smooth] ...
+                            = deal(pk.layer(tmp1), smooth_done(tmp1), p_pk(tmp1), p_pkdepth(tmp1), p_pkflat(tmp1), p_pksmooth(tmp1), p_pksmoothdepth(tmp1), p_pksmoothflat(tmp1), ind_y_flat_mean(tmp1, :), ind_y_flat_smooth(tmp1, :));
     end
 
 %% Choose/highlight the current layer
 
-    function choose_layer(source, eventdata)
+    function pk_select(source, eventdata)
         if ~pk.num_layer
             set(status_box, 'string', 'No picked layers to select.')
             return
@@ -3416,17 +3428,17 @@ set(disp_group, 'selectedobject', disp_check(1))
 
 %% Choose/select a layer interactively
 
-    function pk_select(source, eventdata)
+    function pk_select_gui(source, eventdata)
         if ~(pk_done && pk.num_layer)
             set(status_box, 'string', 'No picked layers to select.')
             return
         end
         set(status_box, 'string', 'Select a layer...')
         [ind_x_pk, ind_y_pk]= ginput(1);
-        pk_select_breakout
+        pk_select_gui_breakout
     end
 
-    function pk_select_breakout(source, eventdata)
+    function pk_select_gui_breakout(source, eventdata)
         switch disp_type
             case {'twtt' '~depth'}
                 ind_x_pk    = interp1(dist_lin(ind_decim), ind_decim, ind_x_pk, 'nearest', 'extrap');
@@ -3462,12 +3474,12 @@ set(disp_group, 'selectedobject', disp_check(1))
             curr_layer      = 1;
         end
         set(layer_list, 'value', curr_layer)
-        choose_layer
+        pk_select
     end
 
 %% Focus on a layer vertically
 
-    function focus_layer(source, eventdata)
+    function pk_focus(source, eventdata)
         if ~pk_done
             set(status_box, 'string', 'No picked layers to focus on.')
             return
@@ -3519,7 +3531,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         if (curr_layer > 1)
             curr_layer      = curr_layer - 1;
             set(layer_list, 'value', curr_layer)
-            choose_layer
+            pk_select
         end
     end
 
@@ -3529,7 +3541,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         if (curr_layer < pk.num_layer)
             curr_layer      = curr_layer + 1;
             set(layer_list, 'value', curr_layer)
-            choose_layer
+            pk_select
         end
     end
 
@@ -3565,8 +3577,8 @@ set(disp_group, 'selectedobject', disp_check(1))
         if (logical(p_pksmoothflat(curr_layer)) && ishandle(p_pksmoothflat(curr_layer)))
             delete(p_pksmoothflat(curr_layer))
         end
-        [pk.num_layer, pk.layer, p_pk, p_pkdepth, p_pkflat, smooth_done, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, ind_y_flat_mean, ind_y_flat_smooth] ...
-                            = deal((pk.num_layer - 1), pk.layer(tmp1), p_pk(tmp1), p_pkdepth(tmp1), p_pkflat(tmp1), smooth_done(tmp1), p_pksmooth(tmp1), p_pksmoothdepth(tmp1), p_pksmoothflat(tmp1), ind_y_flat_mean(tmp1, :), ind_y_flat_smooth(tmp1, :));
+        [pk.num_layer, pk.layer, smooth_done, p_pk, p_pkdepth, p_pkflat, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, ind_y_flat_mean, ind_y_flat_smooth] ...
+                            = deal((pk.num_layer - 1), pk.layer(tmp1), smooth_done(tmp1), p_pk(tmp1), p_pkdepth(tmp1), p_pkflat(tmp1), p_pksmooth(tmp1), p_pksmoothdepth(tmp1), p_pksmoothflat(tmp1), ind_y_flat_mean(tmp1, :), ind_y_flat_smooth(tmp1, :));
         curr_layer          = curr_layer - 1;
         if (isempty(curr_layer) || any(curr_layer < 1) || any(curr_layer > pk.num_layer))
             curr_layer      = 1;
@@ -3579,12 +3591,12 @@ set(disp_group, 'selectedobject', disp_check(1))
         match_done          = false;
         set(status_box, 'string', ['Layer #' num2str(curr_layer) ' deleted.'])
         pause(0.1)
-        choose_layer
+        pk_select
     end
 
 %% Adjust/edit current layer
 
-    function adj_layer(source, eventdata)
+    function pk_adj(source, eventdata)
         
         if ~pk_done
             set(status_box, 'string', 'No picked layers to adjust yet.')
@@ -3649,7 +3661,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     pk.layer(curr_layer).ind_y_smooth(tmp1{1}) ...
                             = NaN;
                 end
-                fix_layer
+                pk_fix
                 tmp5        = ind_x_pk;
                 switch char(button)
                     case {'l' 'L'}
@@ -3668,13 +3680,14 @@ set(disp_group, 'selectedobject', disp_check(1))
                 
                 if (strcmpi(char(tmp2), 'L') || strcmpi(char(tmp2), 'R') || strcmpi(char(tmp2), 'C'))
                     
-                    switch char(button)
+                    tmp1        = cell(1, 2);
+                    switch char(tmp2)
                         case {'l' 'L'}
                             [tmp1{1}, tmp1{2}] ...
                                 = deal(1:tmp5, 1:interp1(ind_decim_flat, 1:num_decim_flat, tmp5, 'nearest', 'extrap'));
                         case {'r' 'R'}
                             [tmp1{1}, tmp1{2}] ...
-                                = deal(tmp5:block.num_trace, interp1(ind_decim_flat, 1:num_decim_flat, tmp5, 'nearest', 'extrap'):block.num_trace);
+                                = deal(tmp5:block.num_trace, interp1(ind_decim_flat, 1:num_decim_flat, tmp5, 'nearest', 'extrap'):num_decim_flat);
                         case {'c' 'C'}
                             [tmp1{1}, tmp1{2}] ...
                                 = deal(tmp5:tmp4, interp1(ind_decim_flat, 1:num_decim_flat, tmp5, 'nearest', 'extrap'):interp1(ind_decim_flat, 1:num_decim_flat, tmp4, 'nearest', 'extrap'));
@@ -3692,7 +3705,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 
                 tmp3        = 0;
-                fix_layer
+                pk_fix
                 set(status_box, 'string', 'Undid previous adjustment.')
                 
             elseif strcmpi(char(button), 'Q')
@@ -3709,7 +3722,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     curr_layer = 1;
                 end
                 set(layer_list, 'value', curr_layer)
-                choose_layer
+                pk_select
                 match_done  = false;
                 set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                 return
@@ -3719,7 +3732,7 @@ set(disp_group, 'selectedobject', disp_check(1))
 
 %% Fix layer based on interactive adjustments
 
-    function fix_layer(source, eventdata)
+    function pk_fix(source, eventdata)
         tmp1                = ind_decim(~isnan(pk.layer(curr_layer).ind_y(ind_decim)));
         if isempty(tmp1)
             pk_del
@@ -3750,21 +3763,25 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         show_pk
         if smooth_done(curr_layer)
-            delete(p_pksmooth(curr_layer))
-            delete(p_pksmoothdepth(curr_layer))
-            if flat_done
+            if (logical(p_pksmooth(curr_layer)) && ishandle(p_pksmooth(curr_layer)))
+                delete(p_pksmooth(curr_layer))
+            end
+            if (logical(p_pksmoothdepth(curr_layer)) && ishandle(p_pksmoothdepth(curr_layer)))
+                delete(p_pksmoothdepth(curr_layer))
+            end
+            if (logical(p_pksmoothflat(curr_layer)) && ishandle(p_pksmoothflat(curr_layer)))
                 delete(p_pksmoothflat(curr_layer))
             end
             tmp1            = ind_decim(~isnan(pk.layer(curr_layer).ind_y_smooth(ind_decim)));
             p_pksmooth(curr_layer) ...
                             = plot(dist_lin(tmp1), (1e6 .* block.twtt(round(pk.layer(curr_layer).ind_y_smooth(tmp1)))), 'g.', 'markersize', 24, 'visible', 'off');
             if depth_avail
-                tmp2        = ind_decim(~isnan(pk.layer(curr_layer).ind_y_smooth(ind_decim)) & ~isnan(ind_surf(ind_decim)));
-                tmp3        = pk.layer(curr_layer).ind_y_smooth(tmp2) - ind_surf(tmp2) + 1;
-                tmp3((tmp3 < 1) | (tmp3 > num_sample_trim)) ...
-                            = NaN;                
+                tmp1        = ind_decim(~isnan(pk.layer(curr_layer).ind_y_smooth(ind_decim)) & ~isnan(ind_surf(ind_decim)));
+                tmp2        = pk.layer(curr_layer).ind_y_smooth(tmp1) - ind_surf(tmp1) + 1;
+                tmp2((tmp2 < 1) | (tmp2 > num_sample_trim)) ...
+                            = NaN;
                 p_pksmoothdepth(curr_layer) ...
-                            = plot(dist_lin(tmp2(~isnan(tmp3))), (1e6 .* block.twtt(round(tmp3(~isnan(tmp3))))), 'g.', 'markersize', 24, 'visible', 'off');
+                            = plot(dist_lin(tmp1(~isnan(tmp2))), (1e6 .* block.twtt(round(tmp2(~isnan(tmp2))))), 'g.', 'markersize', 24, 'visible', 'off');
             end
             if flat_done
                 tmp1        = find(~isnan(ind_y_flat_smooth(curr_layer, :)));
@@ -3773,12 +3790,13 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
             show_smooth
         end
-        choose_layer
+        pk_select
+        tmp2                = button;
     end
 
 %% Merge two layers
 
-    function merge_layer(source, eventdata)
+    function pk_merge(source, eventdata)
         
         if ~any(strcmp(disp_type, {'twtt' '~depth' 'flat'}))
             set(status_box, 'string', 'Must be in twtt, ~depth or flat to merge layers.')
@@ -3791,6 +3809,11 @@ set(disp_group, 'selectedobject', disp_check(1))
         if (pk.num_layer < 2)
             set(status_box, 'string', 'Not enough layers to merge.')
             return
+        end
+        if ~all(smooth_done)
+            set(status_box, 'string', 'All layers must be smoothed prior to merging.')
+            pk_smooth
+            pk_merge
         end
         
         set(status_box, 'string', ['Pick layer to merge with layer #' num2str(curr_layer) ' (Q: cancel)...'])
@@ -3843,13 +3866,6 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(status_box, 'string', 'No layer picked to be merged. Pick more precisely.')
             return
         end
-        if ((smooth_done(curr_layer) && ~smooth_done(tmp1)) || (~smooth_done(curr_layer) && smooth_done(tmp1)))
-            set(status_box, 'string', 'Only one of layers to be merged has been smoothed. Smoothing first...')
-            tmp3            = tmp1;
-            pk_smooth
-            tmp1            = tmp3;
-            set(status_box, 'string', 'Continuing merging...')
-        end
         
         % replace NaN values in first layer with those in the second layer
         pk.layer(curr_layer).ind_y(isnan(pk.layer(curr_layer).ind_y)) ...
@@ -3878,23 +3894,6 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = plot(dist_lin(tmp2(~isnan(tmp3))), (1e6 .* block.twtt(round(tmp3(~isnan(tmp3))))), 'r.', 'markersize', 24, 'visible', 'off');
             end
         end
-        if (any(p_pksmooth([curr_layer tmp1])) && any(ishandle(p_pksmooth([curr_layer tmp1]))))
-            delete(p_pksmooth([curr_layer tmp1]))
-            tmp2            = ind_decim(~isnan(pk.layer(curr_layer).ind_y_smooth(ind_decim)));
-            p_pksmooth(curr_layer) ...
-                            = plot(dist_lin(tmp2), (1e6 .* block.twtt(round(pk.layer(curr_layer).ind_y_smooth(tmp2)))), 'g.', 'markersize', 24, 'visible', 'off');
-        end
-        if depth_avail
-            if (any(p_pksmoothdepth([curr_layer tmp1])) && any(ishandle(p_pksmoothdepth([curr_layer tmp1]))))
-                delete(p_pksmoothdepth([curr_layer tmp1]))
-                tmp2        = ind_decim(~isnan(pk.layer(curr_layer).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim)));
-                tmp3        = pk.layer(curr_layer).ind_y_smooth(tmp2) - ind_surf(tmp2) + 1;
-                tmp3((tmp3 < 1) | (tmp3 > num_sample_trim)) ...
-                            = NaN;
-                p_pksmoothdepth(curr_layer) ...
-                            = plot(dist_lin(tmp2(~isnan(tmp3))), (1e6 .* block.twtt(round(tmp3(~isnan(tmp3))))), 'g.', 'markersize', 24, 'visible', 'off');
-            end
-        end
         if flat_done
             if (any(p_pkflat([curr_layer tmp1])) && any(ishandle(p_pkflat([curr_layer tmp1]))))
                 delete(p_pkflat([curr_layer tmp1]))
@@ -3902,26 +3901,34 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = plot(dist_lin(ind_decim_flat(~isnan(ind_y_flat_mean(curr_layer, :)))), (1e6 .* block.twtt(ind_y_flat_mean(curr_layer, ~isnan(ind_y_flat_mean(curr_layer, :))))), 'r.', 'markersize', 24, 'visible', 'off');
             end
         end
-        if (flat_done && any(p_pksmoothflat([curr_layer tmp1])) && any(ishandle(p_pksmoothflat([curr_layer tmp1]))))
-            delete(p_pksmoothflat([curr_layer tmp1]))
-            tmp2            = find(~isnan(ind_y_flat_smooth(curr_layer, :)));
-            p_pksmoothflat(curr_layer) ...
-                            = plot(dist_lin(ind_decim_flat(tmp2)), (1e6 .* block.twtt(round(ind_y_flat_smooth(curr_layer, tmp2)))), 'g.', 'markersize', 24, 'visible', 'off');
+        
+        if (logical(p_pksmooth(curr_layer)) && ishandle(p_pksmooth(curr_layer)))
+            delete(p_pksmooth(curr_layer))
+        end
+        if (logical(p_pksmooth(tmp1)) && ishandle(p_pksmooth(tmp1)))
+            delete(p_pksmooth(tmp1))
+        end
+        if (logical(p_pksmoothdepth(curr_layer)) && ishandle(p_pksmoothdepth(curr_layer)))
+            delete(p_pksmoothdepth(curr_layer))
+        end
+        if (logical(p_pksmoothdepth(tmp1)) && ishandle(p_pksmoothdepth(tmp1)))
+            delete(p_pksmoothdepth(tmp1))
+        end
+        if (logical(p_pksmoothflat(curr_layer)) && ishandle(p_pksmoothflat(curr_layer)))
+            delete(p_pksmoothflat(curr_layer))
+        end
+        if (logical(p_pksmoothflat(tmp1)) && ishandle(p_pksmoothflat(tmp1)))
+            delete(p_pksmoothflat(tmp1))
         end
         
-        tmp3                = setdiff(1:pk.num_layer, tmp1);
-        [p_pk, p_pkdepth, p_pkflat, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, ind_y_flat_mean, ind_y_flat_smooth] ...
-                            = deal(p_pk(tmp3), p_pkdepth(tmp3), p_pkflat(tmp3), p_pksmooth(tmp3), p_pksmoothdepth(tmp3), p_pksmoothflat(tmp3), ind_y_flat_mean(tmp3, :), ind_y_flat_smooth(tmp3, :));
-        show_pk
         smooth_done(curr_layer) ...
                             = false;
-        [pk.layer, smooth_done, pk.num_layer] ...
-                            = deal(pk.layer(tmp3), smooth_done(tmp3), (pk.num_layer - 1));
-        pk_smooth
-        show_smooth
+        tmp3                = setdiff(1:pk.num_layer, tmp1);
+        [pk.layer, smooth_done, p_pk, p_pkdepth, p_pkflat, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, ind_y_flat_mean, ind_y_flat_smooth, pk.num_layer] ...
+                            = deal(pk.layer(tmp3), smooth_done(tmp3), p_pk(tmp3), p_pkdepth(tmp3), p_pkflat(tmp3), p_pksmooth(tmp3), p_pksmoothdepth(tmp3), p_pksmoothflat(tmp3), ind_y_flat_mean(tmp3, :), ind_y_flat_smooth(tmp3, :), (pk.num_layer - 1));
         
-        set(layer_list, 'string', num2cell(1:pk.num_layer), 'value', 1)
         set(status_box, 'string', ['Layers #' num2str(curr_layer) ' and #' num2str(tmp1) ' merged.'])
+                        
         if (curr_layer > tmp1)
             curr_layer      = curr_layer - 1;
         end
@@ -3930,9 +3937,15 @@ set(disp_group, 'selectedobject', disp_check(1))
         if (isempty(curr_layer) || any(curr_layer < 1) || any(curr_layer > pk.num_layer))
             curr_layer      = 1;
         end
+        
         set(layer_list, 'value', curr_layer)
+        set(layer_list, 'string', num2cell(1:pk.num_layer), 'value', 1)
+        
         match_done          = false;
-        choose_layer
+        pk_smooth
+        pk_select
+        show_pk
+        show_smooth
     end
 
 %% Smooth picked layers
@@ -3959,8 +3972,8 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = NaN;
             if flat_done
                 ind_y_flat_smooth(ii, :) ...
-                            = round(smooth_lowess(ind_y_flat_mean(ii, :), round(pk.length_smooth / (nanmean(diff(dist_lin) * decim_flat))))');
-                ind_y_flat_smooth(ii, (ind_y_flat_smooth(ii, :) < 1) | (ind_y_flat_smooth(ii, :) > num_sample_trim)) ...
+                            = round(smooth_lowess(ind_y_flat_mean(ii, :), round(pk.length_smooth / (nanmean(diff(dist_lin)) * decim_flat)))');
+                ind_y_flat_smooth(ii, ((ind_y_flat_smooth(ii, :) < 1) | (ind_y_flat_smooth(ii, :) > num_sample_trim))) ...
                             = NaN;
             end
             if all(isnan(pk.layer(ii).ind_y_smooth))
@@ -3977,24 +3990,27 @@ set(disp_group, 'selectedobject', disp_check(1))
         % remove layers that are empty when smoothed
         axes(ax_radar)
         if ~isempty(tmp1)
-            tmp2            = setdiff(1:pk.num_layer, tmp1);
-            delete(p_pk(tmp1))
-            if depth_avail
-                delete(p_pkdepth(tmp1))
-            end
-            if flat_done
-                delete(p_pkflat(tmp1))
-            end
             for ii = tmp1
-                if (logical(p_pksmooth(ii)) && ishandle(p_pksmooth(ii)))
-                    delete([p_pksmooth(ii) p_pksmoothdepth(ii)])
+                if (logical(p_pk(ii)) && ishandle(p_pk(ii)))
+                    delete(p_pk(ii))
                 end
-                if flat_done
-                    if (logical(p_pksmoothflat(ii)) && ishandle(p_pksmoothflat(ii)))
-                        delete(p_pksmoothflat(ii))
-                    end
+                if (logical(p_pkdepth(ii)) && ishandle(p_pkdepth(ii)))
+                    delete(p_pkdepth(ii))
+                end
+                if (logical(p_pkflat(ii)) && ishandle(p_pkflat(ii)))
+                    delete(p_pkflat(tmp1))
+                end
+                if (logical(p_pksmooth(ii)) && ishandle(p_pksmooth(ii)))
+                    delete(p_pksmooth(ii))
+                end
+                if (logical(p_pksmoothdepth(ii)) && ishandle(p_pksmoothdepth(ii)))
+                    delete(p_pksmoothdepth(ii))
+                end
+                if (logical(p_pksmoothflat(ii)) && ishandle(p_pksmoothflat(ii)))
+                    delete(p_pksmoothflat(ii))
                 end
             end
+            tmp2            = setdiff(1:pk.num_layer, tmp1);
             curr_layer      = interp1(1:length(tmp2), tmp2, curr_layer, 'nearest', 'extrap');
             [pk.num_layer, pk.layer, p_pk, p_pkdepth, smooth_done, p_pksmooth, p_pksmoothdepth, p_pkflat, p_pksmoothflat] ...
                             = deal(length(tmp2), pk.layer(tmp2), p_pk(tmp2), p_pkdepth(tmp2), smooth_done(tmp2), p_pksmooth(tmp2), p_pksmoothdepth(tmp2), p_pkflat(tmp2), p_pksmoothflat(tmp2));
@@ -4009,10 +4025,8 @@ set(disp_group, 'selectedobject', disp_check(1))
             if (logical(p_pksmoothdepth(ii)) && ishandle(p_pksmoothdepth(ii)))
                 delete(p_pksmoothdepth(ii))
             end
-            if flat_done
-                if (logical(p_pksmoothflat(ii)) && ishandle(p_pksmoothflat(ii)))
-                    delete(p_pksmoothflat(ii))
-                end
+            if (logical(p_pksmoothflat(ii)) && ishandle(p_pksmoothflat(ii)))
+                delete(p_pksmoothflat(ii))
             end
             tmp1            = pk.layer(ii).ind_y_smooth(ind_decim);
             tmp2            = dist_lin(ind_decim);
@@ -4174,6 +4188,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(status_box, 'string', 'Layers not matched yet, or need re-matching.')
             return
         end
+        
+        set(status_box, 'string', 'Saving picks...')
+        pause(0.1)
         
         reset_xy
         pause(0.1)
@@ -5054,8 +5071,8 @@ set(disp_group, 'selectedobject', disp_check(1))
     function zoom_in(source, eventdata)
         tmp1                = dist_max - dist_min;
         tmp2                = [(dist_min + (0.25 * tmp1)) (dist_max - (0.25 * tmp1))];
-        tmp3                = twtt_max - twtt_min;
-        tmp4                = [(twtt_min + (0.25 * tmp3)) (twtt_max - (0.25 * tmp3))];
+        tmp4                = twtt_max - twtt_min;
+        tmp4                = [(twtt_min + (0.25 * tmp4)) (twtt_max - (0.25 * tmp4))];
         set(ax_radar, 'xlim', tmp2, 'ylim', (1e6 .* tmp4))
         panzoom
     end
@@ -5063,8 +5080,8 @@ set(disp_group, 'selectedobject', disp_check(1))
     function zoom_out(source, eventdata)
         tmp1                = dist_max - dist_min;
         tmp2                = [(dist_min - (0.25 * tmp1)) (dist_max + (0.25 * tmp1))];
-        tmp3                = twtt_max - twtt_min;
-        tmp4                = [(twtt_min - (0.25 * tmp3)) (twtt_max + (0.25 * tmp3))];
+        tmp4                = twtt_max - twtt_min;
+        tmp4                = [(twtt_min - (0.25 * tmp4)) (twtt_max + (0.25 * tmp4))];
         set(ax_radar, 'xlim', tmp2, 'ylim', (1e6 .* tmp4))
         panzoom
     end
@@ -5550,35 +5567,47 @@ set(disp_group, 'selectedobject', disp_check(1))
                 switch disp_type
                     case 'twtt'
                         if (any(p_pksmooth) && any(ishandle(p_pksmooth)))
-                            set(p_pksmooth(smooth_done & logical(p_pksmooth) & ishandle(p_pksmooth)), 'visible', 'on')
-                            uistack(p_pksmooth(smooth_done & logical(p_pksmooth) & ishandle(p_pksmooth)), 'top')
-                            set(p_pksmoothdepth(smooth_done & logical(p_pksmoothdepth) & ishandle(p_pksmoothdepth)), 'visible', 'off')
-                            set(p_pksmoothflat(smooth_done & logical(p_pksmoothflat) & ishandle(p_pksmoothflat)), 'visible', 'off')
+                            set(p_pksmooth(logical(p_pksmooth) & ishandle(p_pksmooth)), 'visible', 'on')
+                            uistack(p_pksmooth(logical(p_pksmooth) & ishandle(p_pksmooth)), 'top')
+                        end
+                        if (any(p_pksmoothdepth) && any(ishandle(p_pksmoothdepth)))
+                            set(p_pksmoothdepth(logical(p_pksmoothdepth) & ishandle(p_pksmoothdepth)), 'visible', 'off')
+                        end
+                        if (any(p_pksmoothflat) && any(ishandle(p_pksmoothflat)))
+                            set(p_pksmoothflat(logical(p_pksmoothflat) & ishandle(p_pksmoothflat)), 'visible', 'off')
                         end
                     case '~depth'
                         if (any(p_pksmoothdepth) && any(ishandle(p_pksmoothdepth)))
-                            set(p_pksmoothdepth(smooth_done), 'visible', 'on')
-                            uistack(p_pksmoothdepth(smooth_done), 'top')
-                            set(p_pksmooth(smooth_done & logical(p_pksmooth) & ishandle(p_pksmooth)), 'visible', 'off')
-                            set(p_pksmoothflat(smooth_done & logical(p_pksmoothdepth) & ishandle(p_pksmoothdepth)), 'visible', 'off')
+                            set(p_pksmoothdepth(logical(p_pksmoothdepth) & ishandle(p_pksmoothdepth)), 'visible', 'on')
+                            uistack(p_pksmoothdepth(logical(p_pksmoothdepth) & ishandle(p_pksmoothdepth)), 'top')
+                        end
+                        if (any(p_pksmooth) && any(ishandle(p_pksmooth)))
+                            set(p_pksmooth(logical(p_pksmooth) & ishandle(p_pksmooth)), 'visible', 'off')
+                        end
+                        if (any(p_pksmoothflat) && any(ishandle(p_pksmoothflat)))
+                            set(p_pksmoothflat(logical(p_pksmoothflat) & ishandle(p_pksmoothflat)), 'visible', 'off')
                         end
                     case 'flat'
                         if (any(p_pksmoothflat) && any(ishandle(p_pksmoothflat)))
-                            set(p_pksmoothflat(smooth_done & logical(p_pksmoothflat) & ishandle(p_pksmoothflat)), 'visible', 'on')
-                            uistack(p_pksmoothflat(smooth_done & logical(p_pksmoothflat) & ishandle(p_pksmoothflat)), 'top')
-                            set(p_pksmooth(smooth_done & logical(p_pksmooth) & ishandle(p_pksmooth)), 'visible', 'off')
-                            set(p_pksmoothdepth(smooth_done & logical(p_pksmoothdepth) & ishandle(p_pksmoothdepth)), 'visible', 'off')
+                            set(p_pksmoothflat(logical(p_pksmoothflat) & ishandle(p_pksmoothflat)), 'visible', 'on')
+                            uistack(p_pksmoothflat(logical(p_pksmoothflat) & ishandle(p_pksmoothflat)), 'top')
+                        end
+                        if (any(p_pksmooth) && any(ishandle(p_pksmooth)))
+                            set(p_pksmooth(logical(p_pksmooth) & ishandle(p_pksmooth)), 'visible', 'off')
+                        end
+                        if (any(p_pksmoothdepth) && any(ishandle(p_pksmoothdepth)))
+                            set(p_pksmoothdepth(logical(p_pksmoothdepth) & ishandle(p_pksmoothdepth)), 'visible', 'off')
                         end
                 end
             else
                 if (any(p_pksmooth) && any(ishandle(p_pksmooth)))
-                    set(p_pksmooth(smooth_done & logical(p_pksmooth) & ishandle(p_pksmooth)), 'visible', 'off')
+                    set(p_pksmooth(logical(p_pksmooth) & ishandle(p_pksmooth)), 'visible', 'off')
                 end
                 if (any(p_pksmoothdepth) && any(ishandle(p_pksmoothdepth)))
-                    set(p_pksmoothdepth(smooth_done & logical(p_pksmoothdepth) & ishandle(p_pksmoothdepth)), 'visible', 'off')
+                    set(p_pksmoothdepth(logical(p_pksmoothdepth) & ishandle(p_pksmoothdepth)), 'visible', 'off')
                 end
                 if (any(p_pksmoothflat) && any(ishandle(p_pksmoothflat)))
-                    set(p_pksmoothflat(smooth_done & logical(p_pksmoothflat) & ishandle(p_pksmoothflat)), 'visible', 'off')
+                    set(p_pksmoothflat(logical(p_pksmoothflat) & ishandle(p_pksmoothflat)), 'visible', 'off')
                 end
             end
         elseif get(smooth_check, 'value')
@@ -5743,7 +5772,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = deal(zeros(1, pk.num_layer));
                 tmp1        = [];
                 for ii = 1:pk.num_layer
-                    if ~isempty(ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim))))
+                    if ~isempty(find(~isnan(pk.layer(ii).ind_y(ind_decim)), 1))
                         p_pk(ii) ...
                             = plot(dist_lin(ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim)))), (1e6 .* block.twtt(round(pk.layer(ii).ind_y(ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim))))))), 'r.', 'markersize', 12, 'visible', 'off');
                         tmp2= ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim)));
@@ -5756,7 +5785,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                         tmp1= [tmp1 ii]; %#ok<AGROW>
                         continue
                     end
-                    if (smooth_done(ii) && ~isempty(ind_decim(~isnan(pk.layer(ii).ind_y_smooth(ind_decim)))))
+                    if (smooth_done(ii) && ~isempty(find(~isnan(pk.layer(ii).ind_y_smooth(ind_decim)), 1)))
                         p_pksmooth(ii) = plot(dist_lin(ind_decim(~isnan(pk.layer(ii).ind_y_smooth(ind_decim)))), (1e6 .* block.twtt(round(pk.layer(ii).ind_y_smooth(ind_decim(~isnan(pk.layer(ii).ind_y_smooth(ind_decim))))))), 'g.', 'markersize', 12, 'visible', 'off');
                         tmp2= ind_decim(~isnan(pk.layer(ii).ind_y_smooth(ind_decim)) & ~isnan(ind_surf(ind_decim)));
                         tmp3= pk.layer(ii).ind_y_smooth(tmp2) - ind_surf(tmp2) + 1;
@@ -5786,8 +5815,8 @@ set(disp_group, 'selectedobject', disp_check(1))
                     end
                     curr_layer ...
                             = interp1(1:length(tmp2), tmp2, curr_layer, 'nearest', 'extrap');
-                    [pk.num_layer, pk.layer, p_pk, p_pkdepth, p_pkflat, smooth_done, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, ind_y_flat_mean, ind_y_flat_smooth] ...
-                            = deal(length(tmp2), pk.layer(tmp2), p_pk(tmp2), p_pkdepth(tmp2), p_pkflat(tmp2), smooth_done(tmp2), p_pksmooth(tmp2), p_pksmoothdepth(tmp2), p_pksmoothflat(tmp2), ind_y_flat_mean(tmp2, :), ind_y_flat_smooth(tmp2, :));
+                    [pk.num_layer, pk.layer, smooth_done, p_pk, p_pkdepth, p_pkflat, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, ind_y_flat_mean, ind_y_flat_smooth] ...
+                            = deal(length(tmp2), pk.layer(tmp2), smooth_done(tmp2), p_pk(tmp2), p_pkdepth(tmp2), p_pkflat(tmp2), p_pksmooth(tmp2), p_pksmoothdepth(tmp2), p_pksmoothflat(tmp2), ind_y_flat_mean(tmp2, :), ind_y_flat_smooth(tmp2, :));
                     set(layer_list, 'string', num2cell(1:pk.num_layer), 'value', curr_layer)
                 end
             end
@@ -6306,7 +6335,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 show_smooth
             case 'a'
-                adj_layer
+                pk_adj
             case 'b'
                 if get(cbfix_check2, 'value')
                     set(cbfix_check2, 'value', 0)
@@ -6344,11 +6373,11 @@ set(disp_group, 'selectedobject', disp_check(1))
             case 'l'
                 load_data
             case 'm'
-                merge_layer
+                pk_merge
             case 'n'
                 pk_next
             case 'o'
-                focus_layer
+                pk_focus
             case 'p'
                 pk_auto
             case 'q'
@@ -6383,7 +6412,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     set(twttfix_check, 'value', 1)
                 end
             case 'z'
-                pk_select
+                pk_select_gui
             case 'slash'
                 switch ord_poly
                     case 2
@@ -6473,7 +6502,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 tmp2        = [get(ax_radar, 'xlim'); get(ax_radar, 'ylim')];
                 [ind_x_pk, ind_y_pk] ...
                             = deal(((tmp1(1) * diff(tmp2(1, :))) + tmp2(1, 1)), ((tmp1(2) * diff(tmp2(2, :))) + tmp2(2, 1)));
-                pk_select_breakout
+                pk_select_gui_breakout
             end
         end
     end

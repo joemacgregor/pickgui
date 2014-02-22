@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 02/14/14
+% Last updated: 02/22/14
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -78,10 +78,9 @@ letters                     = 'a':'z';
 % allocate a bunch of variables
 [age_done, bed_avail, core_done, data_done, edit_flag, flat_done, gimp_avail, merge_done, merge_file, surf_avail] ...
                             = deal(false);
-[age, age_curr, amp_depth, amp_elev, amp_flat, button, colors, colors_age, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, ...
- depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_corr, ind_decim, ind_int, ind_x_pk, ind_x_ref, ind_y_pk, int_core, jj, kk, name_core, name_trans, num_chunk, num_core, num_data, num_decim, num_int, ...
- num_pk, num_sample, num_trans, num_year, p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, pk_all, p_pk, p_pkdepth, p_pkflat, p_snr, p_surf, pkfig, ...
- p_refflat, rad_threshold, snr_all, snrgui, snrlist, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
+[age, age_curr, amp_depth, amp_elev, amp_flat, button, colors, colors_age, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ...
+ ind_x_pk, ind_x_ref, ind_y_pk, int_core, jj, kk, name_core, name_trans, num_chunk, num_core, num_data, num_decim, num_int, num_pk, num_sample, num_trans, num_year, p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, ...
+ p_data, pk_all, p_pk, p_pkdepth, p_pkflat, p_snr, p_surf, pkfig, p_refflat, rad_threshold, snr_all, snrgui, snrlist, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
                             = deal(0);
 [file_age, file_data, file_core, file_pk, file_pk_short, file_save, file_snr, path_age, path_core, path_data, path_pk, path_save, path_snr] ...
                             = deal('');
@@ -138,18 +137,12 @@ h_zoom                      = zoom;
 set(h_zoom, 'actionpostcallback', @panzoom)
 
 % sliders
-z_min_slide                 = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.07 width_slide 0.32], 'callback', @slide_z_min, 'min', 0, 'max', 1, 'value', elev_min_ref, ...
-                                              'sliderstep', [0.01 0.1]);
-z_max_slide                 = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.50 width_slide 0.32], 'callback', @slide_z_max, 'min', 0, 'max', 1, 'value', elev_max_ref, ...
-                                              'sliderstep', [0.01 0.1]);
-cb_min_slide                = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.96 0.07 width_slide 0.32], 'callback', @slide_cb_min, 'min', db_min_ref, 'max', db_max_ref, ...
-                                              'value', db_min_ref, 'sliderstep', [0.01 0.1]);
-cb_max_slide                = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.96 0.50 width_slide 0.32], 'callback', @slide_cb_max, 'min', db_min_ref, 'max', db_max_ref, ...
-                                              'value', db_max_ref, 'sliderstep', [0.01 0.1]);
-dist_min_slide              = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.12 0.005 0.27 0.02], 'callback', @slide_dist_min, 'min', 0, 'max', 1, 'value', dist_min_ref, ...
-                                              'sliderstep', [0.01 0.1]);
-dist_max_slide              = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.64 0.005 0.27 0.02], 'callback', @slide_dist_max, 'min', 0, 'max', 1, 'value', dist_max_ref, ...
-                                              'sliderstep', [0.01 0.1]);
+z_min_slide                 = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.07 width_slide 0.32], 'callback', @slide_z_min, 'min', 0, 'max', 1, 'value', elev_min_ref, 'sliderstep', [0.01 0.1]);
+z_max_slide                 = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.50 width_slide 0.32], 'callback', @slide_z_max, 'min', 0, 'max', 1, 'value', elev_max_ref, 'sliderstep', [0.01 0.1]);
+cb_min_slide                = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.96 0.07 width_slide 0.32], 'callback', @slide_cb_min, 'min', db_min_ref, 'max', db_max_ref, 'value', db_min_ref, 'sliderstep', [0.01 0.1]);
+cb_max_slide                = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.96 0.50 width_slide 0.32], 'callback', @slide_cb_max, 'min', db_min_ref, 'max', db_max_ref, 'value', db_max_ref, 'sliderstep', [0.01 0.1]);
+dist_min_slide              = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.12 0.005 0.27 0.02], 'callback', @slide_dist_min, 'min', 0, 'max', 1, 'value', dist_min_ref, 'sliderstep', [0.01 0.1]);
+dist_max_slide              = uicontrol(mgui, 'style', 'slider', 'units', 'normalized', 'position', [0.64 0.005 0.27 0.02], 'callback', @slide_dist_max, 'min', 0, 'max', 1, 'value', dist_max_ref, 'sliderstep', [0.01 0.1]);
 % slider values
 z_min_edit                  = annotation('textbox', [0.005 0.39 0.04 0.03], 'string', num2str(elev_min_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 z_max_edit                  = annotation('textbox', [0.005 0.82 0.04 0.03], 'string', num2str(elev_max_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
@@ -163,8 +156,8 @@ uicontrol(mgui, 'style', 'pushbutton', 'string', 'Load picks', 'units', 'normali
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Load radar data', 'units', 'normalized', 'position', [0.30 0.965 0.09 0.03], 'callback', @load_data, 'fontsize', size_font, 'foregroundcolor', 'b')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Load core intersections', 'units', 'normalized', 'position', [0.64 0.925 0.11 0.03], 'callback', @load_core, 'fontsize', size_font, 'foregroundcolor', 'b')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Flatten data', 'units', 'normalized', 'position', [0.30 0.885 0.09 0.03], 'callback', @flatten, 'fontsize', size_font, 'foregroundcolor', 'm')
-uicontrol(mgui, 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalized', 'position', [0.41 0.925 0.05 0.03], 'callback', @focus_layer, 'fontsize', size_font, 'foregroundcolor', 'm')
-uicontrol(mgui, 'style', 'pushbutton', 'string', 'Select', 'units', 'normalized', 'position', [0.41 0.885 0.04 0.03], 'callback', @pk_select, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(mgui, 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalized', 'position', [0.41 0.925 0.05 0.03], 'callback', @pk_focus, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(mgui, 'style', 'pushbutton', 'string', 'Select', 'units', 'normalized', 'position', [0.41 0.885 0.04 0.03], 'callback', @pk_select_gui, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Last', 'units', 'normalized', 'position', [0.46 0.885 0.04 0.03], 'callback', @pk_last, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Next', 'units', 'normalized', 'position', [0.46 0.925 0.04 0.03], 'callback', @pk_next, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Load ages', 'units', 'normalized', 'position', [0.64 0.885 0.07 0.03], 'callback', @load_age, 'fontsize', size_font, 'foregroundcolor', 'b')
@@ -214,16 +207,12 @@ cbl_min                     = annotation('textbox', [0.965 0.42 0.03 0.03], 'str
 cbl_max                     = annotation('textbox', [0.965 0.85 0.03 0.03], 'string', 'dB_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 
 % value boxes
-decim_edit                  = uicontrol(mgui, 'style', 'edit', 'string', num2str(decim), 'units', 'normalized', 'position', [0.175 0.965 0.03 0.03], 'fontsize', size_font, 'foregroundcolor', 'k', ...
-                                               'backgroundcolor', 'w', 'callback', @adj_decim);
-length_chunk_edit           = uicontrol(mgui, 'style', 'edit', 'string', num2str(length_chunk), 'units', 'normalized', 'position', [0.25 0.925 0.04 0.03], 'fontsize', size_font, 'foregroundcolor', 'k', ...
-                                               'backgroundcolor', 'w', 'callback', @adj_length_chunk);
+decim_edit                  = uicontrol(mgui, 'style', 'edit', 'string', num2str(decim), 'units', 'normalized', 'position', [0.175 0.965 0.03 0.03], 'fontsize', size_font, 'foregroundcolor', 'k', 'backgroundcolor', 'w', 'callback', @adj_decim);
+length_chunk_edit           = uicontrol(mgui, 'style', 'edit', 'string', num2str(length_chunk), 'units', 'normalized', 'position', [0.25 0.925 0.04 0.03], 'fontsize', size_font, 'foregroundcolor', 'k', 'backgroundcolor', 'w', 'callback', @adj_length_chunk);
 % menus
-chunk_list                  = uicontrol(mgui, 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.25 0.955 0.045 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', ...
-                                               'callback', @plot_chunk);
+chunk_list                  = uicontrol(mgui, 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.25 0.955 0.045 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', 'callback', @plot_chunk);
 cmap_list                   = uicontrol(mgui, 'style', 'popupmenu', 'string', cmaps, 'value', 1, 'units', 'normalized', 'position', [0.89 0.865 0.05 0.05], 'callback', @change_cmap, 'fontsize', size_font);
-layer_list                  = uicontrol(mgui, 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.45 0.955 0.05 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', ...
-                                               'callback', @choose_layer);
+layer_list                  = uicontrol(mgui, 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.45 0.955 0.05 0.04], 'fontsize', size_font, 'foregroundcolor', 'k', 'callback', @pk_select);
 block_list                  = uicontrol(mgui, 'style', 'popupmenu', 'string', 'N/A', 'value', 1, 'units', 'normalized', 'position', [0.16 0.865 0.135 0.05], 'fontsize', size_font, 'foregroundcolor', 'k');
 
 % check boxes
@@ -321,7 +310,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         [bed_avail, data_done, edit_flag, flat_done, gimp_avail, merge_done, merge_file, surf_avail] ...
                             = deal(false);
         [age_curr, amp_depth, amp_elev, amp_flat, colors, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, ...
-         dist_chunk, dt, elev, ii, ind_corr, ind_decim, ind_int, ind_x_pk, ind_x_ref, ind_y_pk, jj, kk, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, ...
+         dist_chunk, dt, elev, ii, ind_decim, ind_int, ind_x_pk, ind_x_ref, ind_y_pk, jj, kk, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, ...
          p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, p_pk, p_pkdepth, p_pkflat, p_refflat, p_snr, p_surf, pk_all, pkfig, snrgui, snrlist, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
                             = deal(0);
         [file_data, file_pk, file_pk_short, file_save] ...
@@ -383,444 +372,441 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         set(mgui, 'keypressfcn', @keypress)
         
-        if ~isempty(file_pk)
-            
-            set(status_box, 'string', 'Starting initial loading and merging of picks...')
-            pause(0.1)
-            
-            if ischar(file_pk)
-                file_pk     = {file_pk}; % only one pick file
-            end
-            
-            % load picks files
-            num_pk          = length(file_pk);
-            pk_all          = cell(1, num_pk);
-            [bed_avail, gimp_avail, surf_avail] ...
-                            = deal(false(1, num_pk));
-            
-            for ii = 1:num_pk %#ok<*FXUP>
-                set(status_box, 'string', ['Loading ' file_pk{ii}(1:(end - 4)) ' (' num2str(ii) ' / ' num2str(num_pk) ')...'])
-                pause(0.1)
-                tmp1        = load([path_pk file_pk{ii}]);
-                try
-                    pk_all{ii} ...
-                            = tmp1.pk;
-                    tmp1    = 0;
-                    % check to see if surface and bed picks are available
-                    if isfield(pk_all{ii}, 'elev_bed')
-                        bed_avail(ii) ...
-                            = true;
-                    end
-                    if isfield(pk_all{ii}, 'elev_surf')
-                        surf_avail(ii) ...
-                            = true;
-                    end
-                    if isfield(pk_all{ii}, 'elev_surf_gimp')
-                        gimp_avail(ii) ...
-                            = true;
-                    end
-                catch % give up, force restart
-                    set(status_box, 'string', [file_pk{ii} ' does not contain a pk structure. Try again.'])
-                    [pk_all, num_pk] ...
-                            = deal(0);
-                    return
-                end
-            end
-            
-            if (~any(surf_avail) && any(~isnan(pk.elev_surf)))
-                set(status_box, 'string', 'Surface pick is not included in the pick files, so data will not be elevation-corrected.')
-                pause(0.1)
-            end
-            
-            % extract date and simple name from pk files
-            [tmp1, tmp2]    = strtok(file_pk{ii}, '_');
-            file_pk_short   = [tmp1 tmp2(1:3)];
-            if (~strcmp(tmp2(4), '_') && ~strcmp(tmp2(4:8), 'block'))
-                file_pk_short ...
-                            = [file_pk_short tmp2(4)];
-            end
-            set(file_box, 'string', file_pk_short)
-            
-            if ((num_pk == 1) && isfield(pk_all{1}, 'merge_flag')) % data already merged
-                
-                tmp1        = fieldnames(pk_all{1});
-                for ii = 1:length(tmp1)
-                    eval(['pk.' tmp1{ii} ' = pk_all{1}.' tmp1{ii} ';'])
-                end
-                merge_file  = true;
-                path_save   = path_pk;
-                if isfield(pk, 'poly_flat_merge')
-                    if any(pk.poly_flat_merge(:))
-                        flat_done ...
-                            = true;
-                        ord_poly ...
-                            = size(pk.poly_flat_merge, 1) - 1;
-                    end
-                end
-                
-                set(status_box, 'string', 'Merged file loaded...')
-                pause(0.1)
-                
-            else % time to merge
-                
-                for ii = 1:num_cell
-                    eval(['pk.' var_cell{ii} ' = cell(num_pk, 1);'])
-                end
-                for ii = 1:num_zero
-                    eval(['pk.' var_zero{ii} ' = zeros(num_pk, 1);'])
-                end
-                pk.ind_overlap  ...
-                            = NaN(num_pk, 2);
-                tmp1        = cell(1, num_pk);
-                
-                % loop through pk files and assign values
-                for ii = 1:num_pk
-                    pk.ind_overlap(ii, :) ...
-                            = pk_all{ii}.ind_overlap;
-                    pk.file_pk{ii} ...
-                            = file_pk{ii};
-                    pk.file_block{ii} ...
-                            = pk_all{ii}.file_block;
-                    pk.num_layer_block(ii) ...
-                            = pk_all{ii}.num_layer;
-                    for jj = 1:(num_cell - 2)
-                        if isfield(pk_all{ii}, var_cell{jj})
-                            eval(['pk.' var_cell{jj} '{ii} = pk_all{ii}.' var_cell{jj} ';'])
-                        end
-                    end
-                    for jj = 1:(num_zero - 2)
-                        if isfield(pk_all{ii}, var_zero{jj})
-                            eval(['pk.' var_zero{jj} '(ii) = pk_all{ii}.' var_zero{jj} ';'])
-                        end
-                    end
-                    tmp1{ii}= pk_all{ii}.ind_match';
-                end
-                
-                pk.num_layer= length(unique([tmp1{:}])); % number of layers in this transect
-                
-                pk.num_trace_tot ...
-                            = sum(pk.num_trace) - sum(pk.ind_overlap(~isnan(pk.ind_overlap(:, 1)), 1)); % number of non-overlapping traces
-                if ~isnan(pk.ind_overlap(1, 1)) % true if not starting at beginning of transect (e.g., no layers in early blocks)
-                    pk.num_trace_tot ...
-                            = pk.num_trace_tot + pk.ind_overlap(1, 1);
-                end
-                
-                % allocate variables for merging
-                for ii = 1:num_var_layer
-                    eval(['pk.' var_layer{ii} ' = NaN(pk.num_layer, pk.num_trace_tot, ''single'');'])
-                end
-                if any(gimp_avail)
-                    for ii = 1:num_var_layer_gimp
-                        eval(['pk.' var_layer_gimp{ii} ' = NaN(pk.num_layer, pk.num_trace_tot, ''single'');'])
-                    end
-                end
-                for ii = 1:num_var_pos
-                    eval(['pk.' var_pos{ii} ' = NaN(1, pk.num_trace_tot);'])
-                end
-                if any(gimp_avail)
-                    for ii = 1:num_var_pos_gimp
-                        eval(['pk.' var_pos_gimp{ii} ' = NaN(1, pk.num_trace_tot);'])
-                    end
-                end
-                
-                [pk.ind_trace_start(1), pk.ind_layer_all, pk.ind_match_block] ...
-                            = deal(1, 1:pk.num_layer, false(pk.num_layer, num_pk)); % start at 1, layer indices that are present in all blocks (to be eroded in loop below)
-                
-                % merge picks
-                for ii = 1:num_pk
-                    set(status_box, 'string', ['Merging picks (' num2str(ii) ' / ' num2str(num_pk) ')...'])
-                    pause(0.1)
-                    tmp1    = pk.ind_trace_start(ii):(pk.ind_trace_start(ii) + pk.num_trace(ii) - 1); % merged indices
-                    
-                    % merge layer data
-                    for jj = 1:pk.num_layer
-                        if any(pk.ind_match{ii} == jj)
-                            tmp2                        = find((pk.ind_match{ii} == jj), 1);
-                            pk.ind_match_block(jj, ii)  = true;
-                            if (ii == 1)
-                                for kk = 1:num_var_layer
-                                    eval(['pk.' var_layer{kk} '(jj, tmp1) = single(pk_all{ii}.layer(tmp2).' var_layer{kk} ');'])
-                                end
-                                if gimp_avail(ii)
-                                    for kk = 1:num_var_layer_gimp
-                                        eval(['pk.' var_layer_gimp{kk} '(jj, tmp1) = single(pk_all{ii}.layer(tmp2).' var_layer_gimp{kk} ');'])
-                                    end
-                                end
-                            else
-                                for kk = 1:num_var_layer
-                                    eval(['pk.' var_layer{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1))) = single(nanmean([pk_all{ii}.layer(tmp2).' var_layer{kk} '(1:pk.ind_overlap(ii, 1)); pk.' var_layer{kk} ...
-                                          '(jj, tmp1(1:pk.ind_overlap(ii, 1)))]));'])
-                                    tmp3                = pk_all{ii}.layer(tmp2); % intermediate step because of some variable assignment restriction
-                                    eval(['pk.' var_layer{kk} '(jj, tmp1((pk.ind_overlap(ii, 1) + 1):end)) = single(tmp3.' var_layer{kk} '((pk.ind_overlap(ii, 1) + 1):end));'])
-                                end
-                                if gimp_avail(ii)
-                                    for kk = 1:num_var_layer_gimp
-                                        eval(['pk.' var_layer_gimp{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1))) = single(nanmean([pk_all{ii}.layer(tmp2).' var_layer_gimp{kk} '(1:pk.ind_overlap(ii, 1)); pk.' ...
-                                              var_layer_gimp{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1)))]));'])
-                                        tmp3            = pk_all{ii}.layer(tmp2); % intermediate step because of some variable assignment restriction
-                                        eval(['pk.' var_layer_gimp{kk} '(jj, tmp1((pk.ind_overlap(ii, 1) + 1):end)) = single(tmp3.' var_layer_gimp{kk} '((pk.ind_overlap(ii, 1) + 1):end));'])
-                                    end
-                                end
-                            end
-                        else
-                            pk.ind_layer_all            = setdiff(pk.ind_layer_all, jj);
-                        end
-                    end
-                    
-                    % merge position data
-                    if (ii == 1)
-                        if (surf_avail(ii) && bed_avail(ii))
-                            for jj = 1:num_var_pos
-                                eval(['pk.' var_pos{jj} '(tmp1) = pk_all{ii}.' var_pos{jj} ';'])
-                            end
-                        elseif (surf_avail(ii) && ~bed_avail(ii))
-                            for jj = 1:(num_var_pos - 2)
-                                eval(['pk.' var_pos{jj} '(tmp1) = pk_all{ii}.' var_pos{jj} ';'])
-                            end
-                        elseif (~surf_avail(ii) && bed_avail(ii))
-                            for jj = [1:6 9 10]
-                                eval(['pk.' var_pos{jj} '(tmp1) = pk_all{ii}.' var_pos{jj} ';'])
-                            end
-                        else
-                            for jj = 1:(num_var_pos - 4)
-                                eval(['pk.' var_pos{jj} '(tmp1) = pk_all{ii}.' var_pos{jj} ';'])
-                            end
-                        end
-                        if gimp_avail(ii)
-                            for jj = 1:num_var_pos_gimp
-                                eval(['pk.' var_pos_gimp{jj} '(tmp1) = pk_all{ii}.' var_pos_gimp{jj} ';'])
-                            end
-                        end
-                    else % should not need to average overlapping position data
-                        if (surf_avail(ii) && bed_avail(ii))
-                            for jj = 1:num_var_pos
-                                eval(['pk.' var_pos{jj} '(tmp1((pk.ind_overlap(ii, 1) + 1):end)) = pk_all{ii}.' var_pos{jj} '((pk.ind_overlap(ii, 1) + 1):end);'])
-                            end
-                        elseif (surf_avail(ii) && ~bed_avail(ii))
-                            for jj = 1:(num_var_pos - 2)
-                                eval(['pk.' var_pos{jj} '(tmp1((pk.ind_overlap(ii, 1) + 1):end)) = pk_all{ii}.' var_pos{jj} '((pk.ind_overlap(ii, 1) + 1):end);'])
-                            end
-                        elseif (~surf_avail(ii) && bed_avail(ii))
-                            for jj = [1:6 9 10]
-                                eval(['pk.' var_pos{jj} '(tmp1((pk.ind_overlap(ii, 1) + 1):end)) = pk_all{ii}.' var_pos{jj} '((pk.ind_overlap(ii, 1) + 1):end);'])
-                            end
-                        else
-                            for jj = 1:(num_var_pos - 4)
-                                eval(['pk.' var_pos{jj} '(tmp1((pk.ind_overlap(ii, 1) + 1):end)) = pk_all{ii}.' var_pos{jj} '((pk.ind_overlap(ii, 1) + 1):end);'])
-                            end
-                        end
-                        if gimp_avail(ii)
-                            for jj = 1:num_var_pos_gimp
-                                eval(['pk.' var_pos_gimp{jj} '(tmp1((pk.ind_overlap(ii, 1) + 1):end)) = pk_all{ii}.' var_pos_gimp{jj} '((pk.ind_overlap(ii, 1) + 1):end);'])
-                            end
-                        end
-                    end
-                    
-                    % prepare for next block and correct for overlap
-                    if (ii < num_pk)
-                        pk.ind_trace_start(ii + 1)      = pk.ind_trace_start(ii) + pk.num_trace(ii);
-                        if ~isnan(pk.ind_overlap(ii, 2));
-                            pk.ind_trace_start(ii + 1)  = pk.ind_trace_start(ii + 1) - (pk.num_trace(ii) - pk.ind_overlap(ii, 2) + 1);
-                        end
-                    end
-                end
-                
-                gimp_avail  = all(gimp_avail); % test to see if every block has GIMP projection
-                
-                % sort layers by decreasing elevation
-                tmp1        = zeros(pk.num_layer, 1);
-                if gimp_avail
-                    for ii = 1:pk.num_layer
-                        tmp1(ii)= nanmean(pk.elev_smooth_gimp(ii, :));
-                    end
-                else
-                    for ii = 1:pk.num_layer
-                        tmp1(ii)= nanmean(pk.elev_smooth(ii, :));
-                    end
-                end
-                [~, tmp1]   = sort(tmp1);
-                for ii = 1:num_var_layer
-                    eval(['pk.' var_layer{ii} ' = pk.' var_layer{ii} '(flipud(tmp1), :);'])
-                end
-                if gimp_avail
-                    for ii = 1:num_var_layer_gimp
-                        eval(['pk.' var_layer_gimp{ii} ' = pk.' var_layer_gimp{ii} '(flipud(tmp1), :);'])
-                    end
-                end
-                
-                pk.dist_lin = interp1([1 pk.num_trace_tot], pk.dist([1 end]), 1:pk.num_trace_tot); % new linear distance vector (should not be merged because each linear distance vector is different)
-                if gimp_avail
-                    pk.dist_lin_gimp = interp1([1 pk.num_trace_tot], pk.dist_gimp([1 end]), 1:pk.num_trace_tot);
-                end
-                
-            end
-            
-            % get rid of weird empty layers
-            tmp1            = [];
-            for ii = 1:pk.num_layer
-                if all(isnan(pk.ind_y(ii, :)))
-                    tmp1    = [tmp1 ii]; %#ok<AGROW>
-                end
-            end
-            if ~isempty(tmp1)
-                for ii = 1:num_var_layer
-                    eval(['pk.' var_layer{ii} ' = pk.' var_layer{ii} '(setdiff(1:pk.num_layer, tmp1), :);'])
-                end
-                if gimp_avail
-                    for ii = 1:num_var_layer_gimp
-                        eval(['pk.' var_layer_gimp{ii} ' = pk.' var_layer_gimp{ii} '(setdiff(1:pk.num_layer, tmp1), :);'])
-                    end
-                end
-                pk.num_layer= pk.num_layer - length(tmp1);
-            end
-            
-            [pk_all, tmp3]  = deal(0);
-            
-            % decimated vectors for display
-            if (decim > 1)
-                ind_decim   = (1 + ceil(decim / 2)):decim:(pk.num_trace_tot - ceil(decim / 2));
-            else
-                ind_decim   = 1:pk.num_trace_tot;
-            end
-            num_decim       = length(ind_decim);
-            
-            if (merge_file && flat_done && isfield(pk, 'ind_x_ref'))
-                ind_x_ref   = interp1(ind_decim, 1:num_decim, pk.ind_x_ref, 'nearest', 'extrap');
-            else
-                [ind_x_ref, pk.ind_x_ref] ...
-                            = deal(1);
-            end
-            
-            % make chunks
-            adj_length_chunk
-            
-            % display merged picks
-            colors          = repmat(colors_def, ceil(pk.num_layer / size(colors_def, 1)), 1); % extend predefined color pattern
-            colors          = colors(1:pk.num_layer, :);
-            [p_pk, p_pkdepth] ...
-                            = deal(zeros(1, pk.num_layer));
-            layer_str       = num2cell(1:pk.num_layer);
-            for ii = 1:pk.num_layer
-                if all(isnan(pk.elev_smooth(ii, ind_decim)))
-                    p_pk(ii)=plot(0, 0, 'w.', 'markersize', 1, 'visible', 'off');
-                    layer_str{ii} ...
-                            = [num2str(layer_str{ii}) ' H'];
-                else
-                    if gimp_avail
-                        p_pk(ii)= plot(pk.dist_lin_gimp(ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), pk.elev_smooth_gimp(ii, ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12, 'visible', 'off');
-                    else
-                        p_pk(ii)= plot(pk.dist_lin(ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), pk.elev_smooth(ii, ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12, 'visible', 'off');
-                    end
-                end
-                if all(isnan(pk.depth_smooth(ii, ind_decim)))
-                    p_pkdepth(ii)=plot(0, 0, 'w.', 'markersize', 1, 'visible', 'off');
-                else
-                    if gimp_avail
-                        p_pkdepth(ii) ...
-                            = plot(pk.dist_lin_gimp(ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), pk.depth_smooth(ii, ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12, 'visible', 'off');
-                    else
-                        p_pkdepth(ii) ...
-                            = plot(pk.dist_lin(ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), pk.depth_smooth(ii, ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12, 'visible', 'off');
-                    end
-                end
-            end
-            set(layer_list, 'string', layer_str, 'value', 1)
-            
-            if gimp_avail
-                [dist_min_ref, dist_max_ref, dist_min, dist_max] ...
-                            = deal(pk.dist_lin_gimp(1), pk.dist_lin_gimp(end), pk.dist_lin_gimp(1), pk.dist_lin_gimp(end));
-            else
-                [dist_min_ref, dist_max_ref, dist_min, dist_max] ...
-                            = deal(pk.dist_lin(1), pk.dist_lin(end), pk.dist_lin(1), pk.dist_lin(end));
-            end
-            if (any(surf_avail) && any(~isnan(pk.elev_surf)))
-                if gimp_avail
-                    [elev_max_ref, elev_max] ...
-                            = deal(nanmax(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp))) + (0.1 * (nanmax(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp))) - nanmin(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp))))));
-                else
-                    [elev_max_ref, elev_max] ...
-                            = deal(nanmax(pk.elev_surf(~isinf(pk.elev_surf))) + (0.1 * (nanmax(pk.elev_surf(~isinf(pk.elev_surf))) - nanmin(pk.elev_surf(~isinf(pk.elev_surf))))));
-                end
-            else
-                if gimp_avail
-                    [elev_max_ref, elev_max] ...
-                            = deal(nanmax(pk.elev_smooth_gimp(:)) + (0.1 * (nanmax(pk.elev_smooth_gimp(:)) - nanmin(pk.elev_smooth_gimp(:)))));
-                else
-                    [elev_max_ref, elev_max] ...
-                            = deal(nanmax(pk.elev_smooth(:)) + (0.1 * (nanmax(pk.elev_smooth(:)) - nanmin(pk.elev_smooth(:)))));
-                end
-            end
-            if (any(bed_avail) && any(~isnan(pk.elev_bed)))
-                if gimp_avail
-                    [elev_min_ref, elev_min] ...
-                            = deal(nanmin(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp))) - (0.1 * (nanmax(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp))) - nanmin(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp))))));
-                else
-                    [elev_min_ref, elev_min] ...
-                            = deal(nanmin(pk.elev_bed(~isinf(pk.elev_bed))) - (0.1 * (nanmax(pk.elev_bed(~isinf(pk.elev_bed))) - nanmin(pk.elev_bed(~isinf(pk.elev_bed))))));
-                end
-            else
-                if gimp_avail
-                    [elev_min_ref, elev_min] ...
-                            = deal(nanmin(pk.elev_smooth_gimp(:)) - (0.1 * (nanmax(pk.elev_smooth_gimp(:)) - nanmin(pk.elev_smooth_gimp(:)))));
-                else
-                    [elev_min_ref, elev_min] ...
-                            = deal(nanmin(pk.elev_smooth(:)) - (0.1 * (nanmax(pk.elev_smooth(:)) - nanmin(pk.elev_smooth(:)))));
-                end
-            end
-            set(z_min_slide, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min_ref)
-            set(z_max_slide, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max_ref)
-            set(dist_min_slide, 'min', dist_min_ref, 'max', dist_max_ref, 'value', dist_min_ref)
-            set(dist_max_slide, 'min', dist_min_ref, 'max', dist_max_ref, 'value', dist_max_ref)
-            set(z_min_edit, 'string', sprintf('%4.0f', elev_min_ref))
-            set(z_max_edit, 'string', sprintf('%4.0f', elev_max_ref))
-            set(dist_min_edit, 'string', sprintf('%3.1f', dist_min_ref))
-            set(dist_max_edit, 'string', sprintf('%3.1f', dist_max_ref))
-            update_dist_range
-            update_z_range
-            
-            [p_block, p_blocknum] ...
-                            = deal(zeros(1, length(pk.ind_trace_start)));
-            if gimp_avail
-                tmp1        = double(pk.dist_lin_gimp);
-            else
-                tmp1        = pk.dist_lin;
-            end
-            for ii = 1:length(pk.ind_trace_start)
-                p_block(ii) = plot(repmat(tmp1(pk.ind_trace_start(ii)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 1, 'visible', 'off');
-                if ~isempty(pk.file_block{ii})
-                    p_blocknum(ii) ...
-                            = text(double(tmp1(pk.ind_trace_start(ii)) + 1), double(elev_max_ref - 100), pk.file_block{ii}((end - 1):end), 'color', 'm', 'fontsize', (size_font - 2), 'visible', 'off');
-                end
-            end
-            
-            set(pk_check, 'value', 1)
-            merge_done      = true;
-            set(disp_group, 'selectedobject', disp_check(1))
-            disp_type       = 'elev.';
-            axes(ax_radar)
-            axis xy
-            show_pk
-            show_block
-            if core_done
-                load_core_breakout
-            end
-            if age_done
-                load_age_breakout
-            end
-            
-            if merge_file
-                set(status_box, 'string', ['Loaded merged pick file from ' file_pk_short '.'])
-            else
-                set(status_box, 'string', ['Loaded and merged ' num2str(num_pk) ' pick files from ' file_pk_short '.'])
-            end
-            
-            % list with block filenames to load
-            set(block_list, 'string', pk.file_block)
-            
-        else
+        if isempty(file_pk)
             file_pk         = tmp1;
             set(status_box, 'string', 'No picks loaded.')
+            return
         end
+        
+        set(status_box, 'string', 'Starting initial loading and merging of picks...')
+        pause(0.1)
+        
+        if ischar(file_pk)
+            file_pk         = {file_pk}; % only one pick file
+        end
+        
+        % load picks files
+        num_pk              = length(file_pk);
+        pk_all              = cell(1, num_pk);
+        [bed_avail, gimp_avail, surf_avail] ...
+                            = deal(false(1, num_pk));
+        
+        for ii = 1:num_pk %#ok<*FXUP>
+            set(status_box, 'string', ['Loading ' file_pk{ii}(1:(end - 4)) ' (' num2str(ii) ' / ' num2str(num_pk) ')...'])
+            pause(0.1)
+            tmp1            = load([path_pk file_pk{ii}]);
+            try
+                pk_all{ii}  = tmp1.pk;
+                tmp1        = 0;
+                % check to see if surface and bed picks are available
+                if isfield(pk_all{ii}, 'elev_bed')
+                    bed_avail(ii) ...
+                            = true;
+                end
+                if isfield(pk_all{ii}, 'elev_surf')
+                    surf_avail(ii) ...
+                            = true;
+                end
+                if isfield(pk_all{ii}, 'elev_surf_gimp')
+                    gimp_avail(ii) ...
+                            = true;
+                end
+            catch % give up, force restart
+                set(status_box, 'string', [file_pk{ii} ' does not contain a pk structure. Try again.'])
+                [pk_all, num_pk] ...
+                            = deal(0);
+                return
+            end
+        end
+        
+        if (~any(surf_avail) && any(~isnan(pk.elev_surf)))
+            set(status_box, 'string', 'Surface pick is not included in the pick files, so data will not be elevation-corrected.')
+            pause(0.1)
+        end
+        
+        % extract date and simple name from pk files
+        [tmp1, tmp2]        = strtok(file_pk{ii}, '_');
+        file_pk_short       = [tmp1 tmp2(1:3)];
+        if (~strcmp(tmp2(4), '_') && ~strcmp(tmp2(4:8), 'block'))
+            file_pk_short   = [file_pk_short tmp2(4)];
+        end
+        set(file_box, 'string', file_pk_short)
+        
+        if ((num_pk == 1) && isfield(pk_all{1}, 'merge_flag')) % data already merged
+            
+            tmp1            = fieldnames(pk_all{1});
+            for ii = 1:length(tmp1)
+                eval(['pk.' tmp1{ii} ' = pk_all{1}.' tmp1{ii} ';'])
+            end
+            merge_file      = true;
+            path_save       = path_pk;
+            if isfield(pk, 'poly_flat_merge')
+                if any(pk.poly_flat_merge(:))
+                    flat_done ...
+                            = true;
+                    ord_poly ...
+                            = size(pk.poly_flat_merge, 1) - 1;
+                end
+            end
+            
+            set(status_box, 'string', 'Merged file loaded...')
+            pause(0.1)
+            
+        else % time to merge
+            
+            for ii = 1:num_cell
+                eval(['pk.' var_cell{ii} ' = cell(num_pk, 1);'])
+            end
+            for ii = 1:num_zero
+                eval(['pk.' var_zero{ii} ' = zeros(num_pk, 1);'])
+            end
+            pk.ind_overlap  ...
+                        = NaN(num_pk, 2);
+            tmp1        = cell(1, num_pk);
+            
+            % loop through pk files and assign values
+            for ii = 1:num_pk
+                pk.ind_overlap(ii, :) ...
+                            = pk_all{ii}.ind_overlap;
+                pk.file_pk{ii} ...
+                            = file_pk{ii};
+                pk.file_block{ii} ...
+                            = pk_all{ii}.file_block;
+                pk.num_layer_block(ii) ...
+                            = pk_all{ii}.num_layer;
+                for jj = 1:(num_cell - 2)
+                    if isfield(pk_all{ii}, var_cell{jj})
+                        eval(['pk.' var_cell{jj} '{ii} = pk_all{ii}.' var_cell{jj} ';'])
+                    end
+                end
+                for jj = 1:(num_zero - 2)
+                    if isfield(pk_all{ii}, var_zero{jj})
+                        eval(['pk.' var_zero{jj} '(ii) = pk_all{ii}.' var_zero{jj} ';'])
+                    end
+                end
+                tmp1{ii}= pk_all{ii}.ind_match';
+            end
+            
+            pk.num_layer    = length(unique([tmp1{:}])); % number of layers in this transect
+            
+            pk.num_trace_tot= sum(pk.num_trace) - sum(pk.ind_overlap(~isnan(pk.ind_overlap(:, 1)), 1)); % number of non-overlapping traces
+            if ~isnan(pk.ind_overlap(1, 1)) % true if not starting at beginning of transect (e.g., no layers in early blocks)
+                pk.num_trace_tot ...
+                            = pk.num_trace_tot + pk.ind_overlap(1, 1);
+            end
+            
+            % allocate variables for merging
+            for ii = 1:num_var_layer
+                eval(['pk.' var_layer{ii} ' = NaN(pk.num_layer, pk.num_trace_tot, ''single'');'])
+            end
+            if any(gimp_avail)
+                for ii = 1:num_var_layer_gimp
+                    eval(['pk.' var_layer_gimp{ii} ' = NaN(pk.num_layer, pk.num_trace_tot, ''single'');'])
+                end
+            end
+            for ii = 1:num_var_pos
+                eval(['pk.' var_pos{ii} ' = NaN(1, pk.num_trace_tot);'])
+            end
+            if any(gimp_avail)
+                for ii = 1:num_var_pos_gimp
+                    eval(['pk.' var_pos_gimp{ii} ' = NaN(1, pk.num_trace_tot);'])
+                end
+            end
+            
+            [pk.ind_trace_start(1), pk.ind_layer_all, pk.ind_match_block] ...
+                            = deal(1, 1:pk.num_layer, false(pk.num_layer, num_pk)); % start at 1, layer indices that are present in all blocks (to be eroded in loop below)
+            
+            % merge picks
+            for ii = 1:num_pk
+                
+                set(status_box, 'string', ['Merging picks (' num2str(ii) ' / ' num2str(num_pk) ')...'])
+                pause(0.1)
+                tmp1        = pk.ind_trace_start(ii):(pk.ind_trace_start(ii) + pk.num_trace(ii) - 1); % merged indices
+                
+                % merge layer data
+                for jj = 1:pk.num_layer
+                    if any(pk.ind_match{ii} == jj)
+                        tmp2                        = find((pk.ind_match{ii} == jj), 1);
+                        pk.ind_match_block(jj, ii)  = true;
+                        if (ii == 1)
+                            for kk = 1:num_var_layer
+                                eval(['pk.' var_layer{kk} '(jj, tmp1) = single(pk_all{ii}.layer(tmp2).' var_layer{kk} ');'])
+                            end
+                            if gimp_avail(ii)
+                                for kk = 1:num_var_layer_gimp
+                                    eval(['pk.' var_layer_gimp{kk} '(jj, tmp1) = single(pk_all{ii}.layer(tmp2).' var_layer_gimp{kk} ');'])
+                                end
+                            end
+                        else
+                            for kk = 1:num_var_layer
+                                eval(['pk.' var_layer{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1))) = single(nanmean([pk_all{ii}.layer(tmp2).' var_layer{kk} '(1:pk.ind_overlap(ii, 1)); pk.' var_layer{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1)))]));'])
+                                tmp3                = pk_all{ii}.layer(tmp2); % intermediate step because of some variable assignment restriction
+                                eval(['pk.' var_layer{kk} '(jj, tmp1((pk.ind_overlap(ii, 1) + 1):end)) = single(tmp3.' var_layer{kk} '((pk.ind_overlap(ii, 1) + 1):end));'])
+                            end
+                            if gimp_avail(ii)
+                                for kk = 1:num_var_layer_gimp
+                                    eval(['pk.' var_layer_gimp{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1))) = single(nanmean([pk_all{ii}.layer(tmp2).' var_layer_gimp{kk} '(1:pk.ind_overlap(ii, 1)); pk.' ...
+                                          var_layer_gimp{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1)))]));'])
+                                    tmp3            = pk_all{ii}.layer(tmp2); % intermediate step because of some variable assignment restriction
+                                    eval(['pk.' var_layer_gimp{kk} '(jj, tmp1((pk.ind_overlap(ii, 1) + 1):end)) = single(tmp3.' var_layer_gimp{kk} '((pk.ind_overlap(ii, 1) + 1):end));'])
+                                end
+                            end
+                        end
+                    else
+                        pk.ind_layer_all            = setdiff(pk.ind_layer_all, jj);
+                    end
+                end
+                
+                % merge position data
+                if (ii == 1)
+                    if (surf_avail(ii) && bed_avail(ii))
+                        for jj = 1:num_var_pos
+                            eval(['pk.' var_pos{jj} '(tmp1) = pk_all{ii}.' var_pos{jj} ';'])
+                        end
+                    elseif (surf_avail(ii) && ~bed_avail(ii))
+                        for jj = 1:(num_var_pos - 2)
+                            eval(['pk.' var_pos{jj} '(tmp1) = pk_all{ii}.' var_pos{jj} ';'])
+                        end
+                    elseif (~surf_avail(ii) && bed_avail(ii))
+                        for jj = [1:6 9 10]
+                            eval(['pk.' var_pos{jj} '(tmp1) = pk_all{ii}.' var_pos{jj} ';'])
+                        end
+                    else
+                        for jj = 1:(num_var_pos - 4)
+                            eval(['pk.' var_pos{jj} '(tmp1) = pk_all{ii}.' var_pos{jj} ';'])
+                        end
+                    end
+                    if gimp_avail(ii)
+                        for jj = 1:num_var_pos_gimp
+                            eval(['pk.' var_pos_gimp{jj} '(tmp1) = pk_all{ii}.' var_pos_gimp{jj} ';'])
+                        end
+                    end
+                else % should not need to average overlapping position data
+                    if (surf_avail(ii) && bed_avail(ii))
+                        for jj = 1:num_var_pos
+                            eval(['pk.' var_pos{jj} '(tmp1((pk.ind_overlap(ii, 1) + 1):end)) = pk_all{ii}.' var_pos{jj} '((pk.ind_overlap(ii, 1) + 1):end);'])
+                        end
+                    elseif (surf_avail(ii) && ~bed_avail(ii))
+                        for jj = 1:(num_var_pos - 2)
+                            eval(['pk.' var_pos{jj} '(tmp1((pk.ind_overlap(ii, 1) + 1):end)) = pk_all{ii}.' var_pos{jj} '((pk.ind_overlap(ii, 1) + 1):end);'])
+                        end
+                    elseif (~surf_avail(ii) && bed_avail(ii))
+                        for jj = [1:6 9 10]
+                            eval(['pk.' var_pos{jj} '(tmp1((pk.ind_overlap(ii, 1) + 1):end)) = pk_all{ii}.' var_pos{jj} '((pk.ind_overlap(ii, 1) + 1):end);'])
+                        end
+                    else
+                        for jj = 1:(num_var_pos - 4)
+                            eval(['pk.' var_pos{jj} '(tmp1((pk.ind_overlap(ii, 1) + 1):end)) = pk_all{ii}.' var_pos{jj} '((pk.ind_overlap(ii, 1) + 1):end);'])
+                        end
+                    end
+                    if gimp_avail(ii)
+                        for jj = 1:num_var_pos_gimp
+                            eval(['pk.' var_pos_gimp{jj} '(tmp1((pk.ind_overlap(ii, 1) + 1):end)) = pk_all{ii}.' var_pos_gimp{jj} '((pk.ind_overlap(ii, 1) + 1):end);'])
+                        end
+                    end
+                end
+                
+                % prepare for next block and correct for overlap
+                if (ii < num_pk)
+                    pk.ind_trace_start(ii + 1) ...
+                            = pk.ind_trace_start(ii) + pk.num_trace(ii);
+                    if ~isnan(pk.ind_overlap(ii, 2));
+                        pk.ind_trace_start(ii + 1) ...
+                            = pk.ind_trace_start(ii + 1) - (pk.num_trace(ii) - pk.ind_overlap(ii, 2) + 1);
+                    end
+                end
+            end
+            
+            gimp_avail      = all(gimp_avail); % test to see if every block has GIMP projection
+            
+            % sort layers by decreasing elevation
+            tmp1        = zeros(pk.num_layer, 1);
+            if gimp_avail
+                for ii = 1:pk.num_layer
+                    tmp1(ii)= nanmean(pk.elev_smooth_gimp(ii, :));
+                end
+            else
+                for ii = 1:pk.num_layer
+                    tmp1(ii)= nanmean(pk.elev_smooth(ii, :));
+                end
+            end
+            [~, tmp1]   = sort(tmp1);
+            for ii = 1:num_var_layer
+                eval(['pk.' var_layer{ii} ' = pk.' var_layer{ii} '(flipud(tmp1), :);'])
+            end
+            if gimp_avail
+                for ii = 1:num_var_layer_gimp
+                    eval(['pk.' var_layer_gimp{ii} ' = pk.' var_layer_gimp{ii} '(flipud(tmp1), :);'])
+                end
+            end
+            
+            pk.dist_lin     = interp1([1 pk.num_trace_tot], pk.dist([1 end]), 1:pk.num_trace_tot); % new linear distance vector (should not be merged because each linear distance vector is different)
+            if gimp_avail
+                pk.dist_lin_gimp ...
+                            = interp1([1 pk.num_trace_tot], pk.dist_gimp([1 end]), 1:pk.num_trace_tot);
+            end
+        end
+        
+        % get rid of weird empty layers
+        tmp1                = [];
+        for ii = 1:pk.num_layer
+            if all(isnan(pk.ind_y(ii, :)))
+                tmp1        = [tmp1 ii]; %#ok<AGROW>
+            end
+        end
+        if ~isempty(tmp1)
+            for ii = 1:num_var_layer
+                eval(['pk.' var_layer{ii} ' = pk.' var_layer{ii} '(setdiff(1:pk.num_layer, tmp1), :);'])
+            end
+            if gimp_avail
+                for ii = 1:num_var_layer_gimp
+                    eval(['pk.' var_layer_gimp{ii} ' = pk.' var_layer_gimp{ii} '(setdiff(1:pk.num_layer, tmp1), :);'])
+                end
+            end
+            pk.num_layer    = pk.num_layer - length(tmp1);
+        end
+        
+        [pk_all, tmp3]      = deal(0);
+        
+        % decimated vectors for display
+        if (decim > 1)
+            ind_decim       = (1 + ceil(decim / 2)):decim:(pk.num_trace_tot - ceil(decim / 2));
+        else
+            ind_decim       = 1:pk.num_trace_tot;
+        end
+        num_decim           = length(ind_decim);
+        
+        if (merge_file && flat_done && isfield(pk, 'ind_x_ref'))
+            ind_x_ref       = interp1(ind_decim, 1:num_decim, pk.ind_x_ref, 'nearest', 'extrap');
+        else
+            [ind_x_ref, pk.ind_x_ref] ...
+                            = deal(1);
+        end
+        
+        % make chunks
+        adj_length_chunk
+        
+        % display merged picks
+        colors              = repmat(colors_def, ceil(pk.num_layer / size(colors_def, 1)), 1); % extend predefined color pattern
+        colors              = colors(1:pk.num_layer, :);
+        [p_pk, p_pkdepth]   = deal(zeros(1, pk.num_layer));
+        layer_str           = num2cell(1:pk.num_layer);
+        for ii = 1:pk.num_layer
+            if all(isnan(pk.elev_smooth(ii, ind_decim)))
+                p_pk(ii)=plot(0, 0, 'w.', 'markersize', 1, 'visible', 'off');
+                layer_str{ii} ...
+                        = [num2str(layer_str{ii}) ' H'];
+            else
+                if gimp_avail
+                    p_pk(ii)= plot(pk.dist_lin_gimp(ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), pk.elev_smooth_gimp(ii, ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12, 'visible', 'off');
+                else
+                    p_pk(ii)= plot(pk.dist_lin(ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), pk.elev_smooth(ii, ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12, 'visible', 'off');
+                end
+            end
+            if all(isnan(pk.depth_smooth(ii, ind_decim)))
+                p_pkdepth(ii)=plot(0, 0, 'w.', 'markersize', 1, 'visible', 'off');
+            else
+                if gimp_avail
+                    p_pkdepth(ii) ...
+                        = plot(pk.dist_lin_gimp(ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), pk.depth_smooth(ii, ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12, 'visible', 'off');
+                else
+                    p_pkdepth(ii) ...
+                        = plot(pk.dist_lin(ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), pk.depth_smooth(ii, ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12, 'visible', 'off');
+                end
+            end
+        end
+        set(layer_list, 'string', layer_str, 'value', 1)
+        
+        if gimp_avail
+            [dist_min_ref, dist_max_ref, dist_min, dist_max] ...
+                            = deal(pk.dist_lin_gimp(1), pk.dist_lin_gimp(end), pk.dist_lin_gimp(1), pk.dist_lin_gimp(end));
+        else
+            [dist_min_ref, dist_max_ref, dist_min, dist_max] ...
+                            = deal(pk.dist_lin(1), pk.dist_lin(end), pk.dist_lin(1), pk.dist_lin(end));
+        end
+        if (any(surf_avail) && any(~isnan(pk.elev_surf)))
+            if gimp_avail
+                [elev_max_ref, elev_max] ...
+                            = deal(nanmax(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp))) + (0.1 * (nanmax(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp))) - nanmin(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp))))));
+            else
+                [elev_max_ref, elev_max] ...
+                            = deal(nanmax(pk.elev_surf(~isinf(pk.elev_surf))) + (0.1 * (nanmax(pk.elev_surf(~isinf(pk.elev_surf))) - nanmin(pk.elev_surf(~isinf(pk.elev_surf))))));
+            end
+        else
+            if gimp_avail
+                [elev_max_ref, elev_max] ...
+                            = deal(nanmax(pk.elev_smooth_gimp(:)) + (0.1 * (nanmax(pk.elev_smooth_gimp(:)) - nanmin(pk.elev_smooth_gimp(:)))));
+            else
+                [elev_max_ref, elev_max] ...
+                            = deal(nanmax(pk.elev_smooth(:)) + (0.1 * (nanmax(pk.elev_smooth(:)) - nanmin(pk.elev_smooth(:)))));
+            end
+        end
+        if (any(bed_avail) && any(~isnan(pk.elev_bed)))
+            if gimp_avail
+                [elev_min_ref, elev_min] ...
+                            = deal(nanmin(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp))) - (0.1 * (nanmax(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp))) - nanmin(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp))))));
+            else
+                [elev_min_ref, elev_min] ...
+                            = deal(nanmin(pk.elev_bed(~isinf(pk.elev_bed))) - (0.1 * (nanmax(pk.elev_bed(~isinf(pk.elev_bed))) - nanmin(pk.elev_bed(~isinf(pk.elev_bed))))));
+            end
+        else
+            if gimp_avail
+                [elev_min_ref, elev_min] ...
+                            = deal(nanmin(pk.elev_smooth_gimp(:)) - (0.1 * (nanmax(pk.elev_smooth_gimp(:)) - nanmin(pk.elev_smooth_gimp(:)))));
+            else
+                [elev_min_ref, elev_min] ...
+                            = deal(nanmin(pk.elev_smooth(:)) - (0.1 * (nanmax(pk.elev_smooth(:)) - nanmin(pk.elev_smooth(:)))));
+            end
+        end
+        set(z_min_slide, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min_ref)
+        set(z_max_slide, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max_ref)
+        set(dist_min_slide, 'min', dist_min_ref, 'max', dist_max_ref, 'value', dist_min_ref)
+        set(dist_max_slide, 'min', dist_min_ref, 'max', dist_max_ref, 'value', dist_max_ref)
+        set(z_min_edit, 'string', sprintf('%4.0f', elev_min_ref))
+        set(z_max_edit, 'string', sprintf('%4.0f', elev_max_ref))
+        set(dist_min_edit, 'string', sprintf('%3.1f', dist_min_ref))
+        set(dist_max_edit, 'string', sprintf('%3.1f', dist_max_ref))
+        update_dist_range
+        update_z_range
+        
+        [p_block, p_blockflat] ...
+                            = deal(zeros(1, length(pk.ind_trace_start)));
+        if gimp_avail
+            tmp1            = double(pk.dist_lin_gimp);
+        else
+            tmp1            = pk.dist_lin;
+        end
+        for ii = 1:length(pk.ind_trace_start)
+            p_block(ii)     = plot(repmat(tmp1(pk.ind_trace_start(ii)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 1, 'visible', 'off');
+            if ~isempty(pk.file_block{ii})
+                p_blocknum(ii) ...
+                            = text(double(tmp1(pk.ind_trace_start(ii)) + 1), double(elev_max_ref - 100), pk.file_block{ii}((end - 1):end), 'color', 'm', 'fontsize', (size_font - 2), 'visible', 'off');
+            end
+        end
+        
+        set(pk_check, 'value', 1)
+        merge_done      = true;
+        set(disp_group, 'selectedobject', disp_check(1))
+        disp_type       = 'elev.';
+        axes(ax_radar)
+        axis xy
+        show_pk
+        show_block
+        if core_done
+            load_core_breakout
+        end
+        if age_done
+            load_age_breakout
+        end
+        
+        if merge_file
+            set(status_box, 'string', ['Loaded merged pick file from ' file_pk_short '.'])
+        else
+            set(status_box, 'string', ['Loaded and merged ' num2str(num_pk) ' pick files from ' file_pk_short '.'])
+        end
+        
+        % list with block filenames to load
+        set(block_list, 'string', pk.file_block)
     end
 
 %% Load radar data
@@ -839,7 +825,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         else
             tmp2            = tmp1;
         end
-
+        
         if merge_file
             if ispc
                 if ~strcmp(tmp1, tmp2)
@@ -920,31 +906,29 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
         end
         
-        if ~isempty(file_data)
-            
-            pause(0.1)
-            
-            if ischar(file_data)
-                file_data   = {file_data};
-            end
-            
-            num_data        = length(file_data);
-            if ((num_data ~= num_pk) && ~merge_file)
-                set(status_box, 'string', ['Number of data blocks (' num2str(num_data) ') does not match number of picks files (' num2str(num_pk) ').'])
-                return
-            end
-            
-            % get rid of all data handle if somehow present
-            if data_done
-                data_done   = false;
-            end
-            
-            load_data_breakout
-            
-        else
+        if isempty(file_data)
             file_data       = tmp1;
             set(status_box, 'string', 'No radar data loaded.')
+            return
         end
+        
+        pause(0.1)
+        
+        if ischar(file_data)
+            file_data       = {file_data};
+        end
+        
+        num_data            = length(file_data);
+        if ((num_data ~= num_pk) && ~merge_file)
+            set(status_box, 'string', ['Number of data blocks (' num2str(num_data) ') does not match number of picks files (' num2str(num_pk) ').'])
+            return
+        end
+        
+        if data_done
+            data_done       = false;
+        end
+        
+        load_data_breakout
     end
 
 %% Loading function broken out (so that changing decimation is automatic)
@@ -959,6 +943,18 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         if (any(p_blocknum) && any(ishandle(p_blocknum)))
             delete(p_blocknum(logical(p_blocknum) & ishandle(p_blocknum)))
+        end
+        if (any(p_blockflat) && any(ishandle(p_blockflat)))
+            delete(p_blockflat(logical(p_blockflat) & ishandle(p_blockflat)))
+        end
+        if (any(p_blocknumflat) && any(ishandle(p_blocknumflat)))
+            delete(p_blocknumflat(logical(p_blocknumflat) & ishandle(p_blocknumflat)))
+        end
+        if (any(p_coreflat) && any(ishandle(p_coreflat)))
+            delete(p_coreflat(logical(p_coreflat) & ishandle(p_coreflat)))
+        end
+        if (any(p_corenameflat) && any(ishandle(p_corenameflat)))
+            delete(p_corenameflat(logical(p_corenameflat) & ishandle(p_corenameflat)))
         end
         
         % attempt to load data
@@ -1062,9 +1058,8 @@ set(cb_group, 'selectedobject', cb_check(1))
             amp_depth(1:(num_sample - tmp2(ii) + 1), ii) ...
                             = amp_elev(tmp2(ii):num_sample, ii); % shift data up to surface
         end
-        [amp_elev, ind_corr]= topocorr(amp_depth, depth, tmp3); % topographically correct data
+        amp_elev            = topocorr(amp_depth, depth, tmp3); % topographically correct data
         amp_elev            = flipud(amp_elev); % flip for axes
-        ind_corr            = max(ind_corr) - ind_corr + 1;
         depth               = (speed_ice / 2) .* (0:dt:((num_sample - 1) * dt))'; % simple monotonically increasing depth vector
         if gimp_avail
             elev            = flipud(max(pk.elev_surf_gimp(ind_decim)) - depth); % elevation vector
@@ -1095,7 +1090,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         update_z_range
         
         % plot block divisions
-        [p_block, p_blocknum] ...
+        [p_block, p_blockflat, p_blocknum, p_blocknumflat] ...
                             = deal(zeros(1, length(pk.ind_trace_start)));
         if gimp_avail
             tmp1            = pk.dist_lin_gimp;
@@ -1107,6 +1102,21 @@ set(cb_group, 'selectedobject', cb_check(1))
             if ~isempty(pk.file_block{ii})
                 p_blocknum(ii) ...
                             = text(double(tmp1(pk.ind_trace_start(ii)) + 1), double(elev_max_ref - 100), pk.file_block{ii}((end - 1):end), 'color', 'm', 'fontsize', (size_font - 2), 'visible', 'off');
+            end
+            p_blockflat(ii) = plot(repmat(tmp1(pk.ind_trace_start(ii)), 1, 2), [depth_min_ref depth_max_ref], 'm--', 'linewidth', 1, 'visible', 'off');
+            if ~isempty(pk.file_block{ii})
+                p_blocknumflat(ii) ...
+                            = text((tmp1(pk.ind_trace_start(ii)) + 1), (depth_min_ref + 100), pk.file_block{ii}((end - 1):end), 'color', 'm', 'fontsize', (size_font - 2), 'visible', 'off');
+            end
+        end
+        
+        tmp2                = find(~isnan(ind_int));
+        if core_done
+            for ii = 1:num_int
+                p_coreflat(ii) ...
+                            = plot(repmat(tmp1(ind_int(tmp2(ii))), 1, 2), [depth_min_ref depth_max_ref], 'm', 'linewidth', 2, 'visible', 'off');
+                p_corenameflat(ii) ...
+                            = text((tmp1(ind_int(tmp2(ii))) + 1), (depth_min_ref + 250), name_core{int_core{curr_year}{curr_trans}(tmp2(ii), 3)}, 'color', 'm', 'fontsize', size_font, 'visible', 'off');
             end
         end
         
@@ -1128,7 +1138,6 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         
         set(status_box, 'string', 'Transect radar data loaded.')
-        
     end
 
 %% Flatten amplitudes using layers
@@ -1151,12 +1160,6 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         if (any(p_pkflat) && any(ishandle(p_pkflat)))
             delete(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)))
-        end
-        if (any(p_blockflat) && any(ishandle(p_blockflat)))
-            delete(p_blockflat(logical(p_blockflat) & ishandle(p_blockflat)))
-        end
-        if (any(p_blocknumflat) && any(ishandle(p_blocknumflat)))
-            delete(p_blocknumflat(logical(p_blocknumflat) & ishandle(p_blocknumflat)))
         end
         if (any(p_coreflat) && any(ishandle(p_coreflat)))
             delete(p_coreflat(logical(p_coreflat) & ishandle(p_coreflat)))
@@ -1249,13 +1252,13 @@ set(cb_group, 'selectedobject', cb_check(1))
             
             for ii = tmp5
                 
-                kk                  = kk + 1;
+                kk          = kk + 1;
                 set(status_box, 'string', ['Adding layer #' num2str(ii) ' (' num2str(kk) ' / ' num2str(length(tmp5)) ') to flattening...'])
                 pause(0.1)
                 
                 % calculate flattening matrix based on current polynomials
-                tmp1                = find(~isnan(depth_curr(ii, :)));
-                depth_mat           = single(depth(:, ones(1, length(tmp1)))); % depth matrix
+                tmp1        = find(~isnan(depth_curr(ii, :)));
+                depth_mat   = single(depth(:, ones(1, length(tmp1)))); % depth matrix
                 switch ord_poly
                     case 2
                         depth_flat  = ((depth_mat .^ 2) .* pk.poly_flat_merge(ones(num_sample, 1), tmp1)) + (depth_mat .* (pk.poly_flat_merge((2 .* ones(num_sample, 1)), tmp1))) + pk.poly_flat_merge((3 .* ones(num_sample, 1)), tmp1);
@@ -1263,16 +1266,16 @@ set(cb_group, 'selectedobject', cb_check(1))
                         depth_flat  = ((depth_mat .^ 3) .* pk.poly_flat_merge(ones(num_sample, 1), tmp1)) + ((depth_mat .^ 2) .* pk.poly_flat_merge((2 .* ones(num_sample, 1)), tmp1)) + ...
                                       (depth_mat .* (pk.poly_flat_merge((3 .* ones(num_sample, 1)), tmp1))) + pk.poly_flat_merge((4 .* ones(num_sample, 1)), tmp1);
                 end
-                depth_mat           = 0;
+                depth_mat   = 0;
                 depth_flat(depth_flat < 0) ...
-                                    = 0; % limit too-low depths
+                            = 0; % limit too-low depths
                 depth_flat(depth_flat > depth(end)) ...
-                                    = depth(end); % limit too-high depths
-                tmp3                = find(sum(~isnan(depth_flat)));
+                            = depth(end); % limit too-high depths
+                tmp3        = find(sum(~isnan(depth_flat)));
                 
                 % find best-fit value at original trace
-                tmp4                = NaN(1, length(tmp1));
-                tmp3                = tmp3(~isnan(depth_curr(ii, tmp1(tmp3)))); % indices where both flattening and new layer exist
+                tmp4        = NaN(1, length(tmp1));
+                tmp3        = tmp3(~isnan(depth_curr(ii, tmp1(tmp3)))); % indices where both flattening and new layer exist
                 
                 if isempty(tmp3)
                     set(status_box, 'string', ['Layer #' num2str(ii) ' has no overlap...'])
@@ -1282,35 +1285,39 @@ set(cb_group, 'selectedobject', cb_check(1))
                 
                 % depth of current layer at reference trace for all overlapping traces
                 for jj = tmp3
-                    [~, tmp2]       = unique(depth_flat(:, jj), 'last');
-                    tmp2            = intersect((1 + find(diff(depth_flat(:, jj)) > 0)), tmp2);
+                    [~, tmp2] ...
+                            = unique(depth_flat(:, jj), 'last');
+                    tmp2    = intersect((1 + find(diff(depth_flat(:, jj)) > 0)), tmp2);
                     if ~isempty(tmp2)
-                        tmp4(jj)    = interp1(depth_flat(tmp2, jj), depth(tmp2), depth_curr(ii, tmp1(jj)), 'linear', NaN);
+                        tmp4(jj) ...
+                            = interp1(depth_flat(tmp2, jj), depth(tmp2), depth_curr(ii, tmp1(jj)), 'linear', NaN);
                     end
                 end
                 
-                depth_layer_ref(ii)  = nanmean(tmp4); % best guess depth at reference trace 
+                depth_layer_ref(ii) ...
+                            = nanmean(tmp4); % best guess depth at reference trace 
                 
                 % extract best layers again, now including the new layer
-                tmp4                = tmp1(tmp3);
-                tmp1                = depth_curr(~isnan(depth_layer_ref), tmp4);
-                tmp2                = depth_layer_ref(~isnan(depth_layer_ref));
-                tmp3                = find(sum(~isnan(tmp1)) > ord_poly);
-                tmp4                = tmp4(sum(~isnan(tmp1)) > ord_poly);
+                tmp4        = tmp1(tmp3);
+                tmp1        = depth_curr(~isnan(depth_layer_ref), tmp4);
+                tmp2        = depth_layer_ref(~isnan(depth_layer_ref));
+                tmp3        = find(sum(~isnan(tmp1)) > ord_poly);
+                tmp4        = tmp4(sum(~isnan(tmp1)) > ord_poly);
                 
                 % new polynomials using additional "depth" for this layer
                 if parallel_check
-                    tmp1            = tmp1(:, tmp3);
-                    tmp3            = pk.poly_flat_merge(:, tmp3);
+                    tmp1    = tmp1(:, tmp3);
+                    tmp3    = pk.poly_flat_merge(:, tmp3);
                     parfor jj = 1:length(tmp4)
-                        tmp3(:, jj) = polyfit(tmp2(~isnan(tmp1(:, jj))), tmp1(~isnan(tmp1(:, jj)), jj), ord_poly)'; %#ok<PFBNS>
+                        tmp3(:, jj) ...
+                            = polyfit(tmp2(~isnan(tmp1(:, jj))), tmp1(~isnan(tmp1(:, jj)), jj), ord_poly)'; %#ok<PFBNS>
                     end
                     pk.poly_flat_merge(:, tmp4) ...
-                                    = tmp3;
+                            = tmp3;
                 else
                     for jj = 1:length(tmp3)
                         pk.poly_flat_merge(:, tmp4(jj)) ...
-                                    = polyfit(tmp2(~isnan(tmp1(:, tmp3(jj)))), tmp1(~isnan(tmp1(:, tmp3(jj))), tmp3(jj)), ord_poly)';
+                            = polyfit(tmp2(~isnan(tmp1(:, tmp3(jj)))), tmp1(~isnan(tmp1(:, tmp3(jj))), tmp3(jj)), ord_poly)';
                     end
                 end
                 
@@ -1321,17 +1328,18 @@ set(cb_group, 'selectedobject', cb_check(1))
                     tmp2    = round(mean(pk.length_smooth) / nanmean(diff(pk.dist(ind_decim))));
                 end
                 if parallel_check
-                    tmp1            = pk.poly_flat_merge;
+                    tmp1    = pk.poly_flat_merge;
                     parfor jj = 1:(ord_poly + 1)
-                        tmp1(jj, :) = smooth_lowess(tmp1(jj, :), tmp2);
+                        tmp1(jj, :) ...
+                            = smooth_lowess(tmp1(jj, :), tmp2);
                     end
                     pk.poly_flat_merge ...
-                                    = tmp1;
-                    tmp1            = 0;
+                            = tmp1;
+                    tmp1    = 0;
                 else
                     for jj = 1:(ord_poly + 1)
                         pk.poly_flat_merge(jj, :) ...
-                                    = smooth_lowess(pk.poly_flat_merge(jj, :), tmp2);
+                            = smooth_lowess(pk.poly_flat_merge(jj, :), tmp2);
                     end
                 end
             end
@@ -1362,18 +1370,6 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         if (any(p_pkflat) && any(ishandle(p_pkflat)))
             delete(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)))
-        end
-        if (any(p_blockflat) && any(ishandle(p_blockflat)))
-            delete(p_blockflat(logical(p_blockflat) & ishandle(p_blockflat)))
-        end
-        if (any(p_blocknumflat) && any(ishandle(p_blocknumflat)))
-            delete(p_blocknumflat(logical(p_blocknumflat) & ishandle(p_blocknumflat)))
-        end
-        if (any(p_coreflat) && any(ishandle(p_coreflat)))
-            delete(p_coreflat(logical(p_coreflat) & ishandle(p_coreflat)))
-        end
-        if (any(p_corenameflat) && any(ishandle(p_corenameflat)))
-            delete(p_corenameflat(logical(p_corenameflat) & ishandle(p_corenameflat)))
         end
         
         set(status_box, 'string', 'Flattening data based on polynomials...')
@@ -1478,33 +1474,12 @@ set(cb_group, 'selectedobject', cb_check(1))
                 set(p_pkflat(ii), 'markersize', 6)
             end
         end
-        
-        [p_blockflat, p_blocknumflat] ...
-                            = deal(zeros(1, length(pk.ind_trace_start)));
-        for ii = 1:length(pk.ind_trace_start)
-            p_blockflat(ii) = plot(repmat(tmp1(pk.ind_trace_start(ii)), 1, 2), [depth_min_ref depth_max_ref], 'm--', 'linewidth', 1, 'visible', 'off');
-            if ~isempty(pk.file_block{ii})
-                p_blocknumflat(ii) ...
-                            = text((tmp1(pk.ind_trace_start(ii)) + 1), (depth_min_ref + 100), pk.file_block{ii}((end - 1):end), 'color', 'm', 'fontsize', (size_font - 2), 'visible', 'off');
-            end
-        end
-        
-        tmp2                = find(~isnan(ind_int));
-        
-        if core_done
-            for ii = 1:num_int
-                p_coreflat(ii) ...
-                            = plot(repmat(tmp1(ind_int(tmp2(ii))), 1, 2), [depth_min_ref depth_max_ref], 'm', 'linewidth', 2, 'visible', 'off');
-                p_corenameflat(ii) ...
-                            = text((tmp1(ind_int(tmp2(ii))) + 1), (depth_min_ref + 250), name_core{int_core{curr_year}{curr_trans}(tmp2(ii), 3)}, 'color', 'm', 'fontsize', size_font, 'visible', 'off');
-            end
-        end
-        
+                
         flat_done           = true;
         edit_flag           = false;
         set(disp_group, 'selectedobject', disp_check(3))
         disp_type           = 'flat';
-        choose_layer
+        pk_select
         [depth_min, depth_max] ...
                             = deal(depth_min_ref, depth_max_ref);
         plot_flat
@@ -1514,7 +1489,7 @@ set(cb_group, 'selectedobject', cb_check(1))
 
 %% Choose the current layer
 
-    function choose_layer(source, eventdata)
+    function pk_select(source, eventdata)
         curr_layer          = get(layer_list, 'value');
         pk_curr
     end
@@ -1550,7 +1525,7 @@ set(cb_group, 'selectedobject', cb_check(1))
 
 %% Choose a layer manually
 
-    function pk_select(source, eventdata)
+    function pk_select_gui(source, eventdata)
         if ~merge_done
             set(status_box, 'string', 'No layers to focus on.')
             return
@@ -1558,10 +1533,10 @@ set(cb_group, 'selectedobject', cb_check(1))
         set(status_box, 'string', 'Choose a layer to highlight...')
         pause(0.1)
         [ind_x_pk, ind_y_pk]= ginput(1);
-        pk_select_breakout
+        pk_select_gui_breakout
     end
 
-    function pk_select_breakout(source, eventdata)
+    function pk_select_gui_breakout(source, eventdata)
         switch disp_type
             case 'elev.'
                 if gimp_avail
@@ -1593,7 +1568,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 curr_layer  = tmp2(1);
             end
             set(layer_list, 'value', curr_layer)
-            choose_layer
+            pk_select
             set(status_box, 'string', ['Layer #' num2str(curr_layer) ' chosen.'])
         else
             set(status_box, 'string', 'No layer at that position')
@@ -1602,7 +1577,7 @@ set(cb_group, 'selectedobject', cb_check(1))
 
 %% Focus x/y axes on current layer
 
-    function focus_layer(source, eventdata)
+    function pk_focus(source, eventdata)
         if ~any(~isnan(pk.elev_smooth(curr_layer, ind_decim)))
             set(status_box, 'string', 'Cannot focus on a layer that is hidden.')
             return
@@ -1759,7 +1734,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         for ii = 1:pk.num_layer
             if ~any(~isnan(pk.elev_smooth(ii, ind_decim)))
                 layer_str{ii} ...
-                    = [num2str(layer_str{ii}) ' H'];
+                            = [num2str(layer_str{ii}) ' H'];
             end
         end
         if (flat_done && data_done)
@@ -1781,7 +1756,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             set(layer_list, 'string', 'N/A', 'value', 1)
         end
         set(status_box, 'string', ['Layer #' num2str(curr_layer) ' deleted.'])
-        choose_layer
+        pk_select
     end
 
 %% Switch to previous/next layer in list
@@ -1901,21 +1876,17 @@ set(cb_group, 'selectedobject', cb_check(1))
         if (any(p_pk([curr_layer tmp1])) && any(ishandle(p_pk([curr_layer tmp1]))))
             delete(p_pk([curr_layer tmp1]))
             if gimp_avail
-                p_pk(curr_layer)= plot(pk.dist_lin_gimp(~isnan(pk.elev_smooth_gimp(curr_layer, :))), pk.elev_smooth_gimp(curr_layer, ~isnan(pk.elev_smooth_gimp(curr_layer, :))), ...
-                                       '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
+                p_pk(curr_layer)= plot(pk.dist_lin_gimp(~isnan(pk.elev_smooth_gimp(curr_layer, :))), pk.elev_smooth_gimp(curr_layer, ~isnan(pk.elev_smooth_gimp(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
             else
-                p_pk(curr_layer)= plot(pk.dist_lin(~isnan(pk.elev_smooth(curr_layer, :))), pk.elev_smooth(curr_layer, ~isnan(pk.elev_smooth(curr_layer, :))), ...
-                                       '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
+                p_pk(curr_layer)= plot(pk.dist_lin(~isnan(pk.elev_smooth(curr_layer, :))), pk.elev_smooth(curr_layer, ~isnan(pk.elev_smooth(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
             end
         end
         if (any(p_pkdepth([curr_layer tmp1])) && any(ishandle(p_pkdepth([curr_layer tmp1]))))
             delete(p_pkdepth([curr_layer tmp1]))
             if gimp_avail
-                p_pkdepth(curr_layer) = plot(pk.dist_lin_gimp(~isnan(pk.depth_smooth(curr_layer, :))), pk.depth_smooth(curr_layer, ~isnan(pk.depth_smooth(curr_layer, :))), ...
-                                         '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
+                p_pkdepth(curr_layer) = plot(pk.dist_lin_gimp(~isnan(pk.depth_smooth(curr_layer, :))), pk.depth_smooth(curr_layer, ~isnan(pk.depth_smooth(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
             else
-                p_pkdepth(curr_layer) = plot(pk.dist_lin(~isnan(pk.depth_smooth(curr_layer, :))), pk.depth_smooth(curr_layer, ~isnan(pk.depth_smooth(curr_layer, :))), ...
-                                         '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
+                p_pkdepth(curr_layer) = plot(pk.dist_lin(~isnan(pk.depth_smooth(curr_layer, :))), pk.depth_smooth(curr_layer, ~isnan(pk.depth_smooth(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
             end
         end
         if (flat_done && data_done)
@@ -1924,11 +1895,9 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
             if any(~isnan(depth_layer_flat(curr_layer, :)))
                 if gimp_avail
-                    p_pkflat(curr_layer)= plot(pk.dist_lin_gimp(ind_decim(~isnan(depth_layer_flat(curr_layer, :)))), depth_layer_flat(curr_layer, ~isnan(depth_layer_flat(curr_layer, :))), '.', ...
-                        'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
+                    p_pkflat(curr_layer)= plot(pk.dist_lin_gimp(ind_decim(~isnan(depth_layer_flat(curr_layer, :)))), depth_layer_flat(curr_layer, ~isnan(depth_layer_flat(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
                 else
-                    p_pkflat(curr_layer)= plot(pk.dist_lin(ind_decim(~isnan(depth_layer_flat(curr_layer, :)))), depth_layer_flat(curr_layer, ~isnan(depth_layer_flat(curr_layer, :))), '.', ...
-                        'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
+                    p_pkflat(curr_layer)= plot(pk.dist_lin(ind_decim(~isnan(depth_layer_flat(curr_layer, :)))), depth_layer_flat(curr_layer, ~isnan(depth_layer_flat(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
                 end
             else
                 p_pkflat(curr_layer) ...
@@ -1963,7 +1932,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         for ii = 1:pk.num_layer
             if ~any(~isnan(pk.elev_smooth(ii, ind_decim)))
                 layer_str{ii} ...
-                    = [num2str(layer_str{ii}) ' H'];
+                            = [num2str(layer_str{ii}) ' H'];
             end
         end
         set(layer_list, 'string', layer_str, 'value', 1)
@@ -1975,7 +1944,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             curr_layer      = 1;
         end
         set(layer_list, 'value', curr_layer)
-        choose_layer
+        pk_select
     end
 
 %% Split layer
@@ -2061,11 +2030,9 @@ set(cb_group, 'selectedobject', cb_check(1))
         if (logical(p_pk(curr_layer)) && ishandle(p_pk(curr_layer)))
             delete(p_pk(curr_layer))
             if gimp_avail
-                p_pk(curr_layer)= plot(pk.dist_lin_gimp(~isnan(pk.elev_smooth_gimp(curr_layer, :))), pk.elev_smooth_gimp(curr_layer, ~isnan(pk.elev_smooth_gimp(curr_layer, :))), ...
-                                       '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
+                p_pk(curr_layer)= plot(pk.dist_lin_gimp(~isnan(pk.elev_smooth_gimp(curr_layer, :))), pk.elev_smooth_gimp(curr_layer, ~isnan(pk.elev_smooth_gimp(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
             else
-                p_pk(curr_layer)= plot(pk.dist_lin(~isnan(pk.elev_smooth(curr_layer, :))), pk.elev_smooth(curr_layer, ~isnan(pk.elev_smooth(curr_layer, :))), ...
-                                       '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
+                p_pk(curr_layer)= plot(pk.dist_lin(~isnan(pk.elev_smooth(curr_layer, :))), pk.elev_smooth(curr_layer, ~isnan(pk.elev_smooth(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
             end
         end
         if gimp_avail
@@ -2076,11 +2043,9 @@ set(cb_group, 'selectedobject', cb_check(1))
         if (logical(p_pkdepth(curr_layer)) && ishandle(p_pkdepth(curr_layer)))
             delete(p_pkdepth(curr_layer))
             if gimp_avail
-                p_pkdepth(curr_layer) = plot(pk.dist_lin_gimp(~isnan(pk.depth_smooth(curr_layer, :))), pk.depth_smooth(curr_layer, ~isnan(pk.depth_smooth(curr_layer, :))), ...
-                                             '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
+                p_pkdepth(curr_layer) = plot(pk.dist_lin_gimp(~isnan(pk.depth_smooth(curr_layer, :))), pk.depth_smooth(curr_layer, ~isnan(pk.depth_smooth(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
             else
-                p_pkdepth(curr_layer) = plot(pk.dist_lin(~isnan(pk.depth_smooth(curr_layer, :))), pk.depth_smooth(curr_layer, ~isnan(pk.depth_smooth(curr_layer, :))), ...
-                                             '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
+                p_pkdepth(curr_layer) = plot(pk.dist_lin(~isnan(pk.depth_smooth(curr_layer, :))), pk.depth_smooth(curr_layer, ~isnan(pk.depth_smooth(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
             end
         end
         if gimp_avail
@@ -2094,11 +2059,9 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
             if any(~isnan(depth_layer_flat(curr_layer, :)))
                 if gimp_avail
-                    p_pkflat(curr_layer) = plot(pk.dist_lin_gimp(ind_decim(~isnan(depth_layer_flat(curr_layer, :)))), depth_layer_flat(curr_layer, ~isnan(depth_layer_flat(curr_layer, :))), '.', ...
-                                                'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
+                    p_pkflat(curr_layer) = plot(pk.dist_lin_gimp(ind_decim(~isnan(depth_layer_flat(curr_layer, :)))), depth_layer_flat(curr_layer, ~isnan(depth_layer_flat(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
                 else
-                    p_pkflat(curr_layer) = plot(pk.dist_lin(ind_decim(~isnan(depth_layer_flat(curr_layer, :)))), depth_layer_flat(curr_layer, ~isnan(depth_layer_flat(curr_layer, :))), '.', ...
-                                                'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
+                    p_pkflat(curr_layer) = plot(pk.dist_lin(ind_decim(~isnan(depth_layer_flat(curr_layer, :)))), depth_layer_flat(curr_layer, ~isnan(depth_layer_flat(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
                 end
             else
                 p_pkflat(curr_layer) ...
@@ -2107,12 +2070,15 @@ set(cb_group, 'selectedobject', cb_check(1))
             if isnan(depth_layer_ref(curr_layer))
                 set(p_pkflat(curr_layer), 'markersize', 6)
             end
-            if gimp_avail
-                    p_pkflat(pk.num_layer) = plot(pk.dist_lin_gimp(ind_decim(~isnan(depth_layer_flat(end, :)))), depth_layer_flat(end, ~isnan(depth_layer_flat(end, :))), '.', ...
-                                                  'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
+            if any(~isnan(depth_layer_flat(end, :)))
+                if gimp_avail
+                    p_pkflat(pk.num_layer) = plot(pk.dist_lin_gimp(ind_decim(~isnan(depth_layer_flat(end, :)))), depth_layer_flat(end, ~isnan(depth_layer_flat(end, :))), '.', 'color', colors(end, :), 'markersize', 24, 'visible', 'off');
                 else
-                    p_pkflat(pk.num_layer) = plot(pk.dist_lin(ind_decim(~isnan(depth_layer_flat(end, :)))), depth_layer_flat(end, ~isnan(depth_layer_flat(end, :))), '.', ...
-                                                   'color', colors(end, :), 'markersize', 24, 'visible', 'off');
+                    p_pkflat(pk.num_layer) = plot(pk.dist_lin(ind_decim(~isnan(depth_layer_flat(end, :)))), depth_layer_flat(end, ~isnan(depth_layer_flat(end, :))), '.', 'color', colors(end, :), 'markersize', 24, 'visible', 'off');
+                end
+            else
+                p_pkflat(pk.num_layer) ...
+                            = plot(0, 0, '.', 'markersize', 12, 'color', colors(ii, :), 'visible', 'off');
             end
             edit_flag       = true;
         end
@@ -2133,7 +2099,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             curr_layer      = 1;
         end
         set(layer_list, 'value', curr_layer)
-        choose_layer
+        pk_select
     end
 
 %% Save merged picks
@@ -2438,7 +2404,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                             = text(double(tmp1(ind_int(tmp2(ii))) + 1), double(elev_max_ref - 250), name_core(int_core{curr_year}{curr_trans}(tmp2(ii), 3)), 'color', 'm', 'fontsize', size_font, 'visible', 'off');
                 end
                 
-                if (data_done && flat_done)
+                if data_done
                     for ii = 1:num_int
                         p_coreflat(ii) ...
                             = plot(repmat(tmp1(ind_int(tmp2(ii))), 1, 2), [depth_min_ref depth_max_ref], 'm', 'linewidth', 2, 'visible', 'off');
@@ -2691,8 +2657,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             plot(amp_elev(:, tmp1), elev, 'k', 'linewidth', 2)
             for jj = 1:length(tmp3{ii})
                 p_snr{ii}(jj, 1) ...
-                            = plot(amp_elev(interp1(elev, 1:length(elev), pk.elev_gimp(tmp3{ii}(jj), ind_int(tmp2(ii))), 'nearest', 'extrap'), tmp1), pk.elev_gimp(tmp3{ii}(jj), ind_int(tmp2(ii))), ...
-                                   'ko', 'markersize', 8, 'markerfacecolor', 'r');
+                            = plot(amp_elev(interp1(elev, num_sample, pk.elev_gimp(tmp3{ii}(jj), ind_int(tmp2(ii))), 'nearest', 'extrap'), tmp1), pk.elev_gimp(tmp3{ii}(jj), ind_int(tmp2(ii))), 'ko', 'markersize', 8, 'markerfacecolor', 'r');
             end
             set(gca, 'fontsize', 20)
             xlabel('Returned power (dB)')
@@ -2700,10 +2665,8 @@ set(cb_group, 'selectedobject', cb_check(1))
             title(name_core{int_core{curr_year}{curr_trans}(tmp2(ii), 3)}, 'fontweight', 'bold')
             grid on
             box on
-            snrlist(ii)     = uicontrol(snrgui(ii), 'style', 'popupmenu', 'string', num2cell(tmp3{ii}), 'value', 1, 'units', 'normalized', 'position', [0.88 0.85 0.1 0.05], 'fontsize', size_font, ...
-                                        'foregroundcolor', 'k', 'callback', eval(['@choose_snr' num2str(ii)]));
-            uicontrol(snrgui(ii), 'style', 'pushbutton', 'string', 'Pick', 'units', 'normalized', 'position', [0.88 0.75 0.1 0.05], 'callback', eval(['@do_snr' num2str(ii)]), ...
-                      'fontsize', size_font, 'foregroundcolor', 'm')                                    
+            snrlist(ii)     = uicontrol(snrgui(ii), 'style', 'popupmenu', 'string', num2cell(tmp3{ii}), 'value', 1, 'units', 'normalized', 'position', [0.88 0.85 0.1 0.05], 'fontsize', size_font, 'foregroundcolor', 'k', 'callback', eval(['@choose_snr' num2str(ii)]));
+            uicontrol(snrgui(ii), 'style', 'pushbutton', 'string', 'Pick', 'units', 'normalized', 'position', [0.88 0.75 0.1 0.05], 'callback', eval(['@do_snr' num2str(ii)]), 'fontsize', size_font, 'foregroundcolor', 'm')                                    
             uicontrol(snrgui(ii), 'style', 'pushbutton', 'string', 'Save', 'units', 'normalized', 'position', [0.88 0.1 0.1 0.05], 'callback', @save_snr, 'fontsize', size_font, 'foregroundcolor', 'g')
         end
         
@@ -2758,7 +2721,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         p_snr{ii}(get(snrlist(ii), 'value'), 2) ...
                             = plot(amp_elev(tmp4, interp1(ind_decim, 1:num_decim, ind_int(tmp2(ii)), 'nearest', 'extrap')), elev(tmp4), 'ks', 'markersize', 12, 'markerfacecolor', 'm');
         snr_all{curr_year}{curr_trans}{curr_subtrans}(tmp5, int_core{curr_year}{curr_trans}(tmp2(ii), 3)) ...
-                            = amp_elev(interp1(elev, 1:length(elev), pk.elev_gimp(tmp5, ind_int(tmp2(ii))), 'nearest', 'extrap'), interp1(ind_decim, 1:num_decim, ind_int(tmp2(ii)), 'nearest', 'extrap')) - ...
+                            = amp_elev(interp1(elev, 1:num_sample, pk.elev_gimp(tmp5, ind_int(tmp2(ii))), 'nearest', 'extrap'), interp1(ind_decim, 1:num_decim, ind_int(tmp2(ii)), 'nearest', 'extrap')) - ...
                               amp_elev(tmp4, interp1(ind_decim, 1:num_decim, ind_int(tmp2(ii)), 'nearest', 'extrap')); %#ok<SETNU>
     end
 
@@ -3015,9 +2978,9 @@ set(cb_group, 'selectedobject', cb_check(1))
             case 'std'
                 if (get(cb_min_slide, 'value') < db_max)
                     if get(cbfix_check1, 'value')
-                        tmp1 = db_max - db_min;
+                        tmp1= db_max - db_min;
                     end
-                    db_min          = get(cb_min_slide, 'value');
+                    db_min  = get(cb_min_slide, 'value');
                     if get(cbfix_check1, 'value')
                         db_max = db_min + tmp1;
                         if (db_max > db_max_ref)
@@ -3051,9 +3014,9 @@ set(cb_group, 'selectedobject', cb_check(1))
             case 'age'
                 if (get(cb_min_slide, 'value') < age_max)
                     if get(cbfix_check1, 'value')
-                        tmp1 = age_max - age_min;
+                        tmp1= age_max - age_min;
                     end
-                    age_min          = get(cb_min_slide, 'value');
+                    age_min = get(cb_min_slide, 'value');
                     if get(cbfix_check1, 'value')
                         age_max = age_min + tmp1;
                         if (age_max > age_max_ref)
@@ -3097,9 +3060,9 @@ set(cb_group, 'selectedobject', cb_check(1))
             case 'std'
                 if (get(cb_max_slide, 'value') > db_min)
                     if get(cbfix_check1, 'value')
-                        tmp1        = db_max - db_min;
+                        tmp1= db_max - db_min;
                     end
-                    db_max = get(cb_max_slide, 'value');
+                    db_max  = get(cb_max_slide, 'value');
                     if get(cbfix_check1, 'value')
                         db_min = db_max - tmp1;
                         if (db_min < db_min_ref)
@@ -3133,7 +3096,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             case 'age'
                 if (get(cb_max_slide, 'value') > age_min)
                     if get(cbfix_check1, 'value')
-                        tmp1        = age_max - age_min;
+                        tmp1= age_max - age_min;
                     end
                     age_max = get(cb_max_slide, 'value');
                     if get(cbfix_check1, 'value')
@@ -3526,13 +3489,12 @@ set(cb_group, 'selectedobject', cb_check(1))
         set(z_min_edit, 'string', sprintf('%4.0f', elev_min))
         set(z_max_edit, 'string', sprintf('%4.0f', elev_max))
         ylim([elev_min elev_max])
-        if gimp_avail
-            tmp1            = pk.dist_lin_gimp;
-        else
-            tmp1            = pk.dist_lin;
-        end
         if data_done
-            p_data          = imagesc(tmp1(ind_decim), elev, amp_elev, [db_min db_max]);
+            if gimp_avail
+                p_data      = imagesc(pk.dist_lin_gimp(ind_decim), elev, amp_elev, [db_min db_max]);
+            else
+                p_data      = imagesc(pk.dist_lin(ind_decim), elev, amp_elev, [db_min db_max]);
+            end
         end
         if (any(surf_avail) && any(~isnan(pk.elev_surf)))
             if gimp_avail
@@ -3899,7 +3861,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
             layer_str       = num2cell(1:pk.num_layer);
             for ii = 1:pk.num_layer
-                if ~any(~isnan(pk.elev_smooth(ii, ind_decim)))
+                if all(isnan(pk.elev_smooth(ii, ind_decim)))
                     p_pk(ii)=plot(0, 0, 'w.', 'markersize', 1);
                     p_pkdepth(ii) ...
                             = plot(0, 0, 'w.', 'markersize', 1);                    
@@ -3908,10 +3870,10 @@ set(cb_group, 'selectedobject', cb_check(1))
                 else
                     if gimp_avail
                         p_pk(ii)= plot(pk.dist_lin_gimp(ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), pk.elev_smooth_gimp(ii, ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12, 'visible', 'off');
-                        p_pkdepth(ii) = plot(pk.dist_lin_gimp(ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), pk.elev_smooth_gimp(ii, ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12, 'visible', 'off');
+                        p_pkdepth(ii) = plot(pk.dist_lin_gimp(ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), pk.depth_smooth(ii, ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12, 'visible', 'off');
                     else
                         p_pk(ii) = plot(pk.dist_lin(ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), pk.elev_smooth(ii, ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12, 'visible', 'off');
-                        p_pkdepth(ii) = plot(pk.dist_lin(ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), pk.elev_smooth(ii, ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12, 'visible', 'off');
+                        p_pkdepth(ii) = plot(pk.dist_lin(ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), pk.depth_smooth(ii, ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12, 'visible', 'off');
                     end
                 end
             end
@@ -3938,7 +3900,6 @@ set(cb_group, 'selectedobject', cb_check(1))
 
     function adj_length_chunk(source, eventdata)
         length_chunk        = abs(round(str2double(get(length_chunk_edit, 'string'))));
-        % make the horizontal chunks of data to pick (too big is unwieldy)
         if gimp_avail
             tmp1            = pk.dist_lin_gimp;
         else
@@ -4029,58 +3990,58 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Narrow color axis to +/- 2 standard deviations of current mean value
 
     function narrow_cb(source, eventdata)
-        if (get(cbfix_check2, 'value') && data_done && strcmp(cb_type, 'std'))
-            axes(ax_radar)
-            tmp1            = zeros(2);
-            if gimp_avail
-                tmp1(1, :)  = interp1(pk.dist_lin_gimp(ind_decim), 1:num_decim, [dist_min dist_max], 'nearest', 'extrap');
-            else
-                tmp1(1, :)  = interp1(pk.dist_lin(ind_decim), 1:num_decim, [dist_min dist_max], 'nearest', 'extrap');
-            end
-            switch disp_type
-                case 'elev.'
-                    tmp1(2, :) = interp1(elev, 1:num_sample, [elev_min elev_max], 'nearest', 'extrap');
-                    tmp1(2, :) = flipud(tmp1(2, :));
-                    tmp1    = amp_elev(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
-                case 'depth'
-                    tmp1(2, :) = interp1(depth, 1:num_sample, [depth_min depth_max], 'nearest', 'extrap');
-                    tmp1    = amp_depth(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
-                case 'flat'
-                    tmp1(2, :) = interp1(depth, 1:num_sample, [depth_min depth_max], 'nearest', 'extrap');
-                    tmp1    = amp_flat(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
-            end
-            tmp2            = NaN(1, 2);
-            [tmp2(1), tmp2(2)] ...
-                            = deal(nanmean(tmp1(~isinf(tmp1))), nanstd(tmp1(~isinf(tmp1))));
-            if any(isnan(tmp2))
-                return
-            end
-            tmp1            = zeros(1, 2);
-            if ((tmp2(1) - (2 * tmp2(2))) < db_min_ref)
-                tmp1(1)     = db_min_ref;
-            else
-                tmp1(1)     = tmp2(1) - (2 * tmp2(2));
-            end
-            if ((tmp2(1) + (2 * tmp2(2))) > db_max_ref)
-                tmp1(2)     = db_max_ref;
-            else
-                tmp1(2)     = tmp2(1) + (2 * tmp2(2));
-            end
-            [db_min, db_max]= deal(tmp1(1), tmp1(2));
-            if (db_min < get(cb_min_slide, 'min'))
-                set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
-            else
-                set(cb_min_slide, 'value', db_min)
-            end
-            if (db_max > get(cb_max_slide, 'max'))
-                set(cb_max_slide, 'value', get(cb_max_slide, 'max'))
-            else
-                set(cb_max_slide, 'value', db_max)
-            end
-            set(cb_min_edit, 'string', sprintf('%3.0f', db_min))
-            set(cb_max_edit, 'string', sprintf('%3.0f', db_max))
-            caxis([db_min db_max])
+        if ~(get(cbfix_check2, 'value') && data_done && strcmp(cb_type, 'std'))
+            return
         end
+        axes(ax_radar)
+        tmp1                = zeros(2);
+        if gimp_avail
+            tmp1(1, :)      = interp1(pk.dist_lin_gimp(ind_decim), 1:num_decim, [dist_min dist_max], 'nearest', 'extrap');
+        else
+            tmp1(1, :)      = interp1(pk.dist_lin(ind_decim), 1:num_decim, [dist_min dist_max], 'nearest', 'extrap');
+        end
+        switch disp_type
+            case 'elev.'
+                tmp1(2, :)  = interp1(elev, 1:num_sample, [elev_min elev_max], 'nearest', 'extrap');
+                tmp1(2, :)  = flipud(tmp1(2, :));
+                tmp1        = amp_elev(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
+            case 'depth'
+                tmp1(2, :)  = interp1(depth, 1:num_sample, [depth_min depth_max], 'nearest', 'extrap');
+                tmp1        = amp_depth(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
+            case 'flat'
+                tmp1(2, :)  = interp1(depth, 1:num_sample, [depth_min depth_max], 'nearest', 'extrap');
+                tmp1        = amp_flat(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
+        end
+        tmp2                = NaN(1, 2);
+        [tmp2(1), tmp2(2)]  = deal(nanmean(tmp1(~isinf(tmp1))), nanstd(tmp1(~isinf(tmp1))));
+        if any(isnan(tmp2))
+            return
+        end
+        tmp1                = zeros(1, 2);
+        if ((tmp2(1) - (2 * tmp2(2))) < db_min_ref)
+            tmp1(1)         = db_min_ref;
+        else
+            tmp1(1)         = tmp2(1) - (2 * tmp2(2));
+        end
+        if ((tmp2(1) + (2 * tmp2(2))) > db_max_ref)
+            tmp1(2)         = db_max_ref;
+        else
+            tmp1(2)         = tmp2(1) + (2 * tmp2(2));
+        end
+        [db_min, db_max]    = deal(tmp1(1), tmp1(2));
+        if (db_min < get(cb_min_slide, 'min'))
+            set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
+        else
+            set(cb_min_slide, 'value', db_min)
+        end
+        if (db_max > get(cb_max_slide, 'max'))
+            set(cb_max_slide, 'value', get(cb_max_slide, 'max'))
+        else
+            set(cb_max_slide, 'value', db_max)
+        end
+        set(cb_min_edit, 'string', sprintf('%3.0f', db_min))
+        set(cb_max_edit, 'string', sprintf('%3.0f', db_max))
+        caxis([db_min db_max])
     end
 
 %% Pop out map
@@ -4122,7 +4083,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             return
         end
         set(0, 'DefaultFigureWindowStyle', 'default')
-        figure('position', [200 200 1600 800]);
+        figure('position', [200 200 1600 800])
         axis tight
         hold on
         colormap(cmaps{get(cmap_list, 'value')})
@@ -4163,11 +4124,9 @@ set(cb_group, 'selectedobject', cb_check(1))
                     for ii = 1:pk.num_layer
                         if any(~isnan(pk.elev_smooth(ii, ind_decim)))
                             if gimp_avail
-                                tmp1 = plot(pk.dist_lin_gimp(ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), pk.elev_smooth_gimp(ii, ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), ...
-                                            '.', 'color', colors(ii, :), 'markersize', 12);
+                                tmp1 = plot(pk.dist_lin_gimp(ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), pk.elev_smooth_gimp(ii, ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12);
                             else
-                                tmp1 = plot(pk.dist_lin(ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), pk.elev_smooth(ii, ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), ...
-                                            'markersize', 12);
+                                tmp1 = plot(pk.dist_lin(ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), pk.elev_smooth(ii, ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12);
                             end
                             if any(ii == curr_layer)
                                 set(tmp1, 'markersize', 24)
@@ -4250,7 +4209,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                         text(double(tmp1(ind_int(tmp2(ii))) + 1), double(depth_min + (0.2 * (depth_max - depth_min))), name_core{int_core{curr_year}{curr_trans}(tmp2(ii), 3)}, 'color', 'm', 'fontsize', size_font)
                     end
                 end
-                plot(repmat(tmp1(ind_decim(ind_x_ref)), 1, 2), [depth_min depth_max], 'w--', 'linewidth', 2);
+                plot(repmat(tmp1(ind_decim(ind_x_ref)), 1, 2), [depth_min depth_max], 'w--', 'linewidth', 2)
                 ylabel('Depth (m)', 'fontsize', 20)
                 text(double(dist_max + (0.015 * (dist_max - dist_min))), double(depth_min - (0.04 * (depth_max - depth_min))), '(dB)', 'color', 'k', 'fontsize', 20)
         end
@@ -4346,7 +4305,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             case 'n'
                 pk_next
             case 'o'
-                focus_layer
+                pk_focus
             case 'p'
                 load_pk
             case 'q'
@@ -4375,7 +4334,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                     set(zfix_check, 'value', 1)
                 end
             case 'z'
-                pk_select
+                pk_select_gui
             case 'slash'
                 switch ord_poly
                     case 2
@@ -4611,14 +4570,16 @@ set(cb_group, 'selectedobject', cb_check(1))
             tmp2            = [get(ax_radar, 'xlim'); get(ax_radar, 'ylim')];
             [ind_x_pk, ind_y_pk] ...
                             = deal(((tmp1(1) * diff(tmp2(1, :))) + tmp2(1, 1)), ((tmp1(2) * diff(tmp2(2, :))) + tmp2(2, 1)));
-            pk_select_breakout
+            pk_select_gui_breakout
         end
     end
 
 %% Test something
 
     function misctest(source, eventdata)
-        
+                p_pkflat(pk.num_layer) ...
+                            = plot(0, 0, '.', 'markersize', 12, 'color', colors(ii, :), 'visible', 'off');
+
     end
 
 %%

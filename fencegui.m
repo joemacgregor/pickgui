@@ -11,7 +11,7 @@ function fencegui
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 02/14/13
+% Last updated: 02/22/13
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -303,8 +303,8 @@ uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Load master data', 'units',
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Load intersecting data', 'units', 'normalized', 'position', [0.345 0.925 0.11 0.03], 'callback', @load_data2, 'fontsize', size_font, 'foregroundcolor', 'b')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Match', 'units', 'normalized', 'position', [0.645 0.925 0.04 0.03], 'callback', @pk_match, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Unmatch', 'units', 'normalized', 'position', [0.69 0.925 0.05 0.03], 'callback', @pk_unmatch, 'fontsize', size_font, 'foregroundcolor', 'm')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Select', 'units', 'normalized', 'position', [0.17 0.925 0.045 0.03], 'callback', @choose_pk1, 'fontsize', size_font, 'foregroundcolor', 'm')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Select', 'units', 'normalized', 'position', [0.535 0.925 0.045 0.03], 'callback', @choose_pk2, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Select', 'units', 'normalized', 'position', [0.17 0.925 0.045 0.03], 'callback', @pk_select_gui1, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Select', 'units', 'normalized', 'position', [0.535 0.925 0.045 0.03], 'callback', @pk_select_gui2, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Next', 'units', 'normalized', 'position', [0.245 0.925 0.03 0.03], 'callback', @pk_next3, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Next', 'units', 'normalized', 'position', [0.61 0.925 0.03 0.03], 'callback', @pk_next4, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Last', 'units', 'normalized', 'position', [0.215 0.925 0.03 0.03], 'callback', @pk_last3, 'fontsize', size_font, 'foregroundcolor', 'm')
@@ -324,8 +324,8 @@ uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalize
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.935 0.005 0.03 0.03], 'callback', @reset_dist_max2, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.965 0.03 0.03 0.03], 'callback', @reset_db_min3, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.965 0.46 0.03 0.03], 'callback', @reset_db_max3, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalized', 'position', [0.28 0.925 0.04 0.03], 'callback', @focus_layer1, 'fontsize', size_font, 'foregroundcolor', 'm')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalized', 'position', [0.645 0.965 0.04 0.03], 'callback', @focus_layer2, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalized', 'position', [0.28 0.925 0.04 0.03], 'callback', @pk_focus1, 'fontsize', size_font, 'foregroundcolor', 'm')
+uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalized', 'position', [0.645 0.965 0.04 0.03], 'callback', @pk_focus2, 'fontsize', size_font, 'foregroundcolor', 'm')
 
 % fixed text annotations
 b(1)                        = annotation('textbox', [0.10 0.925 0.03 0.03], 'string', 'N_{decim}', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
@@ -1652,7 +1652,7 @@ linkprop(z_max_edit(2:3), 'string');
         set(status_box(2), 'string', 'Transect radar data loaded.')
     end
 
-%% Choose the current layer
+%% Select current layer
 
     function pk_select1(source, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
@@ -1793,21 +1793,21 @@ linkprop(z_max_edit(2:3), 'string');
         end
     end
 
-%% Choose a layer manually
+%% Select a layer interactively
 
-    function choose_pk1(source, eventdata)
+    function pk_select_gui1(source, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                         = deal(2, 2, 1, 2);
-        choose_pk
+        pk_select_gui
     end
 
-    function choose_pk2(source, eventdata)
+    function pk_select_gui2(source, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                         = deal(2, 3, 2, 1);
-        choose_pk
+        pk_select_gui
     end
 
-    function choose_pk(source, eventdata)
+    function pk_select_gui(source, eventdata)
         set(rad_group, 'selectedobject', rad_check(curr_rad))
         if ~pk_done(curr_rad)
             set(status_box(curr_gui), 'string', 'No layers to focus on.')
@@ -1819,10 +1819,10 @@ linkprop(z_max_edit(2:3), 'string');
         end
         set(status_box(2), 'string', 'Choose a layer to select...')
         [ind_x_pk, ind_y_pk]= ginput(1);
-        choose_pk_breakout
+        pk_select_gui_breakout
     end
 
-    function choose_pk_breakout(source, eventdata)
+    function pk_select_gui_breakout(source, eventdata)
         switch disp_type
             case 'elev.'
                 [tmp1, tmp2]= unique(elev_smooth{curr_rad}(:, interp1(dist_lin{curr_rad}(ind_decim{curr_rad}), ind_decim{curr_rad}, ind_x_pk, 'nearest', 'extrap')));
@@ -1846,19 +1846,19 @@ linkprop(z_max_edit(2:3), 'string');
 
 %% Focus on a layer
 
-    function focus_layer1(source, eventdata)
+    function pk_focus1(source, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                         = deal(2, 2, 1, 2);
-        focus_layer
+        pk_focus
     end
 
-    function focus_layer2(source, eventdata)
+    function pk_focus2(source, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                         = deal(2, 3, 2, 1);
-        focus_layer
+        pk_focus
     end
 
-    function focus_layer(source, eventdata)
+    function pk_focus(source, eventdata)
         if ~any(~isnan(pk{curr_rad}.elev_smooth(curr_layer(curr_rad), ind_decim{curr_rad})))
             set(status_box(2), 'string', 'Cannot focus on a layer that is hidden.')
             return
@@ -3973,7 +3973,7 @@ linkprop(z_max_edit(2:3), 'string');
                     axes(ax(1))
                     p_bed(1, curr_rad) ...
                         = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), ...
-                        elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
+                                elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
                     axes(ax(1 + curr_rad))
                     p_bed(2, curr_rad) ...
                         = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
@@ -4481,7 +4481,7 @@ linkprop(z_max_edit(2:3), 'string');
             case 'n'
                 pk_next
             case 'o'
-                focus_layer
+                pk_focus
             case 't'
                 if (curr_int > 1)
                     set(intnum_list, 'value', (curr_int - 1))
@@ -4503,14 +4503,14 @@ linkprop(z_max_edit(2:3), 'string');
                 end
                 change_cmap
             case 'x'
-                choose_pk2
+                pk_select_gui2
             case 'y'
                 if (curr_int < num_int)
                     set(intnum_list, 'value', (curr_int + 1))
                     change_int
                 end
             case 'z'
-                choose_pk1
+                pk_select_gui1
             case 'downarrow'
                 if ((curr_gui == 1) || strcmp(disp_type, 'elev.'))
                     tmp1 = elev_max(curr_ax) - elev_min(curr_ax);
@@ -4942,7 +4942,7 @@ linkprop(z_max_edit(2:3), 'string');
             tmp2            = [get(ax(curr_ax), 'xlim'); get(ax(curr_ax), 'ylim')];
             [ind_x_pk, ind_y_pk] ...
                             = deal(((tmp1(1) * diff(tmp2(1, :))) + tmp2(1, 1)), ((tmp1(2) * diff(tmp2(2, :))) + tmp2(2, 1)));
-            choose_pk_breakout
+            pk_select_gui_breakout
         elseif ((tmp1(1) > (tmp5(1, 1))) && (tmp1(1) < (tmp5(1, 2))) && (tmp1(2) > (tmp5(2, 1))) && (tmp1(2) < (tmp5(2, 2))))
             [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(2, 3, 2, 1);
@@ -4955,7 +4955,7 @@ linkprop(z_max_edit(2:3), 'string');
             tmp2            = [get(ax(curr_ax), 'xlim'); get(ax(curr_ax), 'ylim')];
             [ind_x_pk, ind_y_pk] ...
                             = deal(((tmp1(1) * diff(tmp2(1, :))) + tmp2(1, 1)), ((tmp1(2) * diff(tmp2(2, :))) + tmp2(2, 1)));
-            choose_pk_breakout
+            pk_select_gui_breakout
         end
     end
 
