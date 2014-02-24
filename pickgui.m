@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 02/21/14
+% Last updated: 02/23/14
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -1010,31 +1010,40 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = deal(NaN(pk.num_layer, num_decim_flat));
         tmp3                = [];
         for ii = 1:pk.num_layer
-            if ~isempty(ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim))))
-                p_pk(ii)    = plot(dist_lin(ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim)))), (1e6 .* block.twtt(round(pk.layer(ii).ind_y(ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim))))))), 'r.', 'markersize', 12, 'visible', 'off');
-                if depth_avail
-                    tmp1    = ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim)));
-                    tmp2    = pk.layer(ii).ind_y(tmp1) - ind_surf(tmp1) + 1;
-                    tmp2((tmp2 < 1) | (tmp2 > num_sample_trim)) ...
+            if ~isempty(find(~isnan(pk.layer(ii).ind_y(ind_decim)), 1))
+                try
+                    p_pk(ii)= plot(dist_lin(ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim)))), (1e6 .* block.twtt(round(pk.layer(ii).ind_y(ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim))))))), 'r.', 'markersize', 12, 'visible', 'off');
+                    if depth_avail
+                        tmp1= ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim)));
+                        tmp2= pk.layer(ii).ind_y(tmp1) - ind_surf(tmp1) + 1;
+                        tmp2((tmp2 < 1) | (tmp2 > num_sample_trim)) ...
                             = NaN;
-                    p_pkdepth(ii) ...
+                        p_pkdepth(ii) ...
                             = plot(dist_lin(tmp1(~isnan(tmp2))), (1e6 .* block.twtt(round(tmp2(~isnan(tmp2))))), 'r.', 'markersize', 12, 'visible', 'off');
+                    end
+                catch
+                    tmp3    = [tmp3 ii]; %#ok<AGROW>
+                    continue
                 end
             else
                 tmp3        = [tmp3 ii]; %#ok<AGROW>
                 continue
             end
-            if ~isempty(ind_decim(~isnan(pk.layer(ii).ind_y_smooth(ind_decim))))
-                tmp1        = ind_decim(~isnan(pk.layer(ii).ind_y_smooth(ind_decim)));
-                p_pksmooth(ii) ...
+            if ~isempty(find(~isnan(pk.layer(ii).ind_y_smooth(ind_decim)), 1))
+                try
+                    tmp1    = ind_decim(~isnan(pk.layer(ii).ind_y_smooth(ind_decim)));
+                    p_pksmooth(ii) ...
                             = plot(dist_lin(tmp1), (1e6 .* block.twtt(round(pk.layer(ii).ind_y_smooth(tmp1)))), 'g.', 'markersize', 12, 'visible', 'off');
-                if depth_avail
-                    tmp1    = ind_decim(~isnan(pk.layer(ii).ind_y_smooth(ind_decim)) & ~isnan(ind_surf(ind_decim)));
-                    tmp2    = pk.layer(ii).ind_y_smooth(tmp1) - ind_surf(tmp1) + 1;
-                    tmp2((tmp2 < 1) | (tmp2 > num_sample_trim)) ...
+                    if depth_avail
+                        tmp1= ind_decim(~isnan(pk.layer(ii).ind_y_smooth(ind_decim)) & ~isnan(ind_surf(ind_decim)));
+                        tmp2= pk.layer(ii).ind_y_smooth(tmp1) - ind_surf(tmp1) + 1;
+                        tmp2((tmp2 < 1) | (tmp2 > num_sample_trim)) ...
                             = NaN;
-                    p_pksmoothdepth(ii) ...
+                        p_pksmoothdepth(ii) ...
                             = plot(dist_lin(tmp1(~isnan(tmp2))), (1e6 .* block.twtt(round(tmp2(~isnan(tmp2))))), 'g.', 'markersize', 12, 'visible', 'off');
+                    end
+                catch
+                    tmp3    = [tmp3 ii]; %#ok<AGROW>
                 end
             else
                 tmp3        = [tmp3 ii]; %#ok<AGROW>
@@ -3142,11 +3151,18 @@ set(disp_group, 'selectedobject', disp_check(1))
         pk.layer(curr_layer).ind_y ...
                             = NaN(1, block.num_trace);
         switch disp_type
-            case {'twtt' '~depth'}
+            case 'twtt'
                 [~, pk.layer(curr_layer).ind_y(ind_x_pk)] ...
                             = max(block.amp((ind_y_pk - pk.num_win):(ind_y_pk + pk.num_win), ind_x_pk)); % y index of nearest min/max
                 pk.layer(curr_layer).ind_y(ind_x_pk) ...
                             = ind_y_pk - ((pk.num_win + 1) - pk.layer(curr_layer).ind_y(ind_x_pk)); % correct y index of min/max because search was done in a narrow window
+            case '~depth'
+                tmp1        = NaN(1, num_decim);
+                tmp2        = [interp1(ind_decim, 1:num_decim, ind_x_pk, 'nearest', 'extrap') (ind_y_pk - ind_surf(ind_x_pk) + 1)];
+                [~, tmp1(tmp2(1))] ...
+                            = max(amp_depth((tmp2(2) - pk.num_win):(tmp2(2) + pk.num_win), tmp2(1)));
+                tmp1(tmp2(1)) ...
+                            = tmp2(2) - ((pk.num_win + 1) - tmp1(tmp2(1)));
             case 'flat'
                 try %#ok<TRYNC>
                     [~, ind_y_flat_mean(curr_layer, ind_x_pk)] ...
@@ -3157,50 +3173,83 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         
         % loop for left of ind_x_pk
-        for ii = (ind_x_pk - 1):-1:1 
-            try
-                switch disp_type
-                    case {'twtt' '~depth'}
-                        [~, pk.layer(curr_layer).ind_y(ii)] ...
-                            = max(block.amp((pk.layer(curr_layer).ind_y(ii + 1) - pk.num_win):(pk.layer(curr_layer).ind_y(ii + 1) + pk.num_win), ii));
-                        pk.layer(curr_layer).ind_y(ii) ...
-                            = pk.layer(curr_layer).ind_y(ii + 1) - ((pk.num_win + 1) - pk.layer(curr_layer).ind_y(ii));
-                    case 'flat'
-                        [~, ind_y_flat_mean(curr_layer, ii)] ...
-                            = max(amp_flat_mean((ind_y_flat_mean(curr_layer, (ii + 1)) - pk.num_win):(ind_y_flat_mean(curr_layer, (ii + 1)) + pk.num_win), ii));
-                        ind_y_flat_mean(curr_layer, ii) ...
-                            = ind_y_flat_mean(curr_layer, (ii + 1)) - ((pk.num_win + 1) - ind_y_flat_mean(curr_layer, ii));
+        switch disp_type
+            case {'twtt' 'flat'}
+                for ii = (ind_x_pk - 1):-1:1
+                    try
+                        switch disp_type
+                            case 'twtt'
+                                [~, pk.layer(curr_layer).ind_y(ii)] ...
+                                    = max(block.amp((pk.layer(curr_layer).ind_y(ii + 1) - pk.num_win):(pk.layer(curr_layer).ind_y(ii + 1) + pk.num_win), ii));
+                                pk.layer(curr_layer).ind_y(ii) ...
+                                    = pk.layer(curr_layer).ind_y(ii + 1) - ((pk.num_win + 1) - pk.layer(curr_layer).ind_y(ii));
+                            case 'flat'
+                                [~, ind_y_flat_mean(curr_layer, ii)] ...
+                                    = max(amp_flat_mean((ind_y_flat_mean(curr_layer, (ii + 1)) - pk.num_win):(ind_y_flat_mean(curr_layer, (ii + 1)) + pk.num_win), ii));
+                                ind_y_flat_mean(curr_layer, ii) ...
+                                    = ind_y_flat_mean(curr_layer, (ii + 1)) - ((pk.num_win + 1) - ind_y_flat_mean(curr_layer, ii));
+                        end
+                    catch %#ok<*CTCH>
+                        break
+                    end
                 end
-            catch %#ok<*CTCH>
-                break
-            end
+            case '~depth'
+                for ii = (tmp2(1) - 1):-1:1
+                    try
+                        [~, tmp1(ii)] ...
+                            = max(amp_depth((tmp1(ii + 1) - pk.num_win):(tmp1(ii + 1) + pk.num_win), ii));
+                        tmp1(ii) ...
+                            = tmp1(ii + 1) - ((pk.num_win + 1) - tmp1(ii));
+                    catch
+                        break
+                    end
+                end
         end
         
         switch disp_type
             case {'twtt' '~depth'}
-                tmp1        = block.num_trace;
+                tmp4        = block.num_trace;
             case 'flat'
-                tmp1        = num_decim_flat;
+                tmp4        = num_decim_flat;
         end
         
         % loop for right of ind_x_pk
-        for ii = (ind_x_pk + 1):tmp1
-            try
-                switch disp_type
-                    case {'twtt' '~depth'}
-                        [~, pk.layer(curr_layer).ind_y(ii)] ...
-                            = max(block.amp((pk.layer(curr_layer).ind_y(ii - 1) - pk.num_win):(pk.layer(curr_layer).ind_y(ii - 1) + pk.num_win), ii));
-                        pk.layer(curr_layer).ind_y(ii) ...
-                            = pk.layer(curr_layer).ind_y(ii - 1) - ((pk.num_win + 1) - pk.layer(curr_layer).ind_y(ii));
-                    case 'flat'
-                        [~, ind_y_flat_mean(curr_layer, ii)] ...
-                            = max(amp_flat_mean((ind_y_flat_mean(curr_layer, (ii - 1)) - pk.num_win):(ind_y_flat_mean(curr_layer, (ii - 1)) + pk.num_win), ii));
-                        ind_y_flat_mean(curr_layer, ii) ...
-                            = ind_y_flat_mean(curr_layer, (ii - 1)) - ((pk.num_win + 1) - ind_y_flat_mean(curr_layer, ii));
+        switch disp_type
+            case {'twtt' 'flat'}
+                for ii = (ind_x_pk + 1):tmp4
+                    try
+                        switch disp_type
+                            case 'twtt'
+                                [~, pk.layer(curr_layer).ind_y(ii)] ...
+                                    = max(block.amp((pk.layer(curr_layer).ind_y(ii - 1) - pk.num_win):(pk.layer(curr_layer).ind_y(ii - 1) + pk.num_win), ii));
+                                pk.layer(curr_layer).ind_y(ii) ...
+                                    = pk.layer(curr_layer).ind_y(ii - 1) - ((pk.num_win + 1) - pk.layer(curr_layer).ind_y(ii));
+                            case 'flat'
+                                [~, ind_y_flat_mean(curr_layer, ii)] ...
+                                    = max(amp_flat_mean((ind_y_flat_mean(curr_layer, (ii - 1)) - pk.num_win):(ind_y_flat_mean(curr_layer, (ii - 1)) + pk.num_win), ii));
+                                ind_y_flat_mean(curr_layer, ii) ...
+                                    = ind_y_flat_mean(curr_layer, (ii - 1)) - ((pk.num_win + 1) - ind_y_flat_mean(curr_layer, ii));
+                        end
+                    catch %#ok<CTCH>
+                        break
+                    end
                 end
-            catch %#ok<CTCH>
-                break
-            end
+            case '~depth'
+                for ii = (tmp2(1) + 1):num_decim
+                    try
+                        [~, tmp1(ii)] ...
+                            = max(amp_depth((tmp1(ii - 1) - pk.num_win):(tmp1(ii - 1) + pk.num_win), ii));
+                        tmp1(ii) ...
+                            = tmp1(ii - 1) - ((pk.num_win + 1) - tmp1(ii));
+                    catch
+                        break
+                    end
+                end
+        end
+        
+        if strcmp(disp_type, '~depth')
+            pk.layer(curr_layer).ind_y ...
+                            = interp1(ind_decim, (tmp1 + ind_surf(ind_decim) - 1), 1:block.num_trace, 'linear', 'extrap');
         end
         
         % plot new layer
@@ -6002,7 +6051,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 if get(pk_check, 'value')
                     for ii = 1:pk.num_layer
-                        if ~isempty(ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim))))
+                        if ~isempty(find(~isnan(pk.layer(ii).ind_y(ind_decim)), 1))
                             tmp1 = plot(dist_lin(ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim)))), (1e6 .* block.twtt(round(pk.layer(ii).ind_y(ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim))))))), 'r.', 'markersize', 12);
                             if (ii == curr_layer)
                                 set(tmp1, 'markersize', 24)
@@ -6012,7 +6061,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 if get(smooth_check, 'value')
                     for ii = 1:pk.num_layer
-                        if ~isempty(ind_decim(~isnan(pk.layer(ii).ind_y_smooth(ind_decim))))
+                        if ~isempty(find(~isnan(pk.layer(ii).ind_y_smooth(ind_decim)), 1))
                             tmp1    = plot(dist_lin(ind_decim(~isnan(pk.layer(ii).ind_y_smooth(ind_decim)))), ...
                                            (1e6 .* block.twtt(round(pk.layer(ii).ind_y_smooth(ind_decim(~isnan(pk.layer(ii).ind_y_smooth(ind_decim))))))), 'g.', 'markersize', 12);
                         end
@@ -6069,7 +6118,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 if get(pk_check, 'value')
                     for ii = 1:pk.num_layer
-                        if ~isempty(ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim))))
+                        if ~isempty(find(~isnan(pk.layer(ii).ind_y(ind_decim)), 1))
                             tmp1 = ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim)));
                             tmp2 = plot(dist_lin(tmp1), (1e6 .* block.twtt(round(pk.layer(ii).ind_y(tmp1) - ind_surf(tmp1) + 1))), 'r.', 'markersize', 12);
                             if (ii == curr_layer)
@@ -6080,7 +6129,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 if get(smooth_check, 'value')
                     for ii = 1:pk.num_layer
-                        if ~isempty(ind_decim(~isnan(pk.layer(ii).ind_y_smooth(ind_decim))))
+                        if ~isempty(find(~isnan(pk.layer(ii).ind_y_smooth(ind_decim)), 1))
                             tmp1    = ind_decim(~isnan(pk.layer(ii).ind_y_smooth(ind_decim)) & ~isnan(ind_surf(ind_decim)));                            
                             tmp2    = plot(dist_lin(tmp1), (1e6 .* block.twtt(round(pk.layer(ii).ind_y_smooth(tmp1) - ind_surf(tmp1) + 1))), 'g.', 'markersize', 12);
                         end
