@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 02/23/14
+% Last updated: 02/27/14
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -1487,11 +1487,15 @@ set(disp_group, 'selectedobject', disp_check(1))
                         tmp2= round(ind_y_phase(ii, tmp1) - ind_surf(tmp1) + 1);
                         tmp2(tmp2 <= 0) ...
                             = 1;
+                        tmp2(tmp2 > num_sample_trim) ...
+                            = num_sample_trim;                        
                         p_phasedepth(ii) ...
                             = plot(dist_lin(tmp1), (1e6 .* block.twtt(tmp2)), 'b', 'linewidth', 1, 'visible', 'off'); % plot the phase-tracked layers
                     end
+                    tmp1    = pk.ind_y_start_phase - ind_surf(pk.ind_x_start_phase) + 1;                    
+                    tmp1    = tmp1((tmp1 > 0) & (tmp1 < num_sample_trim));                    
                     p_startphasedepth ...
-                            = plot((ones(1, pk.num_phase) .* dist_lin(pk.ind_x_start_phase)), (1e6 .* block.twtt(pk.ind_y_start_phase - ind_surf(pk.ind_x_start_phase) + 1)), 'm.', 'markersize', 12, 'visible', 'off');
+                            = plot((ones(1, length(tmp1)) .* dist_lin(pk.ind_x_start_phase)), (1e6 .* block.twtt(tmp1)), 'm.', 'markersize', 12, 'visible', 'off');
                 end
                 set(phase_check, 'value', 1)
                 phase_done  = true;
@@ -1536,7 +1540,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         
         tmp1                 = 0;
-
+        
         % remove phase-tracked layers that NaN'd out
         tmp1                = find(sum(isnan(ind_y_phase), 2));
         if ~isempty(tmp1)
@@ -1544,8 +1548,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             pk.ind_y_start_aresp ...
                             = pk.ind_y_start_phase(setdiff(1:pk.num_phase, tmp1));
             pk.num_phase    = pk.num_phase - length(tmp1);
-        end        
-        
+        end
     end
 
 %% Pick phase-propagated layers to keep for flattening
@@ -1774,12 +1777,15 @@ set(disp_group, 'selectedobject', disp_check(1))
                         tmp2= round(ind_y_aresp(ii, tmp1) - ind_surf(tmp1) + 1);
                         tmp2(tmp2 <= 0) ...
                             = 1;
+                        tmp2(tmp2 > num_sample_trim) ...
+                            = num_sample_trim;
                         p_arespdepth(ii) ...
                             = plot(dist_lin(tmp1), (1e6 .* block.twtt(tmp2)), 'c', 'linewidth', 1, 'visible', 'off');
                     end
+                    tmp1    = pk.ind_y_start_aresp - ind_surf(pk.ind_x_start_aresp) + 1;
+                    tmp1    = tmp1((tmp1 > 0) & (tmp1 < num_sample_trim));
                     p_startarespdepth ...
-                            = plot((ones(1, pk.num_aresp) .* dist_lin(pk.ind_x_start_aresp)), (1e6 .* block.twtt(pk.ind_y_start_aresp - ind_surf(pk.ind_x_start_aresp) + 1)), 'r.', 'markersize', 12, 'visible', 'off'); % plot the starting y indices
-                    
+                            = plot((ones(1, length(tmp1)) .* dist_lin(pk.ind_x_start_aresp)), (1e6 .* block.twtt(tmp1)), 'r.', 'markersize', 12, 'visible', 'off'); % plot the starting y indices
                 end
                 set(aresp_check, 'value', 1)
                 aresp_done  = true;
@@ -2042,7 +2048,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 
                 [ind_x_pk, ind_y_pk] ...
                             = deal(ind_x_pk(1:(end - 1)), ind_y_pk(1:(end - 1)));
-                delete(p_mandepth((pk.num_man + 1), 1))
+                delete(p_man((pk.num_man + 1), 1))
                 if depth_avail
                     delete(p_mandepth((pk.num_man + 1), 1))
                 end
