@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 02/22/14
+% Last updated: 03/27/14
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -87,14 +87,26 @@ letters                     = 'a':'z';
 layer_str                   = {};
 cb_type                     = 'std';
 
-if license('checkout', 'distrib_computing_toolbox')
-    if ~matlabpool('size')
-        matlabpool open
-    end
-    parallel_check          = true;
-else
+% if license('checkout', 'distrib_computing_toolbox')
+%     pool_check              = gcp('nocreate');
+%     if isempty(pool_check)
+%         try
+%             parpool('local', 4);
+%         catch
+%             parpool('local');
+%         end
+%     end
+%     if ~matlabpool('size')
+%         try
+%             matlabpool open 4
+%         catch
+%             matlabpool open
+%         end
+%     end
+%     parallel_check          = true;
+% else
     parallel_check          = false;
-end
+% end
 
 if ispc
     if exist('\\melt\icebridge\data\mat\grl_coast.mat', 'file')
@@ -893,6 +905,19 @@ set(cb_group, 'selectedobject', cb_check(1))
                     file_data{ii} ...
                             = [file_pk{ii}(1:(end - 7)) '.mat'];
                 end
+            else
+                [tmp1, tmp2]= deal(file_data, path_data);
+                if ~isempty(path_pk)
+                    [file_data, path_data] ...
+                            = uigetfile('*.mat', 'Load radar data:', path_pk, 'multiselect', 'on');
+                else
+                    [file_data, path_data] ...
+                            = uigetfile('*.mat', 'Load radar data:', 'multiselect', 'on');
+                end
+                if isnumeric(file_data)
+                    [file_data, path_data] ...
+                            = deal('', tmp2);
+                end
             end
         else % dialog box to choose radar data file to load
             [tmp1, tmp2]    = deal(file_data, path_data);
@@ -1468,10 +1493,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             if ~isempty(find(~isnan(depth_layer_flat(ii, :)), 1))
                 p_pkflat(ii)= plot(tmp1(ind_decim(~isnan(depth_layer_flat(ii, :)))), depth_layer_flat(ii, ~isnan(depth_layer_flat(ii, :))), '.', 'markersize', 12, 'color', colors(ii, :), 'visible', 'off');
             else
-                p_pkflat(ii)= plot(0, 0, '.', 'markersize', 12, 'color', colors(ii, :), 'visible', 'off');
-            end
-            if isnan(depth_layer_ref(ii))
-                set(p_pkflat(ii), 'markersize', 6)
+                p_pkflat(ii)= plot(0, 0, 'w.', 'markersize', 12, 'visible', 'off');
             end
         end
                 
@@ -1514,11 +1536,6 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
             if (logical(p_pkflat(curr_layer)) && ishandle(p_pkflat(curr_layer)))
                 set(p_pkflat(curr_layer), 'markersize', 24)
-            end
-            for ii = find(isnan(depth_layer_ref))'
-                if (logical(p_pkflat(ii)) && ishandle(p_pkflat(ii)))
-                    set(p_pkflat(ii), 'markersize', 6)
-                end
             end
         end
     end
@@ -1658,7 +1675,12 @@ set(cb_group, 'selectedobject', cb_check(1))
                 set(z_min_edit, 'string', sprintf('%4.0f', elev_min))
                 set(z_max_edit, 'string', sprintf('%4.0f', elev_max))
             case {'depth' 'flat'}
-                ylim([min(depth_layer_flat(curr_layer, :)) max(depth_layer_flat(curr_layer, :))])
+                switch disp_type
+                    case 'depth'
+                        ylim([min(pk.depth_smooth(curr_layer, ind_decim)) max(pk.depth_smooth(curr_layer, ind_decim))])
+                    case 'flat'
+                        ylim([min(depth_layer_flat(curr_layer, :)) max(depth_layer_flat(curr_layer, :))])
+                end
                 tmp1        = get(ax_radar, 'ylim');
                 [tmp1(1), tmp1(2)] ...
                             = deal((tmp1(1) - diff(tmp1)), (tmp1(2) + diff(tmp1)));
@@ -1840,7 +1862,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         if (logical(p_pkdepth(tmp1)) && ishandle(p_pkdepth(tmp1)))
             set(p_pkdepth(tmp1), 'color', colors(curr_layer, :))
-        end        
+        end
         if (flat_done && logical(p_pkflat(tmp1)) && ishandle(p_pkflat(tmp1)))
             set(p_pkflat(tmp1), 'color', colors(curr_layer, :))
         end
@@ -1850,9 +1872,14 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         waitforbuttonpress
         if ~strcmpi(get(mgui, 'currentcharacter'), 'Y')
-            set([p_pk(tmp1) p_pkdepth(tmp1)], 'color', colors(tmp1, :))
-            if (flat_done && data_done)
-                set(p_pkflat(tmp1), 'markersize', 12, 'color', colors(tmp1, :))
+            if (logical(p_pk(tmp1)) && ishandle(p_pk(tmp1)))
+                set(p_pk(tmp1), 'color', colors(tmp1, :))
+            end
+            if (logical(p_pkdepth(tmp1)) && ishandle(p_pkdepth(tmp1)))
+                set(p_pkdepth(tmp1), 'color', colors(tmp1, :))
+            end
+            if (flat_done && logical(p_pkflat(tmp1)) && ishandle(p_pkflat(tmp1)))
+                set(p_pkflat(tmp1), 'color', colors(tmp1, :))
             end
             set(status_box, 'string', 'Layer merging cancelled.')
             return
@@ -1889,7 +1916,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 p_pkdepth(curr_layer) = plot(pk.dist_lin(~isnan(pk.depth_smooth(curr_layer, :))), pk.depth_smooth(curr_layer, ~isnan(pk.depth_smooth(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
             end
         end
-        if (flat_done && data_done)
+        if flat_done
             if (any(p_pkflat([curr_layer tmp1])) && any(ishandle(p_pkflat([curr_layer tmp1]))))
                 delete(p_pkflat([curr_layer tmp1]))
             end
@@ -1901,10 +1928,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 end
             else
                 p_pkflat(curr_layer) ...
-                            = plot(0, 0, '.', 'markersize', 12, 'color', colors(ii, :), 'visible', 'off');
-            end
-            if isnan(depth_layer_ref(curr_layer))
-                set(p_pkflat(curr_layer), 'markersize', 6)
+                            = plot(0, 0, 'w..', 'markersize', 12, 'visible', 'off');
             end
             edit_flag       = true;
         end
@@ -2053,7 +2077,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         else
             p_pkdepth(pk.num_layer) = plot(pk.dist_lin(~isnan(pk.depth_smooth(end, :))), pk.depth_smooth(end, ~isnan(pk.depth_smooth(end, :))), '.', 'color', colors(end, :), 'markersize', 24, 'visible', 'off');            
         end
-        if (flat_done && data_done)
+        if flat_done
             if (logical(p_pkflat(curr_layer)) && ishandle(p_pkflat(curr_layer)))
                 delete(p_pkflat(curr_layer))
             end
@@ -2065,10 +2089,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 end
             else
                 p_pkflat(curr_layer) ...
-                            = plot(0, 0, '.', 'markersize', 12, 'color', colors(ii, :), 'visible', 'off');
-            end
-            if isnan(depth_layer_ref(curr_layer))
-                set(p_pkflat(curr_layer), 'markersize', 6)
+                            = plot(0, 0, 'w.', 'markersize', 12, 'visible', 'off');
             end
             if any(~isnan(depth_layer_flat(end, :)))
                 if gimp_avail
@@ -2078,7 +2099,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 end
             else
                 p_pkflat(pk.num_layer) ...
-                            = plot(0, 0, '.', 'markersize', 12, 'color', colors(ii, :), 'visible', 'off');
+                            = plot(0, 0, 'w.', 'markersize', 12, 'visible', 'off');
             end
             edit_flag       = true;
         end
@@ -3953,7 +3974,12 @@ set(cb_group, 'selectedobject', cb_check(1))
                     if (logical(p_pk(ii)) && ishandle(p_pk(ii)))
                         set(p_pk(ii), 'color', colors(ii, :))
                     end
-                    if (data_done && flat_done)
+                    if (logical(p_pkdepth(ii)) && ishandle(p_pkdepth(ii)))
+                        set(p_pkdepth(ii), 'color', colors(ii, :))
+                    end
+                end
+                if (flat_done && data_done)
+                    for ii = 1:pk.num_layer
                         if (logical(p_pkflat(ii)) && ishandle(p_pkflat(ii)))
                             set(p_pkflat(ii), 'color', colors(ii, :))
                         end
@@ -4128,7 +4154,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                             else
                                 tmp1 = plot(pk.dist_lin(ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), pk.elev_smooth(ii, ind_decim(~isnan(pk.elev_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12);
                             end
-                            if any(ii == curr_layer)
+                            if (ii == curr_layer)
                                 set(tmp1, 'markersize', 24)
                             end
                         end
@@ -4186,10 +4212,16 @@ set(cb_group, 'selectedobject', cb_check(1))
                 end
                 if get(pk_check, 'value')
                     for ii = 1:pk.num_layer
-                        if ~isempty(find(~isnan(depth_layer_flat(ii, :)), 1))
-                            tmp2 = plot(tmp1(ind_decim(~isnan(depth_layer_flat(ii, :)))), depth_layer_flat(ii, ~isnan(depth_layer_flat(ii, :))), '.', 'markersize', 12, 'color', colors(ii, :));
-                            if isnan(depth_layer_ref(ii))
-                                set(tmp2, 'markersize', 6)
+                        if strcmp(disp_type, 'depth')
+                            if any(~isnan(pk.depth_smooth(ii, ind_decim)))
+                                tmp1 = plot(pk.dist_lin(ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), pk.depth_smooth(ii, ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12);
+                                if (ii == curr_layer)
+                                    set(tmp1, 'markersize', 24)
+                                end
+                            end
+                        else
+                            if ~isempty(find(~isnan(depth_layer_flat(ii, :)), 1))
+                                plot(tmp1(ind_decim(~isnan(depth_layer_flat(ii, :)))), depth_layer_flat(ii, ~isnan(depth_layer_flat(ii, :))), '.', 'markersize', 12, 'color', colors(ii, :))
                             end
                         end
                     end
@@ -4577,9 +4609,7 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Test something
 
     function misctest(source, eventdata)
-                p_pkflat(pk.num_layer) ...
-                            = plot(0, 0, '.', 'markersize', 12, 'color', colors(ii, :), 'visible', 'off');
-
+        
     end
 
 %%

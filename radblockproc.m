@@ -1,7 +1,7 @@
-function radblockproc(dir_in, file_in, file_block, num_file_block, num_overlap, lat_std, dir_out)
+function radblockproc(dir_in, file_in, file_block, num_file_block, num_overlap, lat_std, do_norm, dir_out)
 % RADBLOCKPROC Consolidate and pre-process CReSIS ice-penetrating radar data files into manageable blocks.
 % 
-%   RADBLOCKPROC(DIR_IN,FILE_IN,FILE_BLOCK,NUM_FILE_BLOCK,NUM_OVERLAP,LAT_STD,DIR_OUT)
+%   RADBLOCKPROC(DIR_IN,FILE_IN,FILE_BLOCK,NUM_FILE_BLOCK,NUM_OVERLAP,LAT_STD,DO_NORM,DIR_OUT)
 %   pre-processes raw radar data stored in DIR_IN whose names are of the
 %   form FILE_IN, which can contain wildcards (*), and saves them in
 %   DIR_OUT with the form of FILE_BLOCK. The ".mat" extension is implicit.
@@ -9,7 +9,8 @@ function radblockproc(dir_in, file_in, file_block, num_file_block, num_overlap, 
 %   for all blocks except the last one, which may have contain fewer files.
 %   NUM_OVERLAP is the number of overlapping files per block. LAT_STD is
 %   the standard parallel in a polar stereographic projection in decimal
-%   degrees (N: positive; S: negative).
+%   degrees (N: positive; S: negative). DO_NORM is a logical switch that,
+%   if true, normalizes the radar data by their maximum value.
 % 
 %   If the Mapping Toolbox is licensed and available and the radar transect
 %   is north of the equator, polar stereographic coordinates will be
@@ -17,10 +18,10 @@ function radblockproc(dir_in, file_in, file_block, num_file_block, num_overlap, 
 %   LL2PS must be available within the user's path.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 01/19/13
+% Last updated: 03/12/14
 
-if (nargin ~= 7)
-    error('radblockproc:inputs', ['Number input arguments (' numstr(nargin) ') should be 7.'])
+if (nargin ~= 8)
+    error('radblockproc:inputs', ['Number input arguments (' numstr(nargin) ') should be 8.'])
 end
 if ~ischar(dir_in)
     error('radblockproc:dirinstr', 'Data input directory (DIR_IN) is not a string.')
@@ -45,7 +46,7 @@ if (num_file_block < 1)
     error('radblockproc:noblock', 'Number of files per block (NUM_FILE_BLOCK) must be greater than zero.');
 end
 if (~isnumeric(num_overlap) || ~isscalar(num_overlap))
-    error('radblockproc:numfileblockposscalar', 'Number of overlapping files (NUM_OVERLAP) is not a positive scalar.');
+    error('radblockproc:numfileblockposscalar', 'Number of overlapping files (NUM_OVERLAP) is not a numeric scalar.');
 end
 if mod(num_overlap, 1)
     num_overlap             = round(num_overlap);
@@ -62,6 +63,9 @@ if (~isnumeric(lat_std) || ~isscalar(lat_std))
 end
 if (abs(lat_std) > 90)
     error('radblockproc:latstdrange', ['Absolute value of standard parallel (LAT_STD = ' num2str(abs(lat_std)) ') is larger than 90 degrees.'])
+end
+if ~islogical(do_norm) || ~isscalar(do_norm)
+    error('radblockproc:donorm', 'DO_NORM must be a logical scalar.')
 end
 if ~ischar(dir_out)
     error('radblockproc:diroutstr', 'Block output directory (DIR_OUT) is not a string.')
@@ -80,7 +84,7 @@ if (license('test', 'map_toolbox') && exist('mat/gimp_90m.mat' , 'file'))
 else
     gimp_avail              = false;
 end
-    
+
 % begin file setup
 file_in_all                 = dir([dir_in file_in '.mat']); % structure containing all file names matching pattern
 num_file                    = length(file_in_all); % number of files
@@ -98,8 +102,6 @@ while true % sort out number of blocks based on number of files and desired over
 end
 
 for ii = 1:num_block
-    
-    tic
     
     block                   = struct;
     block.call              = struct;
@@ -120,7 +122,7 @@ for ii = 1:num_block
     if any(curr_files > num_file) % last block may need shortening
         curr_files          = num_start:num_file;
     end
-        
+    
     [block.param.array_param, block.param.param_combine_wf_chan, block.param.param_csarp, block.param.param_radar, block.param.param_records] ...
                             = deal(cell(1, length(curr_files)));
     
@@ -171,12 +173,14 @@ for ii = 1:num_block
         
         tmp1.data(~tmp1.data) ...
                             = NaN; % deal with zeros
-        tmp1.data           = tmp1.data ./ max(tmp1.data(:)); % normalize data
+        if do_norm
+            tmp1.data       = tmp1.data ./ max(tmp1.data(:)); % normalize data
+        end
         load_struct(jj)     = tmp1; %#ok<AGROW>
         clear tmp1
         length_in(jj)       = length(load_struct(jj).lat(~isnan(load_struct(jj).lat))); % length of structure
     end
-       
+    
     % begin distributing block pieces, starting with latitude and longitude
     block.lat               = [load_struct(:).lat];
     block.lon               = [load_struct(:).lon];
@@ -184,7 +188,7 @@ for ii = 1:num_block
     if (sign(block.lat(find(~isnan(block.lat), 1))) ~= sign(lat_std))
         error('radblockproc:latmatch', 'Standard parallel is in the wrong hemisphere.')
     end
-        
+    
     try
         block.amp           = single([load_struct(:).data]); % amplitude
         block.twtt          = [load_struct(1).twtt]; % traveltime
@@ -210,8 +214,8 @@ for ii = 1:num_block
     block.file_in           = {file_in_all(curr_files).name}';
     
     % address missing gps data by dropping those points altogether
-    if any(isnan(block.lat))
-        ind_nonan           = find(~isnan(block.lat));
+    if (any(isnan(block.lat)) || any(isnan(block.lon)))
+        ind_nonan           = find(~isnan(block.lat) & ~isnan(block.lon));
         block.num_trace     = length(ind_nonan);
         [block.amp, block.lat, block.lon] ...
                             = deal(block.amp(:, ind_nonan), block.lat(ind_nonan), block.lon(ind_nonan));
@@ -272,7 +276,7 @@ for ii = 1:num_block
     end
     
     % aircraft elevation
-    block.elev_air          = [load_struct(:).elev_air];    
+    block.elev_air          = [load_struct(:).elev_air];
     if gps_nan
         block.elev_air      = block.elev_air(ind_nonan);
     end
@@ -308,10 +312,10 @@ for ii = 1:num_block
     % save block
     if (ii < 10)
         save([dir_out file_block '_0' num2str(ii)], '-v7.3', 'block')
-        disp(['Processed ' num2str(length(curr_files)) ' files for block ' num2str(ii) ' / ' num2str(num_block) ' and saved as ' file_block '_0' num2str(ii) ' in ' dir_out ' in ' num2str(toc, '%4.2f') ' s.'])
+        disp(['Processed ' num2str(length(curr_files)) ' files for block ' num2str(ii) ' / ' num2str(num_block) ' and saved as ' file_block '_0' num2str(ii) ' in ' dir_out '.'])
     else
         save([dir_out file_block '_' num2str(ii)], '-v7.3', 'block')
-        disp(['Processed ' num2str(length(curr_files)) ' files for block ' num2str(ii) ' / ' num2str(num_block) ' and saved as ' file_block '_' num2str(ii) ' in ' dir_out ' in ' num2str(toc, '%4.2f') ' s.'])
+        disp(['Processed ' num2str(length(curr_files)) ' files for block ' num2str(ii) ' / ' num2str(num_block) ' and saved as ' file_block '_' num2str(ii) ' in ' dir_out '.'])
     end
     
     % get x/y/distance values at end of data before overlap, so that distance vector can stay sane

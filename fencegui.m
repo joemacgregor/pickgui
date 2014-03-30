@@ -11,7 +11,7 @@ function fencegui
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 02/22/13
+% Last updated: 03/30/14
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -937,6 +937,9 @@ linkprop(z_max_edit(2:3), 'string');
         if ~isfield(pk{curr_rad}, 'ind_layer')
             pk{curr_rad}.ind_layer ...
                             = [];
+        elseif (size(pk{curr_rad}.ind_layer, 2) == 6)
+                pk{curr_rad}.ind_layer ...
+                            = pk{curr_rad}.ind_layer(:, 1:(end - 1));
         end
         
         % extract date and best name from pk files
@@ -955,14 +958,6 @@ linkprop(z_max_edit(2:3), 'string');
         end
         
         % decimated vectors for display
-        if (decim(curr_rad) > 1)
-            ind_decim{curr_rad} ...
-                            = (1 + ceil(decim(curr_rad) / 2)):decim(curr_rad):(pk{curr_rad}.num_trace_tot - ceil(decim(curr_rad) / 2));
-        else
-            ind_decim{curr_rad} ...
-                            = 1:pk{curr_rad}.num_trace_tot;
-        end
-        num_decim(curr_rad) = length(ind_decim{curr_rad});
         if (decim(curr_rad) > 1)
             ind_decim{curr_rad} ...
                             = (1 + ceil(decim(curr_rad) / 2)):decim(curr_rad):(pk{curr_rad}.num_trace_tot - ceil(decim(curr_rad) / 2));
@@ -1053,8 +1048,8 @@ linkprop(z_max_edit(2:3), 'string');
         
         % find intersections for primary transect
         if (curr_rad == 1)
-            tmp1            = find((int_all(:, 1) == curr_year(1)) & (int_all(:, 2) == curr_trans(1))  & (int_all(:, 3) == curr_subtrans(1)));
-            tmp2            = find((int_all(:, 6) == curr_year(1)) & (int_all(:, 7) == curr_trans(1))  & (int_all(:, 8) == curr_subtrans(1)));
+            tmp1            = find(ismember(int_all(:, 1:3), [curr_year(1) curr_trans(1) curr_subtrans(1)], 'rows'));
+            tmp2            = find(ismember(int_all(:, 6:8), [curr_year(1) curr_trans(1) curr_subtrans(1)], 'rows'));
             tmp3            = cell((length(tmp1) + length(tmp2)), 1);
             if ~isempty(tmp1)
                 for ii = 1:length(tmp1)
@@ -1083,11 +1078,9 @@ linkprop(z_max_edit(2:3), 'string');
         end
         
         % figure out intersections
-        if (curr_rad == 2)            
-            tmp1            = find((int_all(:, 1) == curr_year(1)) & (int_all(:, 2) == curr_trans(1))  & (int_all(:, 3) == curr_subtrans(1)) & ...
-                                   (int_all(:, 6) == curr_year(2)) & (int_all(:, 7) == curr_trans(2))  & (int_all(:, 8) == curr_subtrans(2)));
-            tmp2            = find((int_all(:, 1) == curr_year(2)) & (int_all(:, 2) == curr_trans(2))  & (int_all(:, 3) == curr_subtrans(2)) & ...
-                                   (int_all(:, 6) == curr_year(1)) & (int_all(:, 7) == curr_trans(1))  & (int_all(:, 8) == curr_subtrans(1)));
+        if (curr_rad == 2)
+            tmp1            = find(ismember(int_all(:, [1:3 6:8]), [curr_year(1) curr_trans(1) curr_subtrans(1) curr_year(2) curr_trans(2) curr_subtrans(2)], 'rows'));
+            tmp2            = find(ismember(int_all(:, [6:8 1:3]), [curr_year(1) curr_trans(1) curr_subtrans(1) curr_year(2) curr_trans(2) curr_subtrans(2)], 'rows'));            
             curr_ind_int    = [int_all(tmp1, 4) int_all(tmp1, 9); int_all(tmp2, 9) int_all(tmp2, 4)];
             num_int         = size(curr_ind_int, 1);
             set(intnum_list, 'string', num2cell(1:num_int), 'value', 1)
@@ -2102,8 +2095,8 @@ linkprop(z_max_edit(2:3), 'string');
             end
         end
         
-        pk{1}.ind_layer     = [pk{1}.ind_layer; [curr_layer(1) curr_year(2) curr_trans(2) curr_subtrans(2) curr_layer(2) NaN]];
-        pk{2}.ind_layer     = [pk{2}.ind_layer; [curr_layer(2) curr_year(1) curr_trans(1) curr_subtrans(1) curr_layer(1) NaN]];
+        pk{1}.ind_layer     = [pk{1}.ind_layer; [curr_layer(1) curr_year(2) curr_trans(2) curr_subtrans(2) curr_layer(2)]];
+        pk{2}.ind_layer     = [pk{2}.ind_layer; [curr_layer(2) curr_year(1) curr_trans(1) curr_subtrans(1) curr_layer(1)]];
         
         for ii = 1:2
             if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
@@ -2275,7 +2268,7 @@ linkprop(z_max_edit(2:3), 'string');
         if (~ischar(file_pk{1}) || ~ischar(file_pk{2}))
             [file_pk{1}, path_pk{1}, file_pk{2}, path_pk{2}] ...
                             = deal(tmp1, tmp2, tmp3, tmp4);
-            set(status_box(1), 'string', 'Picks locations not chosen. Saving cancelled.')
+            set(status_box(1), 'string', 'Picks'' locations not chosen. Saving cancelled.')
             return
         end
         
@@ -2309,70 +2302,30 @@ linkprop(z_max_edit(2:3), 'string');
             tmp3            = [];
         end
         
-        % loop through master transect's matches looking for existing matches for master ID
-        if ~isempty(tmp1)
-            while any(isnan(tmp1(:, end))) % proceed while NaNs exist
-                ii = find(isnan(tmp1(:, end)), 1); % first NaN in list
-                if ~isempty(tmp2) % some previous master matches to test
-                    if ~isempty(find((tmp1(ii, 4) == tmp2(:, 1)), 1)) % match found between master layer and existing matches
-                        tmp1(ii, end) ...
-                            = tmp2(find((tmp1(ii, 4) == tmp2(:, 1)), 1), end); % assign existing master ID
-                    end
-                end
-                if ~isempty(tmp3) % some previous intersecting matches to test
-                    if ~isempty(find((tmp1(ii, 8) == tmp3(:, 1)), 1)) % match found between master layer and existing matches
-                        tmp1(ii, end) ...
-                            = tmp3(find((tmp1(ii, 8) == tmp3(:, 1)), 1), end); % assign existing master ID
-                    end
-                end
-                if (length(find((tmp1(ii, 1) == tmp1(:, 1)) & (tmp1(ii, 2) == tmp1(:, 2)) & (tmp1(ii, 3) == tmp1(:, 3)) & (tmp1(ii, 4) == tmp1(:, 4)))) > 1) % more than one match for master layer
-                    tmp4    = find((tmp1(ii, 1) == tmp1(:, 1)) & (tmp1(ii, 2) == tmp1(:, 2)) & (tmp1(ii, 3) == tmp1(:, 3)) & (tmp1(ii, 4) == tmp1(:, 4))); % all matches for master layer
-                    if any(~isnan(tmp1(tmp4, end))) % only assign master ID if there is a non-NaN value
-                        tmp1(tmp4, end) ...
-                            = tmp1(tmp4(find(~isnan(tmp1(tmp4, end)), 1)), end);
-                    end
-                end
-                if (length(find((tmp1(ii, 5) == tmp1(:, 5)) & (tmp1(ii, 6) == tmp1(:, 6)) & (tmp1(ii, 7) == tmp1(:, 7)) & (tmp1(ii, 8) == tmp1(:, 8)))) > 1) % more than one match for intersecting layer
-                    tmp4    = find((tmp1(ii, 5) == tmp1(:, 5)) & (tmp1(ii, 6) == tmp1(:, 6)) & (tmp1(ii, 7) == tmp1(:, 7)) & (tmp1(ii, 8) == tmp1(:, 8))); % all matches for intersecting layer
-                    if any(~isnan(tmp1(tmp4, end))) % only assign master ID if there is a non-NaN value
-                        tmp1(tmp4, end) ...
-                            = tmp1(tmp4(find(~isnan(tmp1(tmp4, end)), 1)), end);
-                    end
-                end
-                if isnan(tmp1(ii, end)) % no matches in existing transects so assign a new master ID
-                    tmp1(ii, end) ...
-                            = max([0; id_layer_master_mat(:, end); tmp1(:, end)]) + 1;
-                end
-            end
-        end
-        
         % update pk.ind_layer fields
         pk{1}.ind_layer     = tmp1(:, 4:end);
         
-        % assign master matches to intersecting transect's match list
-        if ~isempty(find(isnan(pk{2}.ind_layer(:, end)), 1))
-            for ii = find(isnan(pk{2}.ind_layer(:, end)))'
-                if ~isempty(find(((pk{1}.ind_layer(:, 2) == curr_year(2)) & (pk{1}.ind_layer(:, 3) == curr_trans(2)) & (pk{1}.ind_layer(:, 4) == curr_subtrans(2)) ...
-                                 & (pk{1}.ind_layer(:, 5) == pk{2}.ind_layer(ii, 1)) & ~isnan(pk{1}.ind_layer(:, end))), 1))
-                    pk{2}.ind_layer(ii, end) ...
-                            = pk{1}.ind_layer(find(((pk{1}.ind_layer(:, 2) == curr_year(2)) & (pk{1}.ind_layer(:, 3) == curr_trans(2)) & (pk{1}.ind_layer(:, 4) == curr_subtrans(2)) ...
-                                                   & (pk{1}.ind_layer(:, 5) == pk{2}.ind_layer(ii, 1)) & ~isnan(pk{1}.ind_layer(:, end))), 1), end);
-                end
-            end
-        end
-        
         % add new matches to master matrix and remove any repeated rows
         id_layer_master_mat = [id_layer_master_mat; tmp1];
-        id_layer_master_mat = unique(id_layer_master_mat, 'rows', 'stable');
+        for ii = 1:size(id_layer_master_mat, 1)
+            if ((id_layer_master_mat(ii, 1) > id_layer_master_mat(ii, 5)) || ((id_layer_master_mat(ii, 1) == id_layer_master_mat(ii, 5)) && (id_layer_master_mat(ii, 2) > id_layer_master_mat(ii, 6))) || ...
+               ((id_layer_master_mat(ii, 1) == id_layer_master_mat(ii, 5)) && (id_layer_master_mat(ii, 2) == id_layer_master_mat(ii, 6)) && (id_layer_master_mat(ii, 3) > id_layer_master_mat(ii, 7))) || ...
+               ((id_layer_master_mat(ii, 1) == id_layer_master_mat(ii, 5)) && (id_layer_master_mat(ii, 2) == id_layer_master_mat(ii, 6)) && (id_layer_master_mat(ii, 3) == id_layer_master_mat(ii, 7)) && (id_layer_master_mat(ii, 4) > id_layer_master_mat(ii, 8))))
+                 id_layer_master_mat(ii, :) ...
+                            = id_layer_master_mat(ii, [5:8 1:4]);
+            end
+        end
+        id_layer_master_mat = unique(id_layer_master_mat, 'rows');
+        id_layer_master_mat = sortrows(id_layer_master_mat, [1:3 5:7 4 8]);
         
         % reassign pk.ind_layer to cells and order pk fields
         for ii = 1:2
             if curr_subtrans(ii)
                 id_layer_master_cell{curr_year(ii)}{curr_trans(ii)}{curr_subtrans(ii)} ...
-                            = sortrows(pk{ii}.ind_layer, [2:4 1 5 6]);
+                            = sortrows(pk{ii}.ind_layer, [2:4 1 5]);
             else
                 id_layer_master_cell{curr_year(ii)}{curr_trans(ii)} ...
-                            = sortrows(pk{ii}.ind_layer, [2:4 1 5 6]);
+                            = sortrows(pk{ii}.ind_layer, [2:4 1 5]);
             end
             pk{ii}          = orderfields(pk{ii});
         end
@@ -3316,20 +3269,7 @@ linkprop(z_max_edit(2:3), 'string');
         set(rad_group, 'selectedobject', rad_check(curr_rad))        
         axes(ax(curr_ax))
         xlim([dist_min(curr_rad) dist_max(curr_rad)])
-        switch curr_ax
-            case 2
-                [curr_ax, curr_rad] ...
-                           = deal(3, 2);
-                narrow_cb
-                [curr_ax, curr_rad] ...
-                           = deal(2, 1);
-            case 3
-                [curr_ax, curr_rad] ...
-                           = deal(2, 1);
-                narrow_cb
-                [curr_ax, curr_rad] ...
-                           = deal(3, 2);
-        end
+        narrow_cb
     end
 
     function update_x_range(source, eventdata)
@@ -3477,6 +3417,28 @@ linkprop(z_max_edit(2:3), 'string');
                 end
         end
         narrow_cb
+        switch curr_ax
+            case 2
+                [curr_ax, curr_rad] ...
+                           = deal(3, 2);
+                [elev_min(3), elev_max(3)] ...
+                           = deal(elev_min(2), elev_max(2));
+                [depth_min(2), depth_max(2)] ...
+                            = deal(depth_min(1), depth_max(1));
+                narrow_cb
+                [curr_ax, curr_rad] ...
+                           = deal(2, 1);
+            case 3
+                [curr_ax, curr_rad] ...
+                           = deal(2, 1);
+                [elev_min(2), elev_max(2)] ...
+                            = deal(elev_min(3), elev_max(3));
+                [depth_min(1), depth_max(1)] ...
+                            = deal(depth_min(2), depth_max(2));
+                narrow_cb
+                [curr_ax, curr_rad] ...
+                           = deal(3, 2);
+        end        
     end
 
 %% Plot data in terms of elevation
@@ -3502,38 +3464,34 @@ linkprop(z_max_edit(2:3), 'string');
                     set(status_box(1), 'string', 'Displaying radargram in 3D GUI...')
                     zlim([elev_min(curr_ax) elev_max(curr_ax)])
                     p_data(curr_gui, curr_rad) ...
-                            = surf(repmat(x{curr_rad}(ind_decim{curr_rad}), num_sample(curr_rad), 1), repmat(y{curr_rad}(ind_decim{curr_rad}), num_sample(curr_rad), 1), ...
-                                   repmat(elev{curr_rad}, 1, num_decim(curr_rad)), double(amp_elev{curr_rad}), 'facecolor', 'flat', 'edgecolor', 'none', 'facelighting', 'none');
+                            = surf(repmat(x{curr_rad}(ind_decim{curr_rad}), num_sample(curr_rad), 1), repmat(y{curr_rad}(ind_decim{curr_rad}), num_sample(curr_rad), 1), repmat(elev{curr_rad}, 1, num_decim(curr_rad)), double(amp_elev{curr_rad}), ...
+                                   'facecolor', 'flat', 'edgecolor', 'none', 'facelighting', 'none');
                     set(status_box(1), 'string', 'Displayed. Changing view will be slower.')
                     reset_xyz
+                    narrow_cb
+                    show_data
+                    show_core
+                    show_pk
+                    show_int
                 case 2
-                    for ii = find(data_done)
-                        [curr_ax, curr_rad] ...
-                            = deal((ii + 1), ii);
-                        set(data_check, 'value', 1)
-                        axes(ax(curr_ax))
-                        set(z_min_slide(curr_ax), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max(curr_ax))
-                        set(z_max_slide(curr_ax), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min(curr_ax))
-                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-                        axis xy
-                        ylim([elev_min(curr_ax) elev_max(curr_ax)])
-                        p_data(curr_gui, ii) ...
-                            = imagesc(dist_lin{curr_rad}(ind_decim{curr_rad}), elev{curr_rad}, amp_elev{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
-                        reset_xz
-                        narrow_cb
-                        show_data
-                        show_core
-                        show_pk
-                        show_int
-                    end
+                    set(data_check, 'value', 1)
+                    axes(ax(curr_ax))
+                    set(z_min_slide(curr_ax), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max(curr_ax))
+                    set(z_max_slide(curr_ax), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min(curr_ax))
+                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                    axis xy
+                    ylim([elev_min(curr_ax) elev_max(curr_ax)])
+                    p_data(curr_gui, curr_rad) ...
+                        = imagesc(dist_lin{curr_rad}(ind_decim{curr_rad}), elev{curr_rad}, amp_elev{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
+                    reset_xz
+                    narrow_cb
+                    show_data
+                    show_core
+                    show_pk
+                    show_int
             end
         end
-        narrow_cb
-        show_data
-        show_core
-        show_pk
-        show_int
     end
 
 %% Plot data in terms of depth
@@ -4048,47 +4006,51 @@ linkprop(z_max_edit(2:3), 'string');
 
     function change_int(source, eventdata)
         curr_gui            = 2;
+        if ~(num_int && (curr_ind_int(1) ~= 0))
+            return
+        end
         curr_int            = get(intnum_list, 'value');
-        if (num_int && (curr_ind_int(1) ~= 0))
-            for ii = 1:2
-                for jj = 1:3
-                    if (any(p_int1{ii, jj}) && any(ishandle(p_int1{ii, jj})))
-                        set(p_int1{ii, jj}(logical(p_int1{ii, jj}) & ishandle(p_int1{ii, jj})), 'linewidth', 2)
-                    end
-                    if (logical(p_int1{ii, jj}(curr_int)) && ishandle(p_int1{ii, jj}(curr_int)))
-                        set(p_int1{ii, jj}(curr_int), 'linewidth', 4)
-                    end
+        tmp3                = [curr_ax curr_rad curr_rad_alt];
+        for ii = 1:2
+            for jj = 1:3
+                if (any(p_int1{ii, jj}) && any(ishandle(p_int1{ii, jj})))
+                    set(p_int1{ii, jj}(logical(p_int1{ii, jj}) & ishandle(p_int1{ii, jj})), 'linewidth', 2)
+                end
+                if (logical(p_int1{ii, jj}(curr_int)) && ishandle(p_int1{ii, jj}(curr_int)))
+                    set(p_int1{ii, jj}(curr_int), 'linewidth', 4)
                 end
             end
-            [dist_min(1), dist_max(1), dist_min(2), dist_max(2)] ...
-                            = deal((dist_lin{1}(curr_ind_int(curr_int, 1)) - 10), (dist_lin{1}(curr_ind_int(curr_int, 1)) + 10), (dist_lin{2}(curr_ind_int(curr_int, 2)) - 10), (dist_lin{2}(curr_ind_int(curr_int, 2)) + 10));
-            if (dist_min(1) < dist_min_ref(1))
-                dist_min(1) = dist_min_ref(1);
-            end
-            if (dist_min(2) < dist_min_ref(2))
-                dist_min(2) = dist_min_ref(2);
-            end
-            if (dist_max(1) > dist_max_ref(1))
-                dist_max(1) = dist_max_ref(1);
-            end
-            if (dist_max(2) > dist_max_ref(2))
-                dist_max(2) = dist_max_ref(2);
-            end
-            axes(ax(2))
-            xlim([dist_min(1) dist_max(1)])
-            narrow_cb
-            axes(ax(3))
-            xlim([dist_min(2) dist_max(2)])
-            narrow_cb
-            set(dist_min_slide(1), 'value', dist_min(1))
-            set(dist_min_slide(2), 'value', dist_min(2))
-            set(dist_max_slide(1), 'value', dist_max(1))
-            set(dist_max_slide(2), 'value', dist_max(2))
-            set(dist_min_edit(1), 'string', sprintf('%3.0f', dist_min(1)))
-            set(dist_min_edit(2), 'string', sprintf('%3.0f', dist_min(2)))
-            set(dist_max_edit(1), 'string', sprintf('%3.0f', dist_max(1)))
-            set(dist_max_edit(2), 'string', sprintf('%3.0f', dist_max(2)))
         end
+        [dist_min(1), dist_max(1), dist_min(2), dist_max(2)] ...
+            = deal((dist_lin{1}(curr_ind_int(curr_int, 1)) - 10), (dist_lin{1}(curr_ind_int(curr_int, 1)) + 10), (dist_lin{2}(curr_ind_int(curr_int, 2)) - 10), (dist_lin{2}(curr_ind_int(curr_int, 2)) + 10));
+        if (dist_min(1) < dist_min_ref(1))
+            dist_min(1) = dist_min_ref(1);
+        end
+        if (dist_min(2) < dist_min_ref(2))
+            dist_min(2) = dist_min_ref(2);
+        end
+        if (dist_max(1) > dist_max_ref(1))
+            dist_max(1) = dist_max_ref(1);
+        end
+        if (dist_max(2) > dist_max_ref(2))
+            dist_max(2) = dist_max_ref(2);
+        end
+        axes(ax(2))
+        xlim([dist_min(1) dist_max(1)])
+        narrow_cb2
+        axes(ax(3))
+        xlim([dist_min(2) dist_max(2)])
+        narrow_cb3
+        set(dist_min_slide(1), 'value', dist_min(1))
+        set(dist_min_slide(2), 'value', dist_min(2))
+        set(dist_max_slide(1), 'value', dist_max(1))
+        set(dist_max_slide(2), 'value', dist_max(2))
+        set(dist_min_edit(1), 'string', sprintf('%3.0f', dist_min(1)))
+        set(dist_min_edit(2), 'string', sprintf('%3.0f', dist_min(2)))
+        set(dist_max_edit(1), 'string', sprintf('%3.0f', dist_max(1)))
+        set(dist_max_edit(2), 'string', sprintf('%3.0f', dist_max(2)))
+        [curr_ax, curr_rad, curr_rad_alt] ...
+                            = deal(tmp3(1), tmp3(2), tmp3(3));
     end
 
 %% Toggle gridlines
@@ -4141,51 +4103,52 @@ linkprop(z_max_edit(2:3), 'string');
 
     function narrow_cb(source, eventdata)
         set(rad_group, 'selectedobject', rad_check(curr_rad))
-        if (get(cbfix_check2(curr_ax), 'value') && data_done(curr_rad))
-            axes(ax(curr_ax))
-            tmp1            = zeros(2);
-            tmp1(1, :)      = interp1(dist_lin{curr_rad}(ind_decim{curr_rad}), 1:num_decim(curr_rad), [dist_min(curr_rad) dist_max(curr_rad)], 'nearest', 'extrap');
-            tmp1(2, :)      = interp1(elev{curr_rad}, 1:num_sample(curr_rad), [elev_min(curr_ax) elev_max(curr_ax)], 'nearest', 'extrap');
-            tmp1(2, :)      = flipud(tmp1(2, :));
-            switch disp_type
-                case 'elev'
-                    tmp1    = amp_elev{curr_rad}(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
-                case 'depth'
-                    tmp1    = amp_depth{curr_rad}(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
-            end
-            tmp2            = NaN(1, 2);
-            [tmp2(1), tmp2(2)] ...
-                            = deal(nanmean(tmp1(~isinf(tmp1))), nanstd(tmp1(~isinf(tmp1))));
-            if any(isnan(tmp2))
-                return
-            end
-            tmp1            = zeros(1, 2);
-            if ((tmp2(1) - (2 * tmp2(2))) < db_min_ref(curr_ax))
-                tmp1(1)     = db_min_ref(curr_ax);
-            else
-                tmp1(1)     = tmp2(1) - (2 * tmp2(2));
-            end
-            if ((tmp2(1) + (2 * tmp2(2))) > db_max_ref(curr_ax))
-                tmp1(2)     = db_max_ref(curr_ax);
-            else
-                tmp1(2)     = tmp2(1) + (2 * tmp2(2));
-            end
-            [db_min(curr_ax), db_max(curr_ax)] ...
-                            = deal(tmp1(1), tmp1(2));
-            if (db_min(curr_ax) < get(cb_min_slide(curr_ax), 'min'))
-                set(cb_min_slide(curr_ax), 'value', get(cb_min_slide(curr_ax), 'min'))
-            else
-                set(cb_min_slide(curr_ax), 'value', db_min(curr_ax))
-            end
-            if (db_max(curr_ax) > get(cb_max_slide(curr_ax), 'max'))
-                set(cb_max_slide(curr_ax), 'value', get(cb_max_slide(curr_ax), 'max'))
-            else
-                set(cb_max_slide(curr_ax), 'value', db_max(curr_ax))
-            end
-            set(cb_min_edit(curr_ax), 'string', sprintf('%3.0f', db_min(curr_ax)))
-            set(cb_max_edit(curr_ax), 'string', sprintf('%3.0f', db_max(curr_ax)))
-            caxis([db_min(curr_ax) db_max(curr_ax)])
+        if ~(get(cbfix_check2(curr_ax), 'value') && data_done(curr_rad))
+            return
         end
+        axes(ax(curr_ax))
+        tmp1                = zeros(2);
+        tmp1(1, :)          = interp1(dist_lin{curr_rad}(ind_decim{curr_rad}), 1:num_decim(curr_rad), [dist_min(curr_rad) dist_max(curr_rad)], 'nearest', 'extrap');
+        switch disp_type
+            case 'elev'
+                tmp1(2, :)  = interp1(elev{curr_rad}, 1:num_sample(curr_rad), [elev_min(curr_ax) elev_max(curr_ax)], 'nearest', 'extrap');
+                tmp1(2, :)  = flipud(tmp1(2, :));
+                tmp1        = amp_elev{curr_rad}(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
+            case 'depth'
+                tmp1(2, :)  = interp1(depth{curr_rad}, 1:num_sample(curr_rad), [depth_min(curr_rad) depth_max(curr_rad)], 'nearest', 'extrap');
+                tmp1        = amp_depth{curr_rad}(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
+        end
+        tmp2                = NaN(1, 2);
+        [tmp2(1), tmp2(2)]  = deal(nanmean(tmp1(~isinf(tmp1))), nanstd(tmp1(~isinf(tmp1))));
+        if any(isnan(tmp2))
+            return
+        end
+        tmp1                = zeros(1, 2);
+        if ((tmp2(1) - (2 * tmp2(2))) < db_min_ref(curr_ax))
+            tmp1(1)         = db_min_ref(curr_ax);
+        else
+            tmp1(1)         = tmp2(1) - (2 * tmp2(2));
+        end
+        if ((tmp2(1) + (2 * tmp2(2))) > db_max_ref(curr_ax))
+            tmp1(2)         = db_max_ref(curr_ax);
+        else
+            tmp1(2)         = tmp2(1) + (2 * tmp2(2));
+        end
+        [db_min(curr_ax), db_max(curr_ax)] ...
+                            = deal(tmp1(1), tmp1(2));
+        if (db_min(curr_ax) < get(cb_min_slide(curr_ax), 'min'))
+            set(cb_min_slide(curr_ax), 'value', get(cb_min_slide(curr_ax), 'min'))
+        else
+            set(cb_min_slide(curr_ax), 'value', db_min(curr_ax))
+        end
+        if (db_max(curr_ax) > get(cb_max_slide(curr_ax), 'max'))
+            set(cb_max_slide(curr_ax), 'value', get(cb_max_slide(curr_ax), 'max'))
+        else
+            set(cb_max_slide(curr_ax), 'value', db_max(curr_ax))
+        end
+        set(cb_min_edit(curr_ax), 'string', sprintf('%3.0f', db_min(curr_ax)))
+        set(cb_max_edit(curr_ax), 'string', sprintf('%3.0f', db_max(curr_ax)))
+        caxis([db_min(curr_ax) db_max(curr_ax)])
     end
 
 %% Switch display type
