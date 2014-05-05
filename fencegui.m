@@ -11,7 +11,7 @@ function fencegui
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 03/30/14
+% Last updated: 04/17/14
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -21,6 +21,9 @@ if ~exist('topocorr', 'file')
 end
 
 %% Intialize variables
+
+% deep ('deep') or accumulation ('accum') radar data
+radar_type                  = 'accum';
 
 % elevation/depth defaults
 [elev_min_ref, elev_max_ref]= deal(0, 1);
@@ -505,23 +508,27 @@ linkprop(z_max_edit(2:3), 'string');
             if exist('\\melt\icebridge\data\mat\', 'dir')
                 path_ref    = '\\melt\icebridge\data\mat\';
             end
-        else
-            if exist('/Volumes/icebridge/data/mat/', 'dir')
-                path_ref    = '/Volumes/icebridge/data/mat/';
-            end
+        elseif exist('/Volumes/icebridge/data/mat/', 'dir')
+            path_ref        = '/Volumes/icebridge/data/mat/';
         end
-        if (~isempty(path_ref) && exist([path_ref 'merge_xy_int.mat'], 'file'))
-            file_ref       = 'merge_xy_int.mat';
+        switch radar_type
+            case 'deep'
+                tmp1        = 'merge_xy_int.mat';
+            case 'accum'
+                tmp1        = 'merge_xy_int_accum.mat';
+        end
+        if (~isempty(path_ref) && exist([path_ref tmp1], 'file'))
+            file_ref       = tmp1;
         else
             % Dialog box to choose picks file to load
             if ~isempty(path_ref)
-                [file_ref, path_ref] = uigetfile('*.mat', 'Load intersection data (merge_xy_int.mat):', path_ref);
+                [file_ref, path_ref] = uigetfile('*.mat', ['Load intersection data (' tmp1 '):'], path_ref);
             elseif ~isempty(path_pk{curr_rad})
-                [file_ref, path_ref] = uigetfile('*.mat', 'Load intersection data (merge_xy_int.mat):', path_pk{curr_rad});
+                [file_ref, path_ref] = uigetfile('*.mat', ['Load intersection data (' tmp1 '):'], path_pk{curr_rad});
             elseif ~isempty(path_data{curr_rad})
-                [file_ref, path_ref] = uigetfile('*.mat', 'Load intersection data (merge_xy_int.mat):', path_data{curr_rad});
+                [file_ref, path_ref] = uigetfile('*.mat', ['Load intersection data (' tmp1 '):'], path_data{curr_rad});
             else
-                [file_ref, path_ref] = uigetfile('*.mat', 'Load intersection data (merge_xy_int.mat):');
+                [file_ref, path_ref] = uigetfile('*.mat', ['Load intersection data (' tmp1 '):']);
             end
             if isnumeric(file_ref)
                 [file_ref, path_ref] = deal('');
@@ -558,20 +565,25 @@ linkprop(z_max_edit(2:3), 'string');
             set(status_box(1), 'string', 'Load transect intersections first.')
             return
         end
-        
-        if (~isempty(path_ref) && exist([path_ref 'core_int.mat'], 'file'))
+        switch radar_type
+            case 'deep'
+                tmp1        = 'core_int.mat';
+            case 'accum'
+                tmp1        = 'core_int_accum.mat';
+        end
+        if (~isempty(path_ref) && exist([path_ref tmp1], 'file'))
             [file_core, path_core] ...
-                            = deal('core_int.mat', path_ref);
+                            = deal(tmp1, path_ref);
         elseif ~isempty(path_core)
-            [file_core, path_core] = uigetfile('*.mat', 'Load core intersections (core_int.mat):', path_core);
+            [file_core, path_core] = uigetfile('*.mat', ['Load core intersections (' tmp1 '):'], path_core);
         elseif ~isempty(path_ref)
-            [file_core, path_core] = uigetfile('*.mat', 'Load core intersections (core_int.mat):', path_ref);
+            [file_core, path_core] = uigetfile('*.mat', ['Load core intersections (' tmp1 '):'], path_ref);
         elseif ~isempty(path_pk)
-            [file_core, path_core] = uigetfile('*.mat', 'Load core intersections (core_int.mat):', path_pk);
+            [file_core, path_core] = uigetfile('*.mat', ['Load core intersections (' tmp1 '):'], path_pk);
         elseif ~isempty(path_data)
-            [file_core, path_core] = uigetfile('*.mat', 'Load core intersections (core_int.mat):', path_data);
+            [file_core, path_core] = uigetfile('*.mat', ['Load core intersections (' tmp1 '):'], path_data);
         else
-            [file_core, path_core] = uigetfile('*.mat', 'Load core intersections (core_int.mat):');
+            [file_core, path_core] = uigetfile('*.mat', ['Load core intersections (' tmp1 '):']);
         end
         
         if isnumeric(file_core)
@@ -702,19 +714,26 @@ linkprop(z_max_edit(2:3), 'string');
             return
         end
         
-        if (~isempty(path_ref) && exist([path_ref 'id_layer_master.mat'], 'file'))
+        switch radar_type
+            case 'deep'
+                tmp1        = 'id_layer_master.mat';
+            case 'accum'
+                tmp1        = 'id_layer_master_accum.mat';
+        end
+        
+        if (~isempty(path_ref) && exist([path_ref tmp1], 'file'))
             [file_master, path_master] ...
-                            = deal('id_layer_master.mat', path_ref);
+                            = deal(tmp1, path_ref);
         elseif ~isempty(path_core)
-            [file_master, path_master] = uigetfile('*.mat', 'Locate master layer ID list (id_layer_master.mat):', path_core);
+            [file_master, path_master] = uigetfile('*.mat', ['Locate master layer ID list (' tmp1 '):'], path_core);
         elseif ~isempty(path_ref)
-            [file_master, path_master] = uigetfile('*.mat', 'Locate master layer ID list (id_layer_master.mat):', path_ref);
+            [file_master, path_master] = uigetfile('*.mat', ['Locate master layer ID list (' tmp1 '):'], path_ref);
         elseif ~isempty(path_pk)
-            [file_master, path_master] = uigetfile('*.mat', 'Locate master layer ID list (id_layer_master.mat):', path_pk);
+            [file_master, path_master] = uigetfile('*.mat', ['Locate master layer ID list (' tmp1 '):'], path_pk);
         elseif ~isempty(path_data)
-            [file_master, path_master] = uigetfile('*.mat', 'Locate master layer ID list (id_layer_master.mat):', path_data);
+            [file_master, path_master] = uigetfile('*.mat', ['Locate master layer ID list (' tmp1 '):'], path_data);
         else
-            [file_master, path_master] = uigetfile('*.mat', 'Locate master layer ID list (id_layer_master.mat):');
+            [file_master, path_master] = uigetfile('*.mat', ['Locate master layer ID list (' tmp1 '):']);
         end
         
         if isnumeric(file_master)
@@ -1010,7 +1029,7 @@ linkprop(z_max_edit(2:3), 'string');
         end
         
         % fix for 2011 P3/TO ambiguity
-        if (ii == 17)
+        if (strcmp(radar_type, 'deep') && (ii == 17))
             set(status_box(1), 'string', '2011 TO (press T)?')
             waitforbuttonpress
             if strcmpi(get(fgui(1), 'currentcharacter'), 'T')
@@ -1282,8 +1301,12 @@ linkprop(z_max_edit(2:3), 'string');
                             = plot(dist_lin{2}(curr_ind_int(:, 2)), pk{1}.depth_smooth(ii, curr_ind_int(:, 1)), 'ko', 'markersize', 8, 'markerfacecolor', colors{1}(ii, :), 'visible', 'off');
             end
             
-            set([p_int2{1, 2}(pk{1}.ind_layer(:, 1)) p_int2{2, 2}(pk{1}.ind_layer(:, 1))], 'marker', 's')
-            set([p_int2{1, 1}(pk{2}.ind_layer(:, 1)) p_int2{2, 1}(pk{2}.ind_layer(:, 1))], 'marker', 's')
+            if ~isempty(pk{1}.ind_layer)
+                set([p_int2{1, 2}(pk{1}.ind_layer(:, 1)) p_int2{2, 2}(pk{1}.ind_layer(:, 1))], 'marker', 's')
+            end
+            if ~isempty(pk{2}.ind_layer)
+                set([p_int2{1, 1}(pk{2}.ind_layer(:, 1)) p_int2{2, 1}(pk{2}.ind_layer(:, 1))], 'marker', 's')
+            end
             
             for ii = 1:size(pk{1}.ind_layer, 1)
                 if ((pk{1}.ind_layer(ii, 2) == curr_year(2)) && (pk{1}.ind_layer(ii, 3) == curr_trans(2)) && (pk{1}.ind_layer(ii, 4) == curr_subtrans(2))) % match to current transect
@@ -2145,15 +2168,15 @@ linkprop(z_max_edit(2:3), 'string');
             if (logical(p_pk{ii, 2}(curr_layer(2))) && ishandle(p_pk{ii, 2}(curr_layer(2))))
                 set(p_pk{ii, 2}(curr_layer(2)), 'color', colors{2}(curr_layer(2), :))
             end
-            if (logical(p_pkdepth{ii}(curr_layer(2))) && ishandle(p_pkdepth{ii}(curr_layer(2))))
-                set(p_pkdepth{ii}(curr_layer(2)), 'color', colors{2}(curr_layer(2), :))
-            end
             if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
                 set(p_int2{ii, 1}(curr_layer(2)), 'markerfacecolor', colors{2}(curr_layer(2), :))
             end
             if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
                 set(p_int2{ii, 2}(curr_layer(1)), 'markerfacecolor', colors{1}(curr_layer(1), :))
             end
+        end
+        if (logical(p_pkdepth{2}(curr_layer(2))) && ishandle(p_pkdepth{2}(curr_layer(2))))
+            set(p_pkdepth{2}(curr_layer(2)), 'color', colors{2}(curr_layer(2), :))
         end
         
         if ~isempty(find((pk{1}.ind_layer(:, 1) == curr_layer(1)), 1))
@@ -4110,7 +4133,7 @@ linkprop(z_max_edit(2:3), 'string');
         tmp1                = zeros(2);
         tmp1(1, :)          = interp1(dist_lin{curr_rad}(ind_decim{curr_rad}), 1:num_decim(curr_rad), [dist_min(curr_rad) dist_max(curr_rad)], 'nearest', 'extrap');
         switch disp_type
-            case 'elev'
+            case 'elev.'
                 tmp1(2, :)  = interp1(elev{curr_rad}, 1:num_sample(curr_rad), [elev_min(curr_ax) elev_max(curr_ax)], 'nearest', 'extrap');
                 tmp1(2, :)  = flipud(tmp1(2, :));
                 tmp1        = amp_elev{curr_rad}(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
@@ -4124,15 +4147,16 @@ linkprop(z_max_edit(2:3), 'string');
             return
         end
         tmp1                = zeros(1, 2);
-        if ((tmp2(1) - (2 * tmp2(2))) < db_min_ref(curr_ax))
+        tmp4                = 2 * tmp2(2);
+        if ((tmp2(1) - tmp4) < db_min_ref(curr_ax))
             tmp1(1)         = db_min_ref(curr_ax);
         else
-            tmp1(1)         = tmp2(1) - (2 * tmp2(2));
+            tmp1(1)         = tmp2(1) - tmp4;
         end
-        if ((tmp2(1) + (2 * tmp2(2))) > db_max_ref(curr_ax))
+        if ((tmp2(1) + tmp4) > db_max_ref(curr_ax))
             tmp1(2)         = db_max_ref(curr_ax);
         else
-            tmp1(2)         = tmp2(1) + (2 * tmp2(2));
+            tmp1(2)         = tmp2(1) + tmp4;
         end
         [db_min(curr_ax), db_max(curr_ax)] ...
                             = deal(tmp1(1), tmp1(2));
@@ -4475,7 +4499,7 @@ linkprop(z_max_edit(2:3), 'string');
             case 'z'
                 pk_select_gui1
             case 'downarrow'
-                if ((curr_gui == 1) || strcmp(disp_type, 'elev.'))
+                if strcmp(disp_type, 'elev.')
                     tmp1 = elev_max(curr_ax) - elev_min(curr_ax);
                     tmp2 = elev_min(curr_ax) - (0.25 * tmp1);
                     if (tmp2 < elev_min_ref)
@@ -4697,7 +4721,7 @@ linkprop(z_max_edit(2:3), 'string');
                 end
                 update_dist_range
             case 'uparrow'
-                if ((curr_gui == 1) || strcmp(disp_type, 'elev.'))
+                if strcmp(disp_type, 'elev.')
                     tmp1 = elev_max(curr_ax) - elev_min(curr_ax);
                     tmp2 = elev_max(curr_ax) + (0.25 * tmp1);
                     if (tmp2 > elev_max_ref)

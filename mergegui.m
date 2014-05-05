@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 03/27/14
+% Last updated: 05/05/14
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -22,6 +22,9 @@ if ~exist('smooth_lowess', 'file')
 end
 
 %% Intialize variables
+
+% deep ('deep') or accumulation ('accum') radar data
+radar_type                  = 'deep';
 
 pk                          = struct;
 
@@ -94,13 +97,6 @@ cb_type                     = 'std';
 %             parpool('local', 4);
 %         catch
 %             parpool('local');
-%         end
-%     end
-%     if ~matlabpool('size')
-%         try
-%             matlabpool open 4
-%         catch
-%             matlabpool open
 %         end
 %     end
 %     parallel_check          = true;
@@ -203,7 +199,7 @@ a(10)                       = annotation('textbox', [0.025 0.85 0.03 0.03], 'str
 a(11)                       = annotation('textbox', [0.005 0.005 0.03 0.03], 'string', 'fix', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 a(12)                       = annotation('textbox', [0.95 0.005 0.03 0.03], 'string', 'fix 1', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 a(13)                       = annotation('textbox', [0.98 0.005 0.03 0.03], 'string', '2', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(14)                       = annotation('textbox', [0.31 0.925 0.10 0.03], 'string', 'block divisions', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(14)                       = annotation('textbox', [0.31 0.925 0.12 0.03], 'string', 'block divisions', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 if ~ispc
     set(a, 'fontweight', 'bold')
 end
@@ -1928,7 +1924,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 end
             else
                 p_pkflat(curr_layer) ...
-                            = plot(0, 0, 'w..', 'markersize', 12, 'visible', 'off');
+                            = plot(0, 0, 'w.', 'markersize', 12, 'visible', 'off');
             end
             edit_flag       = true;
         end
@@ -2266,18 +2262,25 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
         end
         
-        if (~isempty(path_core) && exist([path_core 'core_int.mat'], 'file'))
-            file_core       = 'core_int.mat';
+        switch radar_type
+            case 'deep'
+                tmp1        = 'core_int.mat';
+            case 'accum'
+                tmp1        = 'core_int_accum.mat';
+        end
+        
+        if (~isempty(path_core) && exist([path_core tmp1], 'file'))
+            file_core       = tmp1;
         else
             % Dialog box to choose picks file to load
             if ~isempty(path_core)
-                [file_core, path_core] = uigetfile('*.mat', 'Load core intersections (core_int.mat):', path_core);
+                [file_core, path_core] = uigetfile('*.mat', ['Load core intersections (' tmp1 ' .mat):'], path_core);
             elseif ~isempty(path_pk)
-                [file_core, path_core] = uigetfile('*.mat', 'Load core intersections (core_int.mat):', path_pk);
+                [file_core, path_core] = uigetfile('*.mat', ['Load core intersections (' tmp1 ' .mat):'], path_pk);
             elseif ~isempty(path_data)
-                [file_core, path_core] = uigetfile('*.mat', 'Load core intersections (core_int.mat):', path_data);
+                [file_core, path_core] = uigetfile('*.mat', ['Load core intersections (' tmp1 ' .mat):'], path_data);
             else
-                [file_core, path_core] = uigetfile('*.mat', 'Load core intersections (core_int.mat):');
+                [file_core, path_core] = uigetfile('*.mat', ['Load core intersections (' tmp1 ' .mat):']);
             end
             if isnumeric(file_core)
                 [file_core, path_core] = deal('');
@@ -2352,7 +2355,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
             
             % fix for 2011 P3/TO ambiguity
-            if (ii == 17)
+            if (strcmp(radar_type, 'deep') && (ii == 17))
                 set(status_box, 'string', '2011 TO (press T)?')
                 waitforbuttonpress
                 if strcmpi(get(mgui, 'currentcharacter'), 'T')
@@ -2488,18 +2491,25 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
         end
         
-        if (~isempty(path_age) && exist([path_age 'date_all.mat'], 'file'))
-            file_age        = 'date_all.mat';
+        switch radar_type
+            case 'deep'
+                tmp1        = 'date_all.mat';
+            case 'accum'
+                tmp1        = 'date_all_accum.mat';
+        end
+        
+        if (~isempty(path_age) && exist([path_age tmp1], 'file'))
+            file_age        = tmp1;
         else
             % Dialog box to choose picks file to load
             if ~isempty(path_age)
-                [file_age, path_age] = uigetfile('*.mat', 'Load layer ages (date_all.mat):', path_age);
+                [file_age, path_age] = uigetfile('*.mat', ['Load layer ages (' tmp1 '):'], path_age);
             elseif ~isempty(path_core)
-                [file_age, path_age] = uigetfile('*.mat', 'Load layer ages (date_all.mat):', path_core);
+                [file_age, path_age] = uigetfile('*.mat', ['Load layer ages (' tmp1 '):'], path_core);
             elseif ~isempty(path_pk)
-                [file_age, path_age] = uigetfile('*.mat', 'Load layer ages (date_all.mat):', path_pk);
+                [file_age, path_age] = uigetfile('*.mat', ['Load layer ages (' tmp1 '):'], path_pk);
             else
-                [file_age, path_age] = uigetfile('*.mat', 'Load layer ages (date_all.mat):');
+                [file_age, path_age] = uigetfile('*.mat', ['Load layer ages (' tmp1 '):']);
             end
             if isnumeric(file_age)
                 [file_age, path_age] = deal('');
@@ -2560,7 +2570,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
             
             % fix for 2011 P3/TO ambiguity
-            if (ii == 17)
+            if (strcmp(radar_type, 'deep') && (ii == 17))
                 set(status_box, 'string', '2011 TO (press T)?')
                 waitforbuttonpress
                 if strcmpi(get(mgui, 'currentcharacter'), 'T')
@@ -4120,7 +4130,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 axis([dist_min dist_max elev_min elev_max])
                 tmp1        = amp_elev;
                 tmp1(isnan(tmp1)) ...
-                            = db_max;
+                            = db_min;
                 if gimp_avail
                     imagesc(pk.dist_lin_gimp(ind_decim), elev, tmp1, [db_min db_max])
                 else
@@ -4234,14 +4244,22 @@ set(cb_group, 'selectedobject', cb_check(1))
                         end
                     end
                 end
+                if gimp_avail
+                    tmp1 = pk.dist_lin_gimp;
+                else
+                    tmp1 = pk.dist_lin;
+                end
+                size(tmp1)
                 if get(core_check, 'value')
                     tmp2 = find(~isnan(ind_int));
-                    for ii = 1:num_int
-                        plot(repmat(tmp1(ind_int(tmp2(ii))), 1, 2), [depth_min depth_max], 'm', 'linewidth', 2)
-                        text(double(tmp1(ind_int(tmp2(ii))) + 1), double(depth_min + (0.2 * (depth_max - depth_min))), name_core{int_core{curr_year}{curr_trans}(tmp2(ii), 3)}, 'color', 'm', 'fontsize', size_font)
+                    for ii = tmp2
+                        plot(repmat(tmp1(ind_int(ii)), 1, 2), [depth_min depth_max], 'm', 'linewidth', 2)
+                        text(double(tmp1(ind_int(ii)) + 1), double(depth_min + (0.2 * (depth_max - depth_min))), name_core{int_core{curr_year}{curr_trans}(ii, 3)}, 'color', 'm', 'fontsize', size_font)
                     end
                 end
-                plot(repmat(tmp1(ind_decim(ind_x_ref)), 1, 2), [depth_min depth_max], 'w--', 'linewidth', 2)
+                if strcmp(disp_type, 'flat')
+                    plot(repmat(tmp1(ind_x_ref), 1, 2), [depth_min depth_max], 'w--', 'linewidth', 2)
+                end
                 ylabel('Depth (m)', 'fontsize', 20)
                 text(double(dist_max + (0.015 * (dist_max - dist_min))), double(depth_min - (0.04 * (depth_max - depth_min))), '(dB)', 'color', 'k', 'fontsize', 20)
         end

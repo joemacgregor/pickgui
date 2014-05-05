@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 03/12/14
+% Last updated: 04/25/14
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -2579,17 +2579,20 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         [p_pkflat, p_pksmoothflat] ...
                             = deal(zeros(1, pk.num_layer));
+        [tmp1, tmp2]        = deal(ind_y_flat_mean, ind_y_flat_smooth);
+        [ind_y_flat_mean, ind_y_flat_smooth] ...
+                            = deal(NaN(pk.num_layer, num_decim_flat));
         warning('off', 'MATLAB:interp1:NaNinY')
         for ii = 1:pk.num_layer
             ind_y_flat_mean(ii, :) ...
-                            = round(interp1(ind_decim_flat_old, ind_y_flat_mean(ii, :), ind_decim_flat, 'linear', 'extrap'));
+                            = round(interp1(ind_decim_flat_old, tmp1(ii, :), ind_decim_flat, 'linear', 'extrap'));
             if all(isnan(ind_y_flat_mean(ii, :)))
                 continue
             end
             p_pkflat(ii)    = plot(dist_lin(ind_decim_flat(~isnan(ind_y_flat_mean(ii, :)))), (1e6 .* block.twtt(ind_y_flat_mean(ii, ~isnan(ind_y_flat_mean(ii, :))))), 'r.', 'markersize', 12, 'visible', 'off');
             if smooth_done(ii)
                 ind_y_flat_smooth(ii, :) ...
-                            = round(interp1(ind_decim_flat_old, ind_y_flat_smooth(ii, :), ind_decim_flat, 'linear', 'extrap'));
+                            = round(interp1(ind_decim_flat_old, tmp2(ii, :), ind_decim_flat, 'linear', 'extrap'));
                 if ~isempty(find(~isnan(ind_y_flat_smooth(ii, :)), 1))
                     p_pksmoothflat(ii) ...
                             = plot(dist_lin(ind_decim_flat(~isnan(ind_y_flat_smooth(ii, :)))), (1e6 .* block.twtt(ind_y_flat_smooth(ii, ~isnan(ind_y_flat_smooth(ii, :))))), 'g.', 'markersize', 12, 'visible', 'off');
