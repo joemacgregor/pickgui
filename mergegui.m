@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 05/05/14
+% Last updated: 06/13/14
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -90,19 +90,19 @@ letters                     = 'a':'z';
 layer_str                   = {};
 cb_type                     = 'std';
 
-% if license('checkout', 'distrib_computing_toolbox')
-%     pool_check              = gcp('nocreate');
-%     if isempty(pool_check)
-%         try
-%             parpool('local', 4);
-%         catch
-%             parpool('local');
-%         end
-%     end
-%     parallel_check          = true;
-% else
+if license('checkout', 'distrib_computing_toolbox')
+    pool_check              = gcp('nocreate');
+    if isempty(pool_check)
+        try
+            parpool('local', 4);
+        catch
+            parpool('local');
+        end
+    end
+    parallel_check          = true;
+else
     parallel_check          = false;
-% end
+end
 
 if ispc
     if exist('\\melt\icebridge\data\mat\grl_coast.mat', 'file')
@@ -4224,7 +4224,11 @@ set(cb_group, 'selectedobject', cb_check(1))
                     for ii = 1:pk.num_layer
                         if strcmp(disp_type, 'depth')
                             if any(~isnan(pk.depth_smooth(ii, ind_decim)))
-                                tmp1 = plot(pk.dist_lin(ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), pk.depth_smooth(ii, ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12);
+                                if gimp_avail
+                                    tmp1 = plot(pk.dist_lin_gimp(ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), pk.depth_smooth(ii, ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12);
+                                else
+                                    tmp1 = plot(pk.dist_lin(ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), pk.depth_smooth(ii, ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12);
+                                end
                                 if (ii == curr_layer)
                                     set(tmp1, 'markersize', 24)
                                 end
@@ -4317,6 +4321,39 @@ set(cb_group, 'selectedobject', cb_check(1))
                     case 'age'
                         set(cb_group, 'selectedobject', cb_check(1))
                         cb_radio
+                end
+            case '6'
+                if (logical(p_bed) && ishandle(p_bed))
+                    switch get(p_bed, 'visible')
+                        case 'on'
+                            set(p_bed, 'visible', 'off')
+                        case 'off'
+                            set(p_bed, 'visible', 'on')
+                    end
+                end
+                if (logical(p_surf) && ishandle(p_surf))
+                    switch get(p_surf, 'visible')
+                        case 'on'
+                            set(p_surf, 'visible', 'off')
+                        case 'off'
+                            set(p_surf, 'visible', 'on')
+                    end
+                end
+                if (logical(p_beddepth) && ishandle(p_beddepth))
+                    switch get(p_beddepth, 'visible')
+                        case 'on'
+                            set(p_beddepth, 'visible', 'off')
+                        case 'off'
+                            set(p_beddepth, 'visible', 'on')
+                    end
+                end
+                if (logical(p_bedflat) && ishandle(p_bedflat))
+                    switch get(p_bedflat, 'visible')
+                        case 'on'
+                            set(p_bedflat, 'visible', 'off')
+                        case 'off'
+                            set(p_bedflat, 'visible', 'on')
+                    end
                 end
             case 'a'
                 pop_map
