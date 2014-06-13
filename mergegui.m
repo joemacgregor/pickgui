@@ -200,6 +200,7 @@ a(11)                       = annotation('textbox', [0.005 0.005 0.03 0.03], 'st
 a(12)                       = annotation('textbox', [0.95 0.005 0.03 0.03], 'string', 'fix 1', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 a(13)                       = annotation('textbox', [0.98 0.005 0.03 0.03], 'string', '2', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 a(14)                       = annotation('textbox', [0.31 0.925 0.12 0.03], 'string', 'block divisions', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+a(15)                       = annotation('textbox', [0.775 0.925 0.09 0.03], 'string', 'surface/bed', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
 if ~ispc
     set(a, 'fontweight', 'bold')
 end
@@ -233,6 +234,7 @@ pk_check                    = uicontrol(mgui, 'style', 'checkbox', 'units', 'nor
 data_check                  = uicontrol(mgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.395 0.965 0.01 0.02], 'callback', @show_data, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(mgui, 'color'));
 block_check                 = uicontrol(mgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.395 0.925 0.01 0.02], 'callback', @show_block, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(mgui, 'color'));
 core_check                  = uicontrol(mgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.75 0.925 0.01 0.02], 'callback', @show_core, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(mgui, 'color'));
+surfbed_check               = uicontrol(mgui, 'style', 'checkbox', 'units', 'normalized', 'position', [0.82 0.925 0.01 0.02], 'callback', @show_surfbed, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(mgui, 'color'));
 
 % display buttons
 disp_group                  = uibuttongroup('position', [0.005 0.885 0.15 0.03], 'selectionchangefcn', @disp_radio);
@@ -261,6 +263,9 @@ set(cb_group, 'selectedobject', cb_check(1))
         if (logical(p_bedflat) && ishandle(p_bedflat))
             delete(p_bedflat)
         end
+        if (logical(p_refflat) && ishandle(p_refflat))
+            delete(p_refflat)
+        end        
         if (any(p_block) && any(ishandle(p_block)))
             delete(p_block(logical(p_block) & ishandle(p_block)))
         end
@@ -301,10 +306,12 @@ set(cb_group, 'selectedobject', cb_check(1))
             delete(p_surf)
         end
         set([layer_list block_list], 'string', 'N/A', 'value', 1)
+        set([block_check core_check data_check pk_check surfbed_check], 'value', 0)
         if (get(disp_group, 'selectedobject') ~= disp_check(1))
             set(disp_group, 'selectedobject', disp_check(1))
             disp_type       = 'elev.';
         end
+        set(disp_check(2:3), 'visible', 'off')
         if (get(cb_group, 'selectedobject') ~= cb_check(1))
             set(cb_group, 'selectedobject', cb_check(1))
             cb_type         = 'dB';
@@ -317,9 +324,9 @@ set(cb_group, 'selectedobject', cb_check(1))
         pk                  = struct;
         [bed_avail, data_done, edit_flag, flat_done, gimp_avail, merge_done, merge_file, surf_avail] ...
                             = deal(false);
-        [age_curr, amp_depth, amp_elev, amp_flat, colors, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, ...
-         dist_chunk, dt, elev, ii, ind_decim, ind_int, ind_x_pk, ind_x_ref, ind_y_pk, jj, kk, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, ...
-         p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, p_pk, p_pkdepth, p_pkflat, p_refflat, p_snr, p_surf, pk_all, pkfig, snrgui, snrlist, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
+        [age_curr, amp_depth, amp_elev, amp_flat, colors, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ind_x_pk, ind_x_ref, ind_y_pk, ...
+         jj, kk, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, p_pk, p_pkdepth, p_pkflat, p_refflat, p_snr, p_surf, pk_all, pkfig, snrgui, snrlist, ...
+         tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
                             = deal(0);
         [file_data, file_pk, file_pk_short, file_save] ...
                             = deal('');
@@ -777,6 +784,39 @@ set(cb_group, 'selectedobject', cb_check(1))
         update_dist_range
         update_z_range
         
+        if (any(surf_avail) && any(~isnan(pk.elev_surf)))
+            if gimp_avail
+                p_surf      = plot(pk.dist_lin_gimp(ind_decim), pk.elev_surf_gimp(ind_decim), 'm.', 'markersize', 12, 'visible', 'off');
+            else
+                p_surf      = plot(pk.dist_lin(ind_decim), pk.elev_surf(ind_decim), 'm.', 'markersize', 12, 'visible', 'off');
+            end
+        end
+        if (any(bed_avail) && any(~isnan(pk.elev_bed)))
+            if gimp_avail
+                p_bed       = plot(pk.dist_lin_gimp(ind_decim), pk.elev_bed_gimp(ind_decim), 'm.', 'markersize', 12, 'visible', 'off');
+            else
+                p_bed       = plot(pk.dist_lin(ind_decim), pk.elev_bed(ind_decim), 'm.', 'markersize', 12, 'visible', 'off');
+            end
+        end
+        
+        if any(surf_avail & bed_avail)
+            set(disp_check(2), 'visible', 'on')
+            if gimp_avail
+                depth_bed   = pk.elev_surf_gimp(ind_decim) - pk.elev_bed_gimp(ind_decim);
+            else
+                depth_bed   = pk.elev_surf(ind_decim) - pk.elev_bed(ind_decim);
+            end
+            if any(~isnan(depth_bed))
+                if gimp_avail
+                    p_beddepth ...
+                            = plot(pk.dist_lin_gimp(ind_decim), depth_bed, 'm.', 'markersize', 12, 'visible', 'off');
+                else
+                    p_beddepth ...
+                            = plot(pk.dist_lin(ind_decim), depth_bed, 'm.', 'markersize', 12, 'visible', 'off');
+                end
+            end
+        end
+        
         [p_block, p_blockflat] ...
                             = deal(zeros(1, length(pk.ind_trace_start)));
         if gimp_avail
@@ -792,12 +832,13 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
         end
         
-        set(pk_check, 'value', 1)
+        set([pk_check surfbed_check], 'value', 1)
         merge_done      = true;
         set(disp_group, 'selectedobject', disp_check(1))
         disp_type       = 'elev.';
         axes(ax_radar)
         axis xy
+        show_surfbed
         show_pk
         show_block
         if core_done
@@ -959,6 +1000,18 @@ set(cb_group, 'selectedobject', cb_check(1))
         if (logical(p_data) && ishandle(p_data))
             delete(p_data)
         end
+        if (logical(p_bed) && ishandle(p_bed))
+            delete(p_bed)
+        end
+        if (logical(p_beddepth) && ishandle(p_beddepth))
+            delete(p_beddepth)
+        end
+        if (logical(p_bedflat) && ishandle(p_bedflat))
+            delete(p_bedflat)
+        end
+        if (logical(p_surf) && ishandle(p_surf))
+            delete(p_surf)
+        end
         if (any(p_block) && any(ishandle(p_block)))
             delete(p_block(logical(p_block) & ishandle(p_block)))
         end
@@ -1087,19 +1140,11 @@ set(cb_group, 'selectedobject', cb_check(1))
         else
             elev            = flipud(max(pk.elev_surf(ind_decim)) - depth); % elevation vector
         end
-        
-        if any(surf_avail & bed_avail)
-            if gimp_avail
-                depth_bed   = pk.elev_surf_gimp(ind_decim) - pk.elev_bed_gimp(ind_decim);
-            else
-                depth_bed   = pk.elev_surf(ind_decim) - pk.elev_bed(ind_decim);
-            end
-        end
-        
+                
         % assign traveltime and distance reference values/sliders based on data
         [elev_min_ref, elev_max_ref, db_min_ref, db_max_ref, elev_min, elev_max, db_min, db_max, depth_min_ref, depth_max_ref, depth_min, depth_max] ...
-                            = deal(min(elev), max(elev), min(amp_elev(~isinf(amp_elev(:)) & ~isnan(amp_elev(:)))), max(amp_elev(~isinf(amp_elev(:)) & ~isnan(amp_elev(:)))), min(elev), max(elev), ...
-                                   min(amp_elev(~isinf(amp_elev(:)) & ~isnan(amp_elev(:)))), max(amp_elev(~isinf(amp_elev(:)) & ~isnan(amp_elev(:)))), min(depth), max(depth), min(depth), max(depth));
+                            = deal(min(elev), max(elev), min(amp_elev(~isinf(amp_elev(:)) & ~isnan(amp_elev(:)))), max(amp_elev(~isinf(amp_elev(:)) & ~isnan(amp_elev(:)))), min(elev), max(elev), min(amp_elev(~isinf(amp_elev(:)) & ~isnan(amp_elev(:)))), ...
+                                   max(amp_elev(~isinf(amp_elev(:)) & ~isnan(amp_elev(:)))), min(depth), max(depth), min(depth), max(depth));
         set(z_min_slide, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min_ref)
         set(z_max_slide, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max_ref)
         set(cb_min_slide, 'min', db_min_ref, 'max', db_max_ref, 'value', db_min_ref)
@@ -1392,6 +1437,9 @@ set(cb_group, 'selectedobject', cb_check(1))
         if (any(p_pkflat) && any(ishandle(p_pkflat)))
             delete(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)))
         end
+        if (logical(p_refflat) && ishandle(p_refflat)) % get rid of old plotted data
+            delete(p_refflat)
+        end
         
         set(status_box, 'string', 'Flattening data based on polynomials...')
         
@@ -1492,7 +1540,12 @@ set(cb_group, 'selectedobject', cb_check(1))
                 p_pkflat(ii)= plot(0, 0, 'w.', 'markersize', 12, 'visible', 'off');
             end
         end
-                
+        
+        if (any(bed_avail) && any(~isnan(depth_bed_flat)) && any(depth_bed_flat))
+            p_bedflat       = plot(tmp1(ind_decim(~isnan(depth_bed_flat))), depth_bed_flat(~isnan(depth_bed_flat)), 'm.', 'markersize', 12, 'visible', 'off');
+        end
+        p_refflat           = plot(repmat(tmp1(ind_decim(ind_x_ref)), 1, 2), [depth_min_ref depth_max_ref], 'w--', 'linewidth', 2, 'visible', 'off');
+        
         flat_done           = true;
         edit_flag           = false;
         set(disp_group, 'selectedobject', disp_check(3))
@@ -3498,21 +3551,6 @@ set(cb_group, 'selectedobject', cb_check(1))
         if (logical(p_data) && ishandle(p_data))
             delete(p_data)
         end
-        if (logical(p_beddepth) && ishandle(p_beddepth))
-            set(p_beddepth, 'visible', 'off')
-        end
-        if (logical(p_bedflat) && ishandle(p_bedflat))
-            set(p_bedflat, 'visible', 'off')
-        end
-        if (logical(p_refflat) && ishandle(p_refflat))
-            set(p_refflat, 'visible', 'off')
-        end
-        if (logical(p_surf) && ishandle(p_surf))
-            delete(p_surf)
-        end
-        if (logical(p_bed) && ishandle(p_bed))
-            delete(p_bed)
-        end
         axes(ax_radar)
         axis xy
         set(z_min_slide, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min)
@@ -3527,26 +3565,6 @@ set(cb_group, 'selectedobject', cb_check(1))
                 p_data      = imagesc(pk.dist_lin(ind_decim), elev, amp_elev, [db_min db_max]);
             end
         end
-        if (any(surf_avail) && any(~isnan(pk.elev_surf)))
-            if gimp_avail
-                p_surf      = plot(pk.dist_lin_gimp(ind_decim), pk.elev_surf_gimp(ind_decim), 'g--', 'linewidth', 2);
-            else
-                p_surf      = plot(pk.dist_lin(ind_decim), pk.elev_surf(ind_decim), 'g--', 'linewidth', 2);
-            end
-            if any(isnan(pk.elev_surf(ind_decim)))
-                set(p_surf, 'marker', '.', 'linestyle', 'none', 'markersize', 12)
-            end
-        end
-        if (any(bed_avail) && any(~isnan(pk.elev_bed)))
-            if gimp_avail
-                p_bed       = plot(pk.dist_lin_gimp(ind_decim), pk.elev_bed_gimp(ind_decim), 'g--', 'linewidth', 2);
-            else
-                p_bed       = plot(pk.dist_lin(ind_decim), pk.elev_bed(ind_decim), 'g--', 'linewidth', 2);
-            end
-            if any(isnan(depth_bed))
-                set(p_bed, 'marker', '.', 'linestyle', 'none', 'markersize', 12)
-            end
-        end
         if any(surf_avail)
             set(yl, 'string', 'Elevation (m)')
         else
@@ -3554,6 +3572,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         narrow_cb
         show_data
+        show_surfbed
         show_core
         show_block
         show_pk
@@ -3562,29 +3581,8 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Plot radargram in terms of depth
 
     function plot_depth(source, eventdata)
-        if ~data_done
-            set(disp_group, 'selectedobject', disp_check(1))
-            disp_type       = 'elev.';
-            plot_elev
-            return
-        end
         if (logical(p_data) && ishandle(p_data))
             delete(p_data)
-        end
-        if (logical(p_surf) && ishandle(p_surf))
-            set(p_surf, 'visible', 'off')
-        end
-        if (logical(p_bed) && ishandle(p_bed))
-            set(p_bed, 'visible', 'off')
-        end
-        if (logical(p_bedflat) && ishandle(p_bedflat))
-            set(p_bedflat, 'visible', 'off')
-        end
-        if (logical(p_refflat) && ishandle(p_refflat))
-            set(p_refflat, 'visible', 'off')
-        end
-        if (logical(p_beddepth) && ishandle(p_beddepth))
-            delete(p_beddepth)
         end
         axes(ax_radar)
         axis ij
@@ -3593,24 +3591,17 @@ set(cb_group, 'selectedobject', cb_check(1))
         set(z_min_edit, 'string', sprintf('%4.0f', depth_max))
         set(z_max_edit, 'string', sprintf('%4.0f', depth_min))
         ylim([depth_min depth_max])
-        if gimp_avail
-            p_data          = imagesc(pk.dist_lin_gimp(ind_decim), depth, amp_depth, [db_min db_max]);
-        else
-            p_data          = imagesc(pk.dist_lin(ind_decim), depth, amp_depth, [db_min db_max]);
-        end
-        if (any(bed_avail) && any(~isnan(depth_bed)))
+        if data_done
             if gimp_avail
-                p_beddepth  = plot(pk.dist_lin_gimp(ind_decim), depth_bed, 'g--', 'linewidth', 2);
+                p_data          = imagesc(pk.dist_lin_gimp(ind_decim), depth, amp_depth, [db_min db_max]);
             else
-                p_beddepth  = plot(pk.dist_lin(ind_decim), depth_bed, 'g--', 'linewidth', 2);
-            end
-            if any(isnan(depth_bed))
-                set(p_beddepth, 'marker', '.', 'linestyle', 'none', 'markersize', 12)
+                p_data          = imagesc(pk.dist_lin(ind_decim), depth, amp_depth, [db_min db_max]);
             end
         end
         set(yl, 'string', 'Depth (m)')
         narrow_cb
         show_data
+        show_surfbed
         show_core
         show_block
         show_pk
@@ -3628,21 +3619,6 @@ set(cb_group, 'selectedobject', cb_check(1))
         if (logical(p_data) && ishandle(p_data)) % get rid of old plotted data
             delete(p_data)
         end
-        if (logical(p_surf) && ishandle(p_surf))
-            set(p_surf, 'visible', 'off')
-        end
-        if (logical(p_bed) && ishandle(p_bed))
-            set(p_bed, 'visible', 'off')
-        end
-        if (logical(p_beddepth) && ishandle(p_beddepth))
-            set(p_beddepth, 'visible', 'off')
-        end
-        if (logical(p_bedflat) && ishandle(p_bedflat))
-            delete(p_bedflat)
-        end
-        if (logical(p_refflat) && ishandle(p_refflat))
-            delete(p_refflat)
-        end
         axes(ax_radar)
         axis ij
         set(z_min_slide, 'min', depth_min_ref, 'max', depth_max_ref, 'value', (depth_max_ref - (depth_max - depth_min_ref)))
@@ -3656,17 +3632,10 @@ set(cb_group, 'selectedobject', cb_check(1))
             tmp1            = pk.dist_lin;
         end
         p_data              = imagesc(tmp1(ind_decim), depth, amp_flat, [db_min db_max]);
-        if (any(bed_avail) && any(~isnan(depth_bed_flat)) && any(depth_bed_flat))
-            if any(isnan(depth_bed_flat))
-                p_bedflat   = plot(tmp1(ind_decim(~isnan(depth_bed_flat))), depth_bed_flat(~isnan(depth_bed_flat)), 'g.', 'markersize', 12);
-            else
-                p_bedflat   = plot(tmp1(ind_decim), depth_bed_flat, 'g--', 'linewidth', 2);
-            end
-        end
-        p_refflat           = plot(repmat(tmp1(ind_decim(ind_x_ref)), 1, 2), [depth_min_ref depth_max_ref], 'w--', 'linewidth', 2);
         disp_type           = 'flat';
         set(yl, 'string', 'Depth (m)')
         narrow_cb
+        show_surfbed
         show_core
         show_block
         show_pk
@@ -3683,6 +3652,91 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
         elseif get(data_check, 'value')
             set(data_check, 'value', 0)
+        end
+    end
+
+%% Show surface/bed
+
+    function show_surfbed(source, eventdata)
+        if (any(surf_avail) || any(bed_avail))
+            if get(surfbed_check, 'value')
+                switch disp_type
+                    case 'elev.'
+                        if (logical(p_bed) && ishandle(p_bed))
+                            set(p_bed, 'visible', 'on')
+                            uistack(p_bed, 'top')
+                        end
+                        if (logical(p_surf) && ishandle(p_surf))
+                            set(p_surf, 'visible', 'on')
+                            uistack(p_surf, 'top')
+                        end
+                        if (logical(p_beddepth) && ishandle(p_beddepth))
+                            set(p_beddepth, 'visible', 'off')
+                        end
+                        if (logical(p_bedflat) && ishandle(p_bedflat))
+                            set(p_bedflat, 'visible', 'off')
+                        end
+                        if (logical(p_refflat) && ishandle(p_refflat))
+                            set(p_refflat, 'visible', 'off')
+                        end
+                    case 'depth'
+                        if (logical(p_beddepth) && ishandle(p_beddepth))
+                            set(p_beddepth, 'visible', 'on')
+                            uistack(p_beddepth, 'top')
+                        end
+                        if (logical(p_bed) && ishandle(p_bed))
+                            set(p_bed, 'visible', 'off')
+                        end
+                        if (logical(p_surf) && ishandle(p_surf))
+                            set(p_surf, 'visible', 'off')
+                        end
+                        if (logical(p_bedflat) && ishandle(p_bedflat))
+                            set(p_bedflat, 'visible', 'off')
+                        end
+                        if (logical(p_refflat) && ishandle(p_refflat))
+                            set(p_refflat, 'visible', 'off')
+                        end
+                    case 'flat'
+                        if (logical(p_refflat) && ishandle(p_refflat))
+                            set(p_refflat, 'visible', 'on')
+                            uistack(p_refflat, 'top')
+                        end
+                        if (logical(p_bedflat) && ishandle(p_bedflat))
+                            set(p_bedflat, 'visible', 'on')
+                            uistack(p_bedflat, 'top')
+                        end
+                        if (logical(p_bed) && ishandle(p_bed))
+                            set(p_bed, 'visible', 'off')
+                        end
+                        if (logical(p_surf) && ishandle(p_surf))
+                            set(p_surf, 'visible', 'off')
+                        end
+                        if (logical(p_beddepth) && ishandle(p_beddepth))
+                            set(p_beddepth, 'visible', 'off')
+                        end
+                        if (logical(p_refflat) && ishandle(p_refflat))
+                            set(p_refflat, 'visible', 'off')
+                        end
+                end
+            else
+                if (logical(p_bed) && ishandle(p_bed))
+                    set(p_bed, 'visible', 'off')
+                end
+                if (logical(p_surf) && ishandle(p_surf))
+                    set(p_surf, 'visible', 'off')
+                end
+                if (logical(p_beddepth) && ishandle(p_beddepth))
+                    set(p_beddepth, 'visible', 'off')
+                end
+                if (logical(p_bedflat) && ishandle(p_bedflat))
+                    set(p_bedflat, 'visible', 'off')
+                end
+                if (logical(p_refflat) && ishandle(p_refflat))
+                    set(p_refflat, 'visible', 'off')
+                end
+            end
+        elseif get(surfbed_check, 'value')
+            set(surfbed_check, 'value', 0)
         end
     end
 
@@ -3887,8 +3941,52 @@ set(cb_group, 'selectedobject', cb_check(1))
                 ind_decim   = 1:pk.num_trace_tot;
             end
             num_decim       = length(ind_decim);
+            if (logical(p_bed) && ishandle(p_bed))
+                delete(p_bed)
+            end
+            if (logical(p_beddepth) && ishandle(p_beddepth))
+                delete(p_beddepth)
+            end
             if (any(p_pk) && any(ishandle(p_pk)))
                 delete(p_pk(logical(p_pk) & ishandle(p_pk)))
+            end
+            if (any(p_pkdepth) && any(ishandle(p_pkdepth)))
+                delete(p_pkdepth(logical(p_pkdepth) & ishandle(p_pkdepth)))
+            end
+            if (logical(p_surf) && ishandle(p_surf))
+                delete(p_surf)
+            end
+            if (any(surf_avail) && any(~isnan(pk.elev_surf)))
+                if gimp_avail
+                    p_surf  = plot(pk.dist_lin_gimp(ind_decim), pk.elev_surf_gimp(ind_decim), 'm.', 'markersize', 12, 'visible', 'off');
+                else
+                    p_surf  = plot(pk.dist_lin(ind_decim), pk.elev_surf(ind_decim), 'm.', 'markersize', 12, 'visible', 'off');
+                end
+            end
+            if (any(bed_avail) && any(~isnan(pk.elev_bed)))
+                if gimp_avail
+                    p_bed   = plot(pk.dist_lin_gimp(ind_decim), pk.elev_bed_gimp(ind_decim), 'm.', 'markersize', 12, 'visible', 'off');
+                else
+                    p_bed   = plot(pk.dist_lin(ind_decim), pk.elev_bed(ind_decim), 'm.', 'markersize', 12, 'visible', 'off');
+                end
+            end
+            if any(surf_avail & bed_avail)
+                if gimp_avail
+                    depth_bed ...
+                            = pk.elev_surf_gimp(ind_decim) - pk.elev_bed_gimp(ind_decim);
+                else
+                    depth_bed ...
+                            = pk.elev_surf(ind_decim) - pk.elev_bed(ind_decim);
+                end
+                if any(~isnan(depth_bed))
+                    if gimp_avail
+                        p_beddepth ...
+                            = plot(pk.dist_lin_gimp(ind_decim), depth_bed, 'm.', 'markersize', 12, 'visible', 'off');
+                    else
+                        p_beddepth ...
+                            = plot(pk.dist_lin(ind_decim), depth_bed, 'm.', 'markersize', 12, 'visible', 'off');
+                    end
+                end
             end
             layer_str       = num2cell(1:pk.num_layer);
             for ii = 1:pk.num_layer
@@ -3913,6 +4011,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             else
                 set(layer_list, 'string', layer_str, 'value', 1)
             end
+            show_surfbed
             show_pk
         end
         if data_done
@@ -4131,29 +4230,27 @@ set(cb_group, 'selectedobject', cb_check(1))
                 tmp1        = amp_elev;
                 tmp1(isnan(tmp1)) ...
                             = db_min;
-                if gimp_avail
-                    imagesc(pk.dist_lin_gimp(ind_decim), elev, tmp1, [db_min db_max])
-                else
-                    imagesc(pk.dist_lin(ind_decim), elev, tmp1, [db_min db_max])
-                end
-                if (any(surf_avail) && any(~isnan(pk.elev_surf)))
+                if get(data_check, 'value')
                     if gimp_avail
-                        tmp1 = plot(pk.dist_lin_gimp(ind_decim), pk.elev_surf_gimp(ind_decim), 'g--', 'linewidth', 2);
+                        imagesc(pk.dist_lin_gimp(ind_decim), elev, tmp1, [db_min db_max])
                     else
-                        tmp1 = plot(pk.dist_lin(ind_decim), pk.elev_surf(ind_decim), 'g--', 'linewidth', 2);
-                    end
-                    if any(isnan(pk.elev_surf(ind_decim)))
-                        set(tmp1, 'marker', '.', 'linestyle', 'none', 'markersize', 12)
+                        imagesc(pk.dist_lin(ind_decim), elev, tmp1, [db_min db_max])
                     end
                 end
-                if (any(bed_avail) && any(~isnan(pk.elev_bed)))
-                    if gimp_avail
-                        tmp1 = plot(pk.dist_lin_gimp(ind_decim), pk.elev_bed_gimp(ind_decim), 'g--', 'linewidth', 2);
-                    else
-                        tmp1 = plot(pk.dist_lin(ind_decim), pk.elev_bed(ind_decim), 'g--', 'linewidth', 2);
+                if get(surfbed_check, 'value')
+                    if (any(surf_avail) && any(~isnan(pk.elev_surf)))
+                        if gimp_avail
+                            plot(pk.dist_lin_gimp(ind_decim), pk.elev_surf_gimp(ind_decim), 'm.', 'markersize', 12)
+                        else
+                            plot(pk.dist_lin(ind_decim), pk.elev_surf(ind_decim), 'm.', 'markersize', 12)
+                        end
                     end
-                    if any(isnan(depth_bed))
-                        set(tmp1, 'marker', '.', 'linestyle', 'none', 'markersize', 12)
+                    if (any(bed_avail) && any(~isnan(pk.elev_bed)))
+                        if gimp_avail
+                            plot(pk.dist_lin_gimp(ind_decim), pk.elev_bed_gimp(ind_decim), 'm.', 'markersize', 12)
+                        else
+                            plot(pk.dist_lin(ind_decim), pk.elev_bed(ind_decim), 'm.', 'markersize', 12)
+                        end
                     end
                 end
                 if get(pk_check, 'value')
@@ -4205,19 +4302,24 @@ set(cb_group, 'selectedobject', cb_check(1))
                 else
                     tmp1 = pk.dist_lin;
                 end
-                if strcmp(disp_type, 'depth')
-                    tmp2 = amp_depth;
-                else
-                    tmp2 = amp_flat;
-                end
-                tmp2(isnan(tmp2)) ...
-                         = db_max;
-                imagesc(tmp1(ind_decim), depth, tmp2, [db_min db_max])
-                if (any(bed_avail) && any(~isnan(pk.elev_bed)))
-                    if any(isnan(depth_bed_flat))
-                        plot(tmp1(ind_decim(~isnan(depth_bed_flat))), depth_bed_flat(~isnan(depth_bed_flat)), 'g.', 'markersize', 12)
+                if get(data_check, 'value')
+                    if strcmp(disp_type, 'depth')
+                        tmp2= amp_depth;
                     else
-                        plot(tmp1(ind_decim), depth_bed_flat, 'g--', 'linewidth', 2)
+                        tmp2= amp_flat;
+                    end
+                    tmp2(isnan(tmp2)) ...
+                            = db_max;
+                    imagesc(tmp1(ind_decim), depth, tmp2, [db_min db_max])
+                    tmp2    = 0;
+                end
+                if get(surfbed_check, 'value')
+                    if (any(bed_avail) && any(~isnan(pk.elev_bed)))
+                        if any(isnan(depth_bed_flat))
+                            plot(tmp1(ind_decim(~isnan(depth_bed_flat))), depth_bed_flat(~isnan(depth_bed_flat)), 'm.', 'markersize', 12)
+                        else
+                            plot(tmp1(ind_decim), depth_bed_flat, 'm.', 'markersize', 12)
+                        end
                     end
                 end
                 if get(pk_check, 'value')
@@ -4253,7 +4355,6 @@ set(cb_group, 'selectedobject', cb_check(1))
                 else
                     tmp1 = pk.dist_lin;
                 end
-                size(tmp1)
                 if get(core_check, 'value')
                     tmp2 = find(~isnan(ind_int));
                     for ii = tmp2
@@ -4261,7 +4362,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                         text(double(tmp1(ind_int(ii)) + 1), double(depth_min + (0.2 * (depth_max - depth_min))), name_core{int_core{curr_year}{curr_trans}(ii, 3)}, 'color', 'm', 'fontsize', size_font)
                     end
                 end
-                if strcmp(disp_type, 'flat')
+                if (strcmp(disp_type, 'flat') && get(surfbed_check, 'value'))
                     plot(repmat(tmp1(ind_x_ref), 1, 2), [depth_min depth_max], 'w--', 'linewidth', 2)
                 end
                 ylabel('Depth (m)', 'fontsize', 20)
@@ -4323,38 +4424,12 @@ set(cb_group, 'selectedobject', cb_check(1))
                         cb_radio
                 end
             case '6'
-                if (logical(p_bed) && ishandle(p_bed))
-                    switch get(p_bed, 'visible')
-                        case 'on'
-                            set(p_bed, 'visible', 'off')
-                        case 'off'
-                            set(p_bed, 'visible', 'on')
-                    end
+                if get(surfbed_check, 'value')
+                    set(surfbed_check, 'value', 0)
+                else
+                    set(surfbed_check, 'value', 1)
                 end
-                if (logical(p_surf) && ishandle(p_surf))
-                    switch get(p_surf, 'visible')
-                        case 'on'
-                            set(p_surf, 'visible', 'off')
-                        case 'off'
-                            set(p_surf, 'visible', 'on')
-                    end
-                end
-                if (logical(p_beddepth) && ishandle(p_beddepth))
-                    switch get(p_beddepth, 'visible')
-                        case 'on'
-                            set(p_beddepth, 'visible', 'off')
-                        case 'off'
-                            set(p_beddepth, 'visible', 'on')
-                    end
-                end
-                if (logical(p_bedflat) && ishandle(p_bedflat))
-                    switch get(p_bedflat, 'visible')
-                        case 'on'
-                            set(p_bedflat, 'visible', 'off')
-                        case 'off'
-                            set(p_bedflat, 'visible', 'on')
-                    end
-                end
+                show_surfbed
             case 'a'
                 pop_map
             case 'b'
