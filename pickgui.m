@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 06/13/14
+% Last updated: 06/17/14
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -77,19 +77,19 @@ disp_type                   = 'twtt';
 cmaps                       = {'bone' 'jet'}';
 ref_start_or_end            = 'start';
 
-if license('checkout', 'distrib_computing_toolbox')
-    pool_check              = gcp('nocreate');
-    if isempty(pool_check)
-        try
-            parpool(4);
-        catch
-            parpool;
-        end
-    end
-    parallel_check          = true;
-else
+% if license('checkout', 'distrib_computing_toolbox')
+%     pool_check              = gcp('nocreate');
+%     if isempty(pool_check)
+%         try
+%             parpool(4);
+%         catch
+%             parpool;
+%         end
+%     end
+%     parallel_check          = true;
+% else
     parallel_check          = false;
-end
+% end
 
 % pre-allocate a bunch of variables
 [aresp_avail, aresp_done, bed_avail, depth_avail, do_surfbed, flat_done, keep_phase_done, keep_aresp_done, load_done, load_flat, match_done, phase_avail, phase_done, pk_done, ref_done, smooth_done, surf_avail, trim_done] ...
@@ -301,8 +301,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             delete(p_startarespdepth)
         end
         pause(0.1)
-        set([aresp_check phase_check man_check pk_check smooth_check], 'value', 0)
+        set([aresp_check phase_check man_check pk_check smooth_check surfbed_check], 'value', 0)
         set(disp_group, 'selectedobject', disp_check(1))
+        set(disp_check(2:5), 'visible', 'off')
         set(layer_list, 'string', 'N/A', 'value', 1)
         set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
     end
@@ -549,7 +550,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         % make chunks
         adj_length_chunk
-            
+        
         % assign traveltime and distance reference values/sliders based on data
         [twtt_min_ref, twtt_max_ref, twtt_min, twtt_max, db_min_ref, db_max_ref, db_min, db_max, dist_min_ref, dist_max_ref, dist_min, dist_max] ...
                             = deal(block.twtt(1), block.twtt(end), block.twtt(1), block.twtt(end), min(block.amp(:)), max(block.amp(:)), min(block.amp(:)), max(block.amp(:)), dist_lin(1), dist_lin(end), dist_lin(1), dist_lin(end));
@@ -578,8 +579,8 @@ set(disp_group, 'selectedobject', disp_check(1))
                 ind_surf(ind_surf <= 0) ...
                             = 1;
                 surf_avail  = true;
+                p_surf      = plot(dist_lin(ind_decim), (1e6 .* block.twtt_surf(ind_decim)), 'm.', 'markersize', 12, 'visible', 'off');
             end
-            p_surf          = plot(dist_lin(ind_decim), (1e6 .* block.twtt_surf(ind_decim)), 'm.', 'markersize', 12, 'visible', 'off');
         end
         if isfield(block, 'twtt_bed')
             ind_bed         = NaN(1, block.num_trace);
@@ -589,8 +590,9 @@ set(disp_group, 'selectedobject', disp_check(1))
                 ind_bed(ind_bed > num_sample_trim) ...
                             = num_sample_trim;
                 bed_avail   = true;
+                set(surfbed_check, 'value', 1)
+                p_bed       = plot(dist_lin(ind_decim), (1e6 .* block.twtt_bed(ind_decim)), 'm.', 'markersize', 12, 'visible', 'off');
             end
-            p_bed           = plot(dist_lin(ind_decim), (1e6 .* block.twtt_bed(ind_decim)), 'm.', 'markersize', 12, 'visible', 'off');
         end
         
         if surf_avail
@@ -607,6 +609,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     p_beddepth ...
                             = plot(dist_lin(tmp1), (1e6 .* (block.twtt_bed(tmp1) - block.twtt_surf(tmp1))), 'm.', 'markersize', 12, 'visible', 'off');
                 end
+                set(surfbed_check, 'value', 1)
             end
         end
         
@@ -700,7 +703,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         set(twtt_min_slide, 'min', (1e6 * twtt_min_ref), 'max', (1e6 * twtt_max_ref), 'value', (1e6 * twtt_max_ref))
         set(twtt_max_slide, 'min', (1e6 * twtt_min_ref), 'max', (1e6 * twtt_max_ref), 'value', (1e6 * twtt_min_ref))
         
-        if depth_avail
+        if (bed_avail && depth_avail)
             if (logical(p_beddepth) && ishandle(p_beddepth))
                 delete(p_beddepth)
             end
@@ -818,6 +821,16 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         
         clear_plots
+        
+        if depth_avail
+            set(disp_check(2), 'visible', 'on')
+        end
+        if phase_avail
+            set(disp_check(3), 'visible', 'on')
+        end
+        if aresp_avail
+            set(disp_check(4), 'visible', 'on')
+        end
         
         [aresp_done, flat_done, keep_aresp_done, keep_phase_done, load_flat, match_done, phase_done, pk_done] ...
                             = deal(false);
@@ -2629,13 +2642,17 @@ set(disp_group, 'selectedobject', disp_check(1))
         [tmp1, tmp2]        = deal(ind_y_flat_mean, ind_y_flat_smooth);
         [ind_y_flat_mean, ind_y_flat_smooth] ...
                             = deal(NaN(pk.num_layer, num_decim_flat));
-        if ~all(isnan(ind_surf_flat(ind_decim_flat)))
-            tmp3            = ind_surf_flat(ind_decim_flat);
-            p_surfflat      = plot(dist_lin(ind_decim_flat(~isnan(tmp3))), (1e6 .* block.twtt(tmp3(~isnan(tmp3)))), 'm.', 'markersize', 12, 'visible', 'off');
+        if surf_avail
+            if ~all(isnan(ind_surf_flat(ind_decim_flat)))
+                tmp3        = ind_surf_flat(ind_decim_flat);
+                p_surfflat  = plot(dist_lin(ind_decim_flat(~isnan(tmp3))), (1e6 .* block.twtt(tmp3(~isnan(tmp3)))), 'm.', 'markersize', 12, 'visible', 'off');
+            end
         end
-        if ~all(isnan(ind_bed_flat(ind_decim_flat)))
-            tmp3            = ind_bed_flat(ind_decim_flat);
-            p_bedflat       = plot(dist_lin(ind_decim_flat(~isnan(tmp3))), (1e6 .* block.twtt(tmp3(~isnan(tmp3)))), 'm.', 'markersize', 12, 'visible', 'off');
+        if bed_avail
+            if ~all(isnan(ind_bed_flat(ind_decim_flat)))
+                tmp3        = ind_bed_flat(ind_decim_flat);
+                p_bedflat   = plot(dist_lin(ind_decim_flat(~isnan(tmp3))), (1e6 .* block.twtt(tmp3(~isnan(tmp3)))), 'm.', 'markersize', 12, 'visible', 'off');
+            end
         end
         warning('off', 'MATLAB:interp1:NaNinY')
         for ii = 1:pk.num_layer
@@ -3956,6 +3973,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 
                 pk_fix
+                
                 tmp5        = ind_x_pk;
                 switch char(button)
                     case {'l' 'L'}
@@ -4044,7 +4062,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     set(status_box, 'string', 'Done adjusting bed.')
                 else
                     pk_sort
-                    tmp1        = find((tmp1 == curr_layer), 1); % tmp1 now from pk_sort
+                    tmp1    = find((tmp1 == curr_layer), 1); % tmp1 now from pk_sort
                     if ((tmp1 ~= curr_layer) && ~isempty(tmp1))
                         set(status_box, 'string', ['Done adjusting layer #' num2str(curr_layer) ' (now layer #' num2str(tmp1) ').'])
                         curr_layer = tmp1;
@@ -4056,7 +4074,8 @@ set(disp_group, 'selectedobject', disp_check(1))
                     end
                     set(layer_list, 'value', curr_layer)
                     pk_select
-                    match_done  = false;
+                    match_done ...
+                            = false;
                 end
                 set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                 return
@@ -4069,9 +4088,9 @@ set(disp_group, 'selectedobject', disp_check(1))
     function pk_fix(source, eventdata)
         
         if (curr_layer == (pk.num_layer + 1))
-            tmp1            = ind_decim(~isnan(ind_surf));
+            tmp1            = ind_decim(~isnan(ind_surf(ind_decim)));
         elseif (curr_layer == (pk.num_layer + 2))
-            tmp1            = ind_decim(~isnan(ind_bed));
+            tmp1            = ind_decim(~isnan(ind_bed(ind_decim)));
         else
             tmp1            = ind_decim(~isnan(pk.layer(curr_layer).ind_y(ind_decim)));
         end
@@ -4145,6 +4164,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     plot_depth
                 end
             end
+            do_surfbed      = true;
             show_surfbed
             
         elseif (curr_layer == (pk.num_layer + 2))
@@ -4155,7 +4175,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
             if (logical(p_beddepth) && ishandle(p_beddepth))
                 delete(p_beddepth)
-                if depth_avail
+                if (bed_avail && depth_avail)
                     tmp1    = ind_decim(~isnan(ind_bed(ind_decim)) & ~isnan(ind_surf(ind_decim)));
                     p_beddepth ...
                             = plot(dist_lin(tmp1), (1e6 .* (block.twtt_bed(tmp1) - block.twtt_surf(tmp1) + block.twtt(1))), 'm.', 'markersize', 12, 'visible', 'off');
@@ -4168,6 +4188,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = plot(dist_lin(ind_decim_flat(~isnan(ind_bed_flat(ind_decim_flat)))), (1e6 .* block.twtt(ind_bed_flat(ind_decim_flat(~isnan(ind_bed_flat(ind_decim_flat)))))), 'm.', 'markersize', 24, 'visible', 'off');
                 end
             end
+            do_surfbed      = true;
             show_surfbed
             
         else
@@ -4438,6 +4459,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
             end
             
+            do_surfbed      = true;
             set(status_box, 'string', ['Surface and layer #' num2str(tmp1) ' merged.'])
             
             if (curr_layer > tmp1)
@@ -4476,7 +4498,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 delete([p_pk(tmp1) p_bed])
                 p_bed       = plot(dist_lin(tmp2), (1e6 .* block.twtt_bed(tmp2)), 'm.', 'markersize', 24, 'visible', 'off');
             end
-            if depth_avail
+            if (bed_avail && depth_avail)
                 if (any([p_pkdepth(tmp1) p_beddepth]) && any(ishandle([p_pkdepth(tmp1) p_beddepth])))
                     delete([p_pkdepth(tmp1) p_beddepth])
                     tmp2    = ind_decim(~isnan(ind_bed(ind_decim)) & ~isnan(ind_surf(ind_decim)));
@@ -4506,6 +4528,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             [pk.layer, smooth_done, p_pk, p_pkdepth, p_pkflat, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, ind_y_flat_mean, ind_y_flat_smooth, pk.num_layer] ...
                             = deal(pk.layer(tmp3), smooth_done(tmp3), p_pk(tmp3), p_pkdepth(tmp3), p_pkflat(tmp3), p_pksmooth(tmp3), p_pksmoothdepth(tmp3), p_pksmoothflat(tmp3), ind_y_flat_mean(tmp3, :), ind_y_flat_smooth(tmp3, :), (pk.num_layer - 1));
             
+            do_surfbed      = true;                        
             set(status_box, 'string', ['Bed and layer #' num2str(tmp1) ' merged.'])
             
             if (curr_layer > tmp1)
@@ -4947,7 +4970,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 delete(p_bedflat)
             end
             p_bed           = plot(dist_lin(ind_decim), (1e6 .* block.twtt_bed(ind_decim)), 'm.', 'markersize', 12, 'visible', 'off');
-            if depth_avail
+            if (bed_avail && depth_avail)
                 tmp1        = ind_decim(~isnan(ind_bed(ind_decim)) & ~isnan(ind_surf(ind_decim)));
                 p_beddepth  = plot(dist_lin(tmp1), (1e6 .* (block.twtt_bed(tmp1) - block.twtt_surf(tmp1) + block.twtt(1))), 'm.', 'markersize', 12, 'visible', 'off');
             end
@@ -5095,9 +5118,25 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         set(status_box, 'string', ['Picks saved as ' file_pk(1:(end - 4)) '.'])
         
-        pause(0.1)
         if do_surfbed
+            set(status_box, 'string', 'Surface/bed edited so re-saving block...')
+            pause(0.1)
+            if trim_done
+                tmp1        = load([path_data file_data], 'block');
+                [block.amp, block.twtt] ...
+                            = deal(tmp1.block.amp, tmp1.block.twtt);
+                if phase_avail
+                    block.phase_diff_filt ...
+                            = tmp1.block.phase_diff_filt;
+                end
+                if aresp_avail
+                    block.slope_aresp ...
+                            = tmp1.block.slope_aresp;
+                end
+                tmp1        = 0;
+            end
             save([path_data file_data], '-v7.3', 'block')
+            pause(0.1)
             set(status_box, 'string', ['Block saved as ' file_data(1:(end - 4)) ' in ' path_data '.'])
         end
         
@@ -6543,7 +6582,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             if bed_avail
                 p_bed       = plot(dist_lin(ind_decim), (1e6 .* block.twtt_bed(ind_decim)), 'm.', 'markersize', 12, 'visible', 'off');
             end
-            if depth_avail
+            if (bed_avail && depth_avail)
                 tmp1        = ind_decim(~isnan(ind_bed(ind_decim)) & ~isnan(ind_surf(ind_decim)));
                 p_beddepth  = plot(dist_lin(tmp1), (1e6 .* (block.twtt_bed(tmp1) - block.twtt_surf(tmp1) + block.twtt(1))), 'm.', 'markersize', 12, 'visible', 'off');
             end

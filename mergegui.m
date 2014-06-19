@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 06/13/14
+% Last updated: 06/16/14
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -90,19 +90,19 @@ letters                     = 'a':'z';
 layer_str                   = {};
 cb_type                     = 'std';
 
-if license('checkout', 'distrib_computing_toolbox')
-    pool_check              = gcp('nocreate');
-    if isempty(pool_check)
-        try
-            parpool('local', 4);
-        catch
-            parpool('local');
-        end
-    end
-    parallel_check          = true;
-else
+% if license('checkout', 'distrib_computing_toolbox')
+%     pool_check              = gcp('nocreate');
+%     if isempty(pool_check)
+%         try
+%             parpool('local', 4);
+%         catch
+%             parpool('local');
+%         end
+%     end
+%     parallel_check          = true;
+% else
     parallel_check          = false;
-end
+% end
 
 if ispc
     if exist('\\melt\icebridge\data\mat\grl_coast.mat', 'file')
@@ -1000,23 +1000,8 @@ set(cb_group, 'selectedobject', cb_check(1))
         if (logical(p_data) && ishandle(p_data))
             delete(p_data)
         end
-        if (logical(p_bed) && ishandle(p_bed))
-            delete(p_bed)
-        end
-        if (logical(p_beddepth) && ishandle(p_beddepth))
-            delete(p_beddepth)
-        end
         if (logical(p_bedflat) && ishandle(p_bedflat))
             delete(p_bedflat)
-        end
-        if (logical(p_surf) && ishandle(p_surf))
-            delete(p_surf)
-        end
-        if (any(p_block) && any(ishandle(p_block)))
-            delete(p_block(logical(p_block) & ishandle(p_block)))
-        end
-        if (any(p_blocknum) && any(ishandle(p_blocknum)))
-            delete(p_blocknum(logical(p_blocknum) & ishandle(p_blocknum)))
         end
         if (any(p_blockflat) && any(ishandle(p_blockflat)))
             delete(p_blockflat(logical(p_blockflat) & ishandle(p_blockflat)))
@@ -1548,6 +1533,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         flat_done           = true;
         edit_flag           = false;
+        set(disp_check(3), 'visible', 'on')
         set(disp_group, 'selectedobject', disp_check(3))
         disp_type           = 'flat';
         pk_select
