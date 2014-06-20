@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 06/17/14
+% Last updated: 06/20/14
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -3386,11 +3386,10 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Manually pick a layer
 
     function pk_man(source, eventdata)
-                
-        if (~strcmp(disp_type, 'twtt') || (get(disp_group, 'selectedobject') ~= disp_check(1)))
-            set(disp_group, 'selectedobject', disp_check(1))
-            disp_type       = 'twtt';
-            plot_twtt
+        
+        if ~any(strcmp(disp_type, {'twtt' '~depth'}))
+            set(status_box, 'string', 'Layers can only be traced manually in twtt or ~depth.')
+            return
         end
         
         axes(ax_radar)
@@ -3415,11 +3414,23 @@ set(disp_group, 'selectedobject', disp_check(1))
                 [ind_x_pk(ii), ind_y_pk(ii)] ...
                             = deal(tmp1, tmp2);
                 ind_x_pk(ii)= interp1(dist_lin(ind_decim), ind_decim, ind_x_pk(ii), 'nearest', 'extrap'); % raw picks must be indices, not dimensionalized vectors (horizontal)
-                ind_y_pk(ii)= interp1(block.twtt, 1:num_sample_trim, (1e-6 .* ind_y_pk(ii)), 'nearest', 'extrap'); % interpolate traveltime pick onto traveltime vector
+                switch disp_type
+                    case 'twtt'
+                        ind_y_pk(ii) ...
+                            = interp1(block.twtt, 1:num_sample_trim, (1e-6 .* ind_y_pk(ii)), 'nearest', 'extrap'); % interpolate traveltime pick onto traveltime vector
+                    case '~depth'
+                        ind_y_pk(ii) ...
+                            = interp1(block.twtt, 1:num_sample_trim, (1e-6 .* (ind_y_pk(ii) + (1e6 * (block.twtt_surf(ind_x_pk(ii)) - block.twtt(1))))), 'nearest', 'extrap');
+                end
                 if (ii > 1)
                     delete(tmp3) % get rid of old plot handle
                 end
-                tmp3        = plot(dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'rx', 'markersize', 12); % original picks
+                switch disp_type
+                    case 'twtt'
+                        tmp3= plot(dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'rx', 'markersize', 12); % original picks
+                    case '~depth'
+                        tmp3= plot(dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk - ind_surf(ind_x_pk) + 1)), 'rx', 'markersize', 12); % original picks
+                end
                 ii          = ii + 1;
                 
             elseif (strcmpi(char(button), 'U') && (ii > 1))
@@ -3430,7 +3441,14 @@ set(disp_group, 'selectedobject', disp_check(1))
                     delete(tmp3)
                 end
                 if (ii > 2)
-                    tmp3    = plot(dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'rx', 'markersize', 12); % original picks
+                    switch disp_type
+                        case 'twtt'
+                            tmp3 ...
+                                = plot(dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'rx', 'markersize', 12); % original picks
+                        case '~depth'
+                            tmp3 ...
+                                = plot(dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk - ind_surf(ind_x_pk) + 1)), 'rx', 'markersize', 12); % original picks
+                    end
                 end
                 ii          = ii - 1;
                 
@@ -3446,11 +3464,13 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 
                 if ~issorted(ind_x_pk) % resort picks
-                    [ind_x_pk, tmp1] = sort(ind_x_pk);
+                    [ind_x_pk, tmp1] ...
+                            = sort(ind_x_pk);
                     ind_y_pk= ind_y_pk(tmp1);
                 end
                 if (length(unique(ind_x_pk)) < length(ind_x_pk)) % don't keep picks that are accidentally at the same horizontal index, otherwise spline will fail
-                    [ind_x_pk, tmp1] = unique(ind_x_pk);
+                    [ind_x_pk, tmp1] ...
+                            = unique(ind_x_pk);
                     ind_y_pk= ind_y_pk(tmp1);
                 end
                 
@@ -3482,7 +3502,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     p_pkdepth(pk.num_layer) ...
                             = plot(dist_lin(tmp1(~isnan(tmp2))), (1e6 .* block.twtt(round(tmp2(~isnan(tmp2))))), 'r.', 'markersize', 12, 'visible', 'off');
                 else
-                    p_pk(pk.num_layer) ...
+                    p_pkdepth(pk.num_layer) ...
                             = 0;
                 end
                 
@@ -3512,10 +3532,11 @@ set(disp_group, 'selectedobject', disp_check(1))
                 [smooth_done, p_pksmooth, p_pksmoothdepth, p_pksmoothflat] ...
                             = deal([smooth_done false], [p_pksmooth 0], [p_pksmoothdepth 0], [p_pksmoothflat 0]);
                 
+                pk_done     = true;
                 pk_sort
-                curr_layer  = find(tmp1 == pk.num_layer); % tmp1 from pk_sort                       
+                curr_layer  = find(tmp1 == pk.num_layer); % tmp1 from pk_sort
                 pk_smooth
-                set(pk_check, 'value', 1)
+                set([pk_check smooth_check], 'value', 1)
                 set(layer_list, 'string', [num2cell(1:pk.num_layer) 'surface' 'bed'], 'value', curr_layer)
                 pk_select
                 show_pk
@@ -5111,6 +5132,8 @@ set(disp_group, 'selectedobject', disp_check(1))
         title(file_pk(1:(end - 4)), 'fontweight', 'bold', 'interpreter', 'none')
         grid on
         box on
+        
+        pause(0.5)
         print(pkfig, '-dpng', [path_pk file_pk(1:(end - 4)) '.png'])
         
         pk                  = tmp1;
@@ -5123,6 +5146,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             pause(0.1)
             if trim_done
                 tmp1        = load([path_data file_data], 'block');
+                tmp2        = block;
                 [block.amp, block.twtt] ...
                             = deal(tmp1.block.amp, tmp1.block.twtt);
                 if phase_avail
@@ -5137,6 +5161,10 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
             save([path_data file_data], '-v7.3', 'block')
             pause(0.1)
+            if trim_done
+                block       = tmp2;
+                tmp2        = 0;
+            end
             set(status_box, 'string', ['Block saved as ' file_data(1:(end - 4)) ' in ' path_data '.'])
         end
         
@@ -5922,7 +5950,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         panzoom
     end
 
-%% Switch display type
+%% Switch display type 
 
     function disp_radio(~, eventdata)
         disp_type           = get(eventdata.NewValue, 'string');
@@ -5938,6 +5966,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             case 'flat'
                 plot_flat
         end
+        set(disp_check, 'enable', 'off')
+        drawnow
+        set(disp_check, 'enable', 'on')
     end
 
 %% Plot traveltime

@@ -7,7 +7,7 @@ function frameslice(dir_in, file_in, num_slice, dir_out)
 %   in DIR_OUT.
 %
 % Joe MacGregor (UTIG)
-% Last updated: 02/01/13
+% Last updated: 06/20/14
 
 % warning/error checks
 if (nargin < 4)
@@ -38,6 +38,9 @@ end
 if (~isempty(dir_out) && ~exist(dir_out, 'dir'))
     error('frameslice:nodirout', 'Output directory (DIR_OUT) does not exist.')
 end
+if nargout
+    error('frameslice:nargout', 'FRAMESLICE has not outputs.')
+end
 
 file_in_all                 = dir([dir_in file_in '.mat']);
 file_in_all                 = {file_in_all.name};
@@ -48,7 +51,7 @@ end
 
 disp(['Slicing ' num2str(num_in) ' files in ' dir_in ' into ' num2str(num_slice) ' slices each...'])
 
-vars2slice                  = {'Bottom' 'Data' 'Elevation' 'GPS_time' 'Latitude' 'Longitude' 'Surface'}; % old format
+vars2slice                  = {'Bottom' 'Data' 'Elevation' 'GPS_time' 'Latitude' 'Longitude' 'Surface'};
 
 for ii = 1:num_in
     
@@ -117,12 +120,31 @@ for ii = 1:num_in
                 param_records ...
                             = [];
             end
-            if (jj < 10)
-                save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_0' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Depth', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time', 'array_param', ...
-                                                                                             'param_combine_wf_chan', 'param_csarp', 'param_radar', 'param_records')
+            if isfield(tmp1, 'param_get_heights')
+                param_get_heights ...
+                            = tmp1.param_get_heights;
             else
-                save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Depth', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time', 'array_param', ...
-                                                                                            'param_combine_wf_chan', 'param_csarp', 'param_radar', 'param_records')
+                param_get_heights ...
+                            = [];
+            end
+            if isfield(tmp1, 'param_qlook')
+                param_qlook = tmp1.param_qlook;
+            else
+                param_qlook = [];
+            end
+            if isfield(tmp1, 'param_vectors')
+                param_vectors ...
+                            = tmp1.param_vectors;
+            else
+                param_vectors ...
+                            = [];
+            end
+            if (jj < 10)
+                save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_0' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Depth', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time', ...
+                                                                                             'array_param', 'param_combine_wf_chan', 'param_csarp', 'param_radar', 'param_records', 'param_get_heights', 'param_qlook', 'param_vectors')
+            else
+                save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Depth', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time', ...
+                                                                                            'array_param', 'param_combine_wf_chan', 'param_csarp', 'param_radar', 'param_records', 'param_get_heights', 'param_qlook', 'param_vectors')
             end
             
         else % old format
@@ -134,8 +156,7 @@ for ii = 1:num_in
                 save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time')
             end
             
-        end        
-        
+        end
     end
     
     tmp1_old                = tmp1; % preserve previous frame

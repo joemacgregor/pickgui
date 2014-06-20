@@ -18,7 +18,7 @@ function radblockproc(dir_in, file_in, file_block, num_file_block, num_overlap, 
 %   LL2PS must be available within the user's path.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 03/12/14
+% Last updated: 06/20/14
 
 if (nargin ~= 8)
     error('radblockproc:inputs', ['Number input arguments (' numstr(nargin) ') should be 8.'])
@@ -76,6 +76,9 @@ end
 if (~license('test', 'map_toolbox') && ~exist('ll2ps', 'file'))
     error('radblockproc:ll2ps', 'Function LL2PS is not available within this user''s path and Mapping Toolbox is not available.')
 end
+if nargout
+    error('radblockproc:nargout', 'RADBLOCKPROC has no outputs.')
+end
 
 % add GIMP projection if available
 if (license('test', 'map_toolbox') && exist('mat/gimp_90m.mat' , 'file'))
@@ -112,7 +115,6 @@ for ii = 1:num_block
                             = deal(dir_in, file_in, file_block, num_file_block, num_overlap, lat_std, dir_out); % save function call
     
     % get ready to load by determining the breakout between files and blocks
-    jj                      = 0; % curr_files local counter
     if (ii == 1)
         num_start           = 1;
     else
@@ -123,11 +125,13 @@ for ii = 1:num_block
         curr_files          = num_start:num_file;
     end
     
-    [block.param.array_param, block.param.param_combine_wf_chan, block.param.param_csarp, block.param.param_radar, block.param.param_records] ...
+    [block.param.array_param, block.param.param_combine_wf_chan, block.param.param_csarp, block.param.param_radar, block.param.param_records, block.param.param_get_heights, block.param.param_qlook, block.param.param_vectors] ...
                             = deal(cell(1, length(curr_files)));
     
     % read in each data file
     length_in               = zeros(length(curr_files), 1);
+    jj                      = 0; % curr_files local counter
+    
     for kk = curr_files
         jj                  = jj + 1;
         tmp1                = load([dir_in file_in_all(kk).name]); % data structure
@@ -145,30 +149,42 @@ for ii = 1:num_block
         if isfield(tmp1, 'array_param')
             block.param.array_param{jj} ...
                             = tmp1.array_param;
+            tmp1            = rmfield(tmp1, 'array_param');
         end
         if isfield(tmp1, 'param_combine_wf_chan')
             block.param.param_combine_wf_chan{jj} ...
                             = tmp1.param_combine_wf_chan;
+            tmp1            = rmfield(tmp1, 'param_combine_wf_chan');
         end
         if isfield(tmp1, 'param_csarp')
             block.param.param_csarp{jj} ...
                             = tmp1.param_csarp;
+            tmp1            = rmfield(tmp1, 'param_csarp');
         end
         if isfield(tmp1, 'param_radar')
             block.param.param_radar{jj} ...
                             = tmp1.param_radar;
+            tmp1            = rmfield(tmp1, 'param_radar');
         end
         if isfield(tmp1, 'param_records')
             block.param.param_records{jj} ...
                             = tmp1.param_records;
+            tmp1            = rmfield(tmp1, 'param_records');
         end
         if isfield(tmp1, 'param_get_heights')
             block.param.param_get_heights{jj} ...
                             = tmp1.param_get_heights;
+            tmp1            = rmfield(tmp1, 'param_get_heights');
         end
         if isfield(tmp1, 'param_qlook')
             block.param.param_qlook{jj} ...
                             = tmp1.param_qlook;
+            tmp1            = rmfield(tmp1, 'param_qlook');
+        end
+        if isfield(tmp1, 'param_vectors')
+            block.param.param_vectors{jj} ...
+                            = tmp1.param_vectors;
+            tmp1            = rmfield(tmp1, 'param_vectors');
         end
         
         tmp1.data(~tmp1.data) ...
@@ -176,7 +192,12 @@ for ii = 1:num_block
         if do_norm
             tmp1.data       = tmp1.data ./ max(tmp1.data(:)); % normalize data
         end
-        load_struct(jj)     = tmp1; %#ok<AGROW>
+        
+        if (jj == 1)
+            load_struct     = tmp1;
+        else
+            load_struct(jj) = tmp1;
+        end
         clear tmp1
         length_in(jj)       = length(load_struct(jj).lat(~isnan(load_struct(jj).lat))); % length of structure
     end
@@ -201,7 +222,7 @@ for ii = 1:num_block
         for jj = 1:length(curr_files)
             if (tmp2(jj, 1) < tmp4)
                 load_struct(jj).data ...
-                            = [load_struct(jj).data; NaN((tmp4 - tmp2(jj, 1)), tmp2(jj, 2))]; %#ok<AGROW>
+                            = [load_struct(jj).data; NaN((tmp4 - tmp2(jj, 1)), tmp2(jj, 2))];
             end
         end
         block.amp           = single([load_struct(:).data]);
