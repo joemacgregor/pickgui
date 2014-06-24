@@ -1,7 +1,7 @@
 function phaseinterp(phase_type, dir_data_old, lat_std, decim, dir_block_new, file_block_new, param_phase)
 % PHASEINTERP Horizontal phase gradient from complex data and interpolation onto data blocks.
 %
-%   PHASEINTERP(PHASE_TYPE,DIR_DATA_OLD,LAT_STD,DECIM,DIR_BLOCK_NEW,FILE_BLOCK_NEW,PARAM)
+%   PHASEINTERP(PHASE_TYPE,DIR_DATA_OLD,LAT_STD,DECIM,DIR_BLOCK_NEW,FILE_BLOCK_NEW,PARAM_PHASE)
 %   calculates the horizontal phase gradient of complex radar data using
 %   the method specified by PHASE_TYPE.
 %   
@@ -11,22 +11,22 @@ function phaseinterp(phase_type, dir_data_old, lat_std, decim, dir_block_new, fi
 %   horizontal positions of the focused data blocks named FILE_BLOCK_NEW in
 %   DIR_BLOCK_NEW, based on the standard latitude LAT_STD.
 % 
-%   For PHASE_TYPE='direct', the horizontal gradient of the phase is directly
-%   calculated and filtered. PARAM must be a one-element cell that contains
-%   either a numeric scalar or two-element vector, which determines the
-%   filter size. If it is a scalar then it must be the integer number of
-%   indices by which the horizontal phase difference is filtered along
-%   columns and then rows. If it is a two-element vector, then the phase
-%   difference is median-filtered along columns using the first element and
-%   along rows using its second element.
+%   For PHASE_TYPE='direct', the horizontal gradient of the phase is
+%   directly calculated and filtered. PARAM_PHASE must be a one-element
+%   cell that contains either a numeric scalar or two-element vector, which
+%   determines the filter size. If it is a scalar then it must be the
+%   integer number of indices by which the horizontal phase difference is
+%   filtered along columns and then rows. If it is a two-element vector,
+%   then the phase difference is median-filtered along columns using the
+%   first element and along rows using its second element.
 %   
 %   For PHASE_TYPE='Doppler', the horizontal gradient of the phase is
-%   calculated from the Dopper centroid wavenumber. PARAM must be a
+%   calculated from the Dopper centroid wavenumber. PARAM_PHASE must be a
 %   two-element cell whose two elements are size of the FFT filter (a
 %   scalar) and the wavenumber threshold (also a scalar).
 %   
 % Joe MacGregor (UTIG)
-% Last updated: 01/15/14
+% Last updated: 04/09/14
 
 if (nargin ~= 7)
     error('phaseinterp:nargin', 'Incorrect number of input arguments (must be 7).')
