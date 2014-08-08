@@ -32,7 +32,7 @@ function obj                = aresp_obj(data_bin, ind_sep, num_overlap, parallel
 %   See also ARESP.
 %   
 % Louise Sime (BAS), Joe MacGregor (UTIG)
-% Last updated: 01/03/14
+% Last updated: 06/27/14
 
 if (nargin ~= 4)
     error('aresp_obj:nargin', 'Not enough input arguments (need 4).')

@@ -11,7 +11,7 @@ function fencegui
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 04/17/14
+% Last updated: 08/08/14
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -74,7 +74,7 @@ colors_def                  = [0    0       0.75;
 % allocate a bunch of variables
 [core_done, int_done, master_done] ...
                             = deal(false);
-[bed_avail, data_done, gimp_avail, pk_done, surf_avail] ...
+[bed_avail, data_done, pk_done, surf_avail] ...
                             = deal(false(1, 2));
 [amp_depth, amp_elev, colors, depth, dist_lin, elev, elev_bed, elev_smooth, elev_surf, file_data, file_pk, file_pk_short, ind_corr, ind_decim, ind_int_core, layer_str, p_coredepth, p_corenamedepth, p_pkdepth, path_data, path_pk, pk, twtt, x, y] ...
                             = deal(cell(1, 2));
@@ -86,7 +86,7 @@ p_int1                      = cell(2, 3);
 [decim_edit, layer_list, p_bed, p_data, pk_check, p_surf] ...
                             = deal(zeros(2));
 [curr_az2, curr_el2, curr_ind_int, id_layer_master_mat, id_layer_master_cell, ii, ind_x_pk, ind_y_pk, int_all, int_core, int_year, jj, kk, name_core, name_trans, name_year, num_int, num_trans, num_year, ...
- rad_threshold, tmp1, tmp2, tmp3, tmp4, tmp5, x_core_gimp, y_core_gimp] ...
+ rad_threshold, tmp1, tmp2, tmp3, tmp4, tmp5, x_core, y_core] ...
                             = deal(0);
 [curr_ax, curr_gui, curr_int, curr_rad] ...
                             = deal(1);
@@ -483,7 +483,7 @@ linkprop(z_max_edit(2:3), 'string');
 %% Clear data and picks
 
     function clear_data(source, eventdata)
-        [bed_avail(curr_rad), data_done(curr_rad), gimp_avail(curr_rad), pk_done(curr_rad), surf_avail(curr_rad)] ...
+        [bed_avail(curr_rad), data_done(curr_rad), pk_done(curr_rad), surf_avail(curr_rad)] ...
                             = deal(false);
         [amp_elev{curr_rad}, colors{curr_rad}, depth{curr_rad}, dist_lin{curr_rad}, elev{curr_rad}, elev_bed{curr_rad}, elev_smooth{curr_rad}, elev_surf{curr_rad}, file_pk_short{curr_rad}, ind_decim{curr_rad}, ind_corr{curr_rad}, ind_int_core{curr_rad}, layer_str{curr_rad}, pk{curr_rad}, ...
          p_core{1, curr_rad}, p_core{2, curr_rad}, p_coredepth{curr_rad}, p_corename{1, curr_rad}, p_corename{2, curr_rad}, p_corenamedepth{curr_rad}, p_int1{1, 1}, p_int1{1, 2}, p_int1{1, 3}, p_int1{2, 1}, p_int1{2, 2}, p_int1{2, 3}, p_int2{1, 1}, p_int2{1, 2}, p_int2{2, 1}, p_int2{2, 2}, ...
@@ -598,8 +598,8 @@ linkprop(z_max_edit(2:3), 'string');
             % load core intersection file
             tmp1        = load([path_core file_core]);
             try
-                [int_core, name_core, rad_threshold, x_core_gimp, y_core_gimp] ...
-                        = deal(tmp1.int_core, tmp1.name_core, tmp1.rad_threshold, tmp1.x_core_gimp, tmp1.y_core_gimp);
+                [int_core, name_core, rad_threshold, x_core, y_core] ...
+                        = deal(tmp1.int_core, tmp1.name_core, tmp1.rad_threshold, tmp1.x_core, tmp1.y_core);
             catch % give up, force restart
                 set(status_box(1), 'string', [file_core ' does not contain the expected variables. Try again.'])
                 return
@@ -618,10 +618,6 @@ linkprop(z_max_edit(2:3), 'string');
 
     function load_core_breakout(source, eventdata)
         
-        if ~gimp_avail(curr_rad)
-            set(status_box(1), 'string', 'GIMP-corrected elevations must be available to show core intersections.')
-        end
-        
         for ii = 1:2
             for jj = 1:2
                 if (any(p_core{jj, ii}) && any(ishandle(p_core{jj, ii})))
@@ -638,8 +634,7 @@ linkprop(z_max_edit(2:3), 'string');
                 delete(p_corenamedepth{ii}(logical(p_corenamedepth{ii}) & ishandle(p_corenamedepth{ii})))
             end
         end
-        
-        
+         
         for ii = 1:2
             
             if isempty(int_core{curr_year(ii)}{curr_trans(ii)})
@@ -650,7 +645,7 @@ linkprop(z_max_edit(2:3), 'string');
             for jj = 1:size(int_core{curr_year(ii)}{curr_trans(ii)}, 1)
                 try %#ok<TRYNC>
                     [tmp1, tmp2] ...
-                            = min(sqrt(((pk{ii}.x_gimp - int_core{curr_year(ii)}{curr_trans(ii)}(jj, 4)) .^ 2) + ((pk{ii}.y_gimp - int_core{curr_year(ii)}{curr_trans(ii)}(jj, 5)) .^ 2)));
+                            = min(sqrt(((pk{ii}.x - int_core{curr_year(ii)}{curr_trans(ii)}(jj, 4)) .^ 2) + ((pk{ii}.y - int_core{curr_year(ii)}{curr_trans(ii)}(jj, 5)) .^ 2)));
                     if (tmp1 < rad_threshold)
                         ind_int_core{ii} ...
                             = [ind_int_core{ii} tmp2];
@@ -671,22 +666,22 @@ linkprop(z_max_edit(2:3), 'string');
                 for kk = 1:num_int_core(ii)
                     if (jj == 1)
                         axes(ax(1))
-                        p_core{jj, ii}(kk) = plot3(repmat(x_core_gimp(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)), 1, 2), repmat(y_core_gimp(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)), 1, 2), ...
+                        p_core{jj, ii}(kk) = plot3(repmat(x_core(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)), 1, 2), repmat(y_core(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)), 1, 2), ...
                                                    [elev_min_ref elev_max_ref], 'color', 'k', 'linewidth', 2, 'visible', 'off');
-                        p_corename{jj, ii}(kk) = text(double(x_core_gimp(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)) + 1), double(y_core_gimp(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)) + 1), ...
+                        p_corename{jj, ii}(kk) = text(double(x_core(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)) + 1), double(y_core(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)) + 1), ...
                                                       double(elev_max_ref - 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)}, 'color', 'k', 'fontsize', size_font, 'visible', 'off');
                     else
                         axes(ax(ii + 1))
-                        p_core{jj, ii}(kk) = plot(repmat(double(pk{ii}.dist_lin_gimp(ind_int_core{ii}(kk))), 1, 2), [elev_min_ref elev_max_ref], 'color', [0.5 0.5 0.5], 'linewidth', 2, 'visible', 'off');
-                        p_corename{jj, ii}(kk) = text(double(pk{ii}.dist_lin_gimp(ind_int_core{ii}(kk)) + 1), double(elev_max_ref - 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)}, 'color', [0.5 0.5 0.5], 'fontsize', size_font, 'visible', 'off');
+                        p_core{jj, ii}(kk) = plot(repmat(double(pk{ii}.dist_lin(ind_int_core{ii}(kk))), 1, 2), [elev_min_ref elev_max_ref], 'color', [0.5 0.5 0.5], 'linewidth', 2, 'visible', 'off');
+                        p_corename{jj, ii}(kk) = text(double(pk{ii}.dist_lin(ind_int_core{ii}(kk)) + 1), double(elev_max_ref - 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)}, 'color', [0.5 0.5 0.5], 'fontsize', size_font, 'visible', 'off');
                     end
                 end
             end
             [p_coredepth{ii}, p_corenamedepth{ii}] ...
                             = deal(zeros(1, num_int_core(ii)));
             for jj = 1:num_int_core(ii)
-                p_coredepth{ii}(jj) = plot(repmat(double(pk{ii}.dist_lin_gimp(ind_int_core{ii}(jj))), 1, 2), [depth_min_ref depth_max_ref], 'color', [0.5 0.5 0.5], 'linewidth', 2, 'visible', 'off');
-                p_corenamedepth{ii}(jj) = text(double(pk{ii}.dist_lin_gimp(ind_int_core{ii}(jj)) + 1), double(depth_min_ref + 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(jj, 3)}, 'color', [0.5 0.5 0.5], 'fontsize', size_font, 'visible', 'off');
+                p_coredepth{ii}(jj) = plot(repmat(double(pk{ii}.dist_lin(ind_int_core{ii}(jj))), 1, 2), [depth_min_ref depth_max_ref], 'color', [0.5 0.5 0.5], 'linewidth', 2, 'visible', 'off');
+                p_corenamedepth{ii}(jj) = text(double(pk{ii}.dist_lin(ind_int_core{ii}(jj)) + 1), double(depth_min_ref + 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(jj, 3)}, 'color', [0.5 0.5 0.5], 'fontsize', size_font, 'visible', 'off');
             end
         end
         
@@ -938,15 +933,8 @@ linkprop(z_max_edit(2:3), 'string');
                 set(status_box(1), 'string', 'Load merged picks files only.')
                 return
             end
-            if isfield(pk{curr_rad}, 'elev_smooth_gimp')
-                gimp_avail(curr_rad) ...
-                            = true;
                 [dist_lin{curr_rad}, elev_bed{curr_rad}, elev_smooth{curr_rad}, elev_surf{curr_rad}, x{curr_rad}, y{curr_rad}] ...
-                            = deal(pk{curr_rad}.dist_lin_gimp, pk{curr_rad}.elev_bed_gimp, pk{curr_rad}.elev_smooth_gimp, pk{curr_rad}.elev_surf_gimp, pk{curr_rad}.x_gimp, pk{curr_rad}.y_gimp);
-            else
-                [dist_lin{curr_rad}, elev_bed{curr_rad}, elev_smooth{curr_rad}, elev_surf{curr_rad}, x{curr_rad}, y{curr_rad}] ...
-                            = deal(pk{curr_rad}.dist_lin, pk{curr_rad}.elev_bed, pk{curr_rad}.elev_smooth, pk{curr_rad}.elev_surf, pk{curr_rad}.x, pk{curr_rad}.y);
-            end
+                            = deal(pk{curr_rad}.dist_lin, pk{curr_rad}.elev_bed_gimp, pk{curr_rad}.elev_smooth_gimp, pk{curr_rad}.elev_surf_gimp, pk{curr_rad}.x, pk{curr_rad}.y);
         catch % give up, force restart
             set(status_box(1), 'string', [file_pk{curr_rad} ' does not contain a pk structure. Try again.'])
             return
@@ -1880,11 +1868,7 @@ linkprop(z_max_edit(2:3), 'string');
             return
         end
         axes(ax(curr_ax))
-        if gimp_avail(curr_rad)
-            xlim([pk{curr_rad}.dist_lin_gimp(find(~isnan(pk{curr_rad}.elev_smooth_gimp(curr_layer(curr_rad), :)), 1)) pk{curr_rad}.dist_lin_gimp(find(~isnan(pk{curr_rad}.elev_smooth_gimp(curr_layer(curr_rad), :)), 1, 'last'))])
-        else
-            xlim([pk{curr_rad}.dist_lin(find(~isnan(pk{curr_rad}.elev_smooth(curr_layer(curr_rad), :)), 1)) pk{curr_rad}.dist_lin(find(~isnan(pk{curr_rad}.elev_smooth(curr_layer(curr_rad), :)), 1, 'last'))])
-        end
+        xlim([pk{curr_rad}.dist_lin(find(~isnan(pk{curr_rad}.elev_smooth_gimp(curr_layer(curr_rad), :)), 1)) pk{curr_rad}.dist_lin(find(~isnan(pk{curr_rad}.elev_smooth_gimp(curr_layer(curr_rad), :)), 1, 'last'))])
         tmp1                = get(ax(curr_ax), 'xlim');
         [tmp1(1), tmp1(2)]  = deal((tmp1(1) - diff(tmp1)), (tmp1(2) + diff(tmp1)));
         if (tmp1(1) < dist_min_ref(curr_rad))

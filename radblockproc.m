@@ -14,11 +14,12 @@ function radblockproc(dir_in, file_in, file_block, num_file_block, num_overlap, 
 % 
 %   If the Mapping Toolbox is licensed and available and the radar transect
 %   is north of the equator, polar stereographic coordinates will be
-%   calculated assuming a standard meridian of 45W. Otherwise, the function
-%   LL2PS must be available within the user's path.
+%   calculated using the EPSG:3413 project contained with
+%   mat/gimp_proj.mat. Otherwise, the function LL2PS must be available
+%   within the user's path.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 06/20/14
+% Last updated: 08/08/14
 
 if (nargin ~= 8)
     error('radblockproc:inputs', ['Number input arguments (' numstr(nargin) ') should be 8.'])
@@ -73,19 +74,13 @@ end
 if (~isempty(dir_out) && ~exist(dir_out, 'dir'))
     error('radblockproc:nodirout', 'Block output directory (DIR_OUT) does not exist.')
 end
-if (~license('test', 'map_toolbox') && ~exist('ll2ps', 'file'))
-    error('radblockproc:ll2ps', 'Function LL2PS is not available within this user''s path and Mapping Toolbox is not available.')
-end
 if nargout
     error('radblockproc:nargout', 'RADBLOCKPROC has no outputs.')
 end
-
-% add GIMP projection if available
-if (license('test', 'map_toolbox') && exist('mat/gimp_90m.mat' , 'file'))
-    load mat/gimp_90m gimp_info
-    gimp_avail              = true;
-else
-    gimp_avail              = false;
+if ~license('test', 'map_toolbox')
+    error('radblockproc:mapping', 'A Mapping Toolbox license is required.')
+elseif ~exist('ll2ps', 'file')
+    error('radblockproc:ll2ps', 'Function LL2PS is not available within this user''s path and Mapping Toolbox is not available.')
 end
 
 % begin file setup
@@ -250,50 +245,35 @@ for ii = 1:num_block
     block.ind_overlap       = NaN(1, 2);
     if num_overlap
         if (ii == 1)
-            block.ind_overlap(2)    = tmp2 + 1;
+            block.ind_overlap(2) ...
+                            = tmp2 + 1;
         elseif ((ii > 1) && (ii < num_block))
-            block.ind_overlap       = [(sum(length_in(1:num_overlap))) (tmp2 + 1)];
+            block.ind_overlap  ...
+                            = [(sum(length_in(1:num_overlap))) (tmp2 + 1)];
         elseif (ii == num_block)
-            block.ind_overlap(1)    = sum(length_in(1:num_overlap));
+            block.ind_overlap(1) ...
+                            = sum(length_in(1:num_overlap));
         end
     end
     
-    if (license('checkout', 'map_toolbox') && (block.lat(1) > 0)) % in Greenland and can do better x/y coordinates
-        if (ii == 1)
-            wgs84           = almanac('earth', 'wgs84', 'meters');
-            ps_struct       = defaultm('ups');
-            [ps_struct.geoid, ps_struct.mapparallels, ps_struct.falsenorthing, ps_struct.falseeasting, ps_struct.origin] ...
-                            = deal(wgs84, lat_std, 0, 0, [90 -45 0]);
+    if (block.lat(1) > 0)
+        if ~exist('mat/gimp_proj.mat' , 'file')
+            error('radblockproc:gimp_proj', 'File mat/gimp_proj.mat is unavailable.')
+        else
+            load mat/gimp_proj gimp_proj
         end
-        [block.x, block.y]  = mfwdtran(ps_struct, block.lat, block.lon);
-        if gimp_avail
-            [block.x_gimp, block.y_gimp] ...
-                            = projfwd(gimp_info, block.lat, block.lon); % GIMP projection
-            [block.x_gimp, block.y_gimp] ...
-                            = deal((1e-3 .* block.x_gimp), (1e-3 .* block.y_gimp)); % m to km
-        end
+        [block.x, block.y]  = projfwd(gimp_proj, block.lat, block.lon); % GIMP projection for Greenland
     else
         % convert lat/lon to polar stereographic x/y (better for Antarctica then Greenland)
         [block.x, block.y]  = ll2ps(block.lat, block.lon, lat_std);
     end
     [block.x, block.y]      = deal((1e-3 .* block.x), (1e-3 .* block.y)); % m to km
     
-    block.dist              = cumsum([0 sqrt((diff(block.x) .^ 2) + (diff(block.y) .^ 2))]); % distance vector
+    block.dist              = 1e-3 .* cumsum([0 distance([block.lat(1:(end - 1))' block.lon(1:(end - 1))'], [block.lat(2:end)' block.lon(2:end)'], almanac('earth', 'wgs84', 'meters'))']);
     block.dist_lin          = interp1([1 block.num_trace], block.dist([1 end]), 1:block.num_trace);
     if (ii > 1) % increment distance vectors along transect, i.e., don't restart them for each block
         block.dist          = block.dist + tmp3(3) + sqrt(((block.x(1) - tmp3(1)) ^ 2) + ((block.y(1) - tmp3(2)) ^ 2));
         block.dist_lin      = block.dist_lin + tmp3(4) + sqrt(((block.x(1) - tmp3(1)) ^ 2) + ((block.y(1) - tmp3(2)) ^ 2)); % monotonically increasing distance vector that is easier for imagesc plots
-    end
-    
-    % do the same for the GIMP projection if available
-    if (license('checkout', 'map_toolbox') && (block.lat(1) > 0) && gimp_avail)
-        block.dist_gimp     = cumsum([0 sqrt((diff(block.x_gimp) .^ 2) + (diff(block.y_gimp) .^ 2))]);
-        block.dist_lin_gimp = interp1([1 block.num_trace], block.dist_gimp([1 end]), 1:block.num_trace);
-        if (ii > 1)
-            block.dist_gimp = block.dist_gimp + tmp3_gimp(3) + sqrt(((block.x_gimp(1) - tmp3_gimp(1)) ^ 2) + ((block.y_gimp(1) - tmp3_gimp(2)) ^ 2));
-            block.dist_lin_gimp ...
-                            = block.dist_lin_gimp + tmp3_gimp(4) + sqrt(((block.x_gimp(1) - tmp3_gimp(1)) ^ 2) + ((block.y_gimp(1) - tmp3_gimp(2)) ^ 2));
-        end
     end
     
     % aircraft elevation
@@ -332,6 +312,9 @@ for ii = 1:num_block
     
     % save block
     if (ii < 10)
+        save([dir_out file_block '_00' num2str(ii)], '-v7.3', 'block')
+        disp(['Processed ' num2str(length(curr_files)) ' files for block ' num2str(ii) ' / ' num2str(num_block) ' and saved as ' file_block '_00' num2str(ii) ' in ' dir_out '.'])
+    elseif (ii < 100)
         save([dir_out file_block '_0' num2str(ii)], '-v7.3', 'block')
         disp(['Processed ' num2str(length(curr_files)) ' files for block ' num2str(ii) ' / ' num2str(num_block) ' and saved as ' file_block '_0' num2str(ii) ' in ' dir_out '.'])
     else
@@ -341,7 +324,6 @@ for ii = 1:num_block
     
     % get x/y/distance values at end of data before overlap, so that distance vector can stay sane
     tmp3                    = [block.x(tmp2) block.y(tmp2) block.dist(tmp2) block.dist_lin(tmp2)];
-    tmp3_gimp               = [block.x_gimp(tmp2) block.y_gimp(tmp2) block.dist_gimp(tmp2) block.dist_lin_gimp(tmp2)];
     
     % clear the big stuff
     clear load_struct block

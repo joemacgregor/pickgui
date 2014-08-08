@@ -47,12 +47,12 @@ function aresp(dir_block, file_block, decim_x, decim_z, z_smooth, num_overlap, p
 %   See also ARESP_OBJ.
 %   
 % Louise Sime (BAS), Joe MacGregor (UTIG)
-% Last updated: 01/07/14
+% Last updated: 06/27/14
 
 % clear
-% dir_block                   = '/Volumes/icebridge/data/2006_to/block/20060601_01/';
-% % dir_block                   = '~/Desktop/aresp_test/b/';
-% file_block                  = '20060601_01_block6_03';
+% % dir_block                   = '/Volumes/icebridge/data/2006_to/block/20060601_01/';
+% dir_block                   = '~/Desktop/';
+% file_block                  = '20130402_01_block10_43';
 % decim_x                     = [10 10];
 % decim_z                     = 5;
 % z_smooth                    = [6 36];
@@ -60,9 +60,9 @@ function aresp(dir_block, file_block, decim_x, decim_z, z_smooth, num_overlap, p
 % parallel_check              = false;
 % area_max                    = 3; % maximum ratio of object area to ind_sep*z_smooth
 % ellipse_min                 = 2; % minimum object ellipticity (MajorAxisLength/MinorAxisLength)
-% angle_max                   = 20; % maximum object orientation
-% dist_max                    = 20; % maximum number of indices
-% num_obj_max                 = 80; % maximum number of objects
+% angle_max                   = 30; % maximum object orientation
+% dist_max                    = 25; % maximum number of indices
+% num_obj_max                 = 300; % maximum number of objects
 % nargin                      = 12;
 
 if ~license('test', 'image_toolbox')
@@ -133,13 +133,16 @@ end
 
 ind_sep                     = [(z_smooth(1) * 3) (z_smooth(1) * 6)]; % S_1, S_2
 
+% filenames in dir_block
 name_file                   = dir([dir_block file_block '.mat']);
 name_file                   = {name_file.name}';
 num_file                    = length(name_file);
 
 disp(['Starting ARESP for ' dir_block '...'])
 
+% loop through each file in dir_block
 for ii = 1:num_file
+    
     % load current file
     disp([name_file{ii}(1:(end - 4)) ' (' num2str(ii) ' / ' num2str(num_file) ')...'])
     block                   = load([dir_block name_file{ii}], 'block');
@@ -163,22 +166,14 @@ for ii = 1:num_file
     if isnan(num_sample_trim)
         num_sample_trim     = block.num_sample;
     end
-    
-    % horizontal smoothing and decimation
-    ind_decim_x             = [1 (1 + ceil(decim_x(2) / 2)):decim_x(2):(block.num_trace - ceil(decim_x(2) / 2)) block.num_trace];
-    num_decim_x             = length(ind_decim_x);
+    amp_mean                = block.amp(1:num_sample_trim, :);
     
     % horizontal smoothing
     tmp1                    = floor(decim_x(1) / 2);
-    amp_mean                = block.amp(1:num_sample_trim, :); % P
     for jj = (1 + ceil(decim_x(1) / 2)):(block.num_trace - ceil(decim_x(1) / 2))
         amp_mean(:, jj)     = nanmean(block.amp(1:num_sample_trim, (jj - tmp1):(jj + tmp1)), 2); % P_x
     end
-    
-    % vertical decimation
-    ind_decim_z             = ((1 + ceil(decim_z / 2)):decim_z:(num_sample_trim - ceil(decim_z / 2)))';
-    num_decim_z             = length(ind_decim_z);
-    
+       
     % vertical smoothing
     try
         amp_filt_hi         = colfilt(amp_mean, [z_smooth(1) 1], 'sliding', @nanmean); % hi-res z-filtering, P_xz1
@@ -197,13 +192,19 @@ for ii = 1:num_file
     bin_lo_obj              = aresp_obj(amp_bin_lo, ind_sep(2), num_overlap(2), parallel_check); % lo-res objects
     
     % exclude invalid object data
-    bin_hi_obj              = bin_hi_obj(((bin_hi_obj(:, 3) <= (ind_sep(1) * z_smooth(1) * area_max)) & (bin_hi_obj(:, 3) >= ind_sep(1)) & ((bin_hi_obj(:, 4) ./ bin_hi_obj(:, 5)) >= ellipse_min) & ...
-                                         (abs(bin_hi_obj(:, 6)) <= angle_max)), [1 2 6]);
-    bin_lo_obj              = bin_lo_obj(((bin_lo_obj(:, 3) <= (ind_sep(2) * z_smooth(2) * area_max)) & (bin_lo_obj(:, 3) >= ind_sep(2)) & ((bin_lo_obj(:, 4) ./ bin_lo_obj(:, 5)) >= ellipse_min) & ...
-                                         (abs(bin_lo_obj(:, 6)) <= angle_max)), [1 2 6]);
+    bin_hi_obj              = bin_hi_obj(((bin_hi_obj(:, 3) <= (ind_sep(1) * z_smooth(1) * area_max)) & (bin_hi_obj(:, 3) >= ind_sep(1)) & ((bin_hi_obj(:, 4) ./ bin_hi_obj(:, 5)) >= ellipse_min) & (abs(bin_hi_obj(:, 6)) <= angle_max)), [1 2 6]);
+    bin_lo_obj              = bin_lo_obj(((bin_lo_obj(:, 3) <= (ind_sep(2) * z_smooth(2) * area_max)) & (bin_lo_obj(:, 3) >= ind_sep(2)) & ((bin_lo_obj(:, 4) ./ bin_lo_obj(:, 5)) >= ellipse_min) & (abs(bin_lo_obj(:, 6)) <= angle_max)), [1 2 6]);
     
     % all valid objects
     obj_good                = [bin_hi_obj; bin_lo_obj];
+    
+    % horizontal decimation
+    ind_decim_x             = [1 (1 + ceil(decim_x(2) / 2)):decim_x(2):(block.num_trace - ceil(decim_x(2) / 2)) block.num_trace];
+    num_decim_x             = length(ind_decim_x);
+    
+    % vertical decimation
+    ind_decim_z             = ((1 + ceil(decim_z / 2)):decim_z:(num_sample_trim - ceil(decim_z / 2)))';
+    num_decim_z             = length(ind_decim_z);
     
     % calculate median object orientation/angle
     slope_med               = zeros(num_decim_z, num_decim_x);
@@ -227,7 +228,7 @@ for ii = 1:num_file
     else
         for jj = 1:num_decim_z
             for kk = 1:num_decim_x
-                dist        = sqrt(((ind_decim_x(kk) - obj_good(:, 1)) .^ 2) + ((((ind_decim_z(jj) - obj_good(:, 2)) * 0.75) .^ 2))); % distance
+                dist        = sqrt(((ind_decim_x(kk) - obj_good(:, 1)) .^ 2) + ((ind_decim_z(jj) - obj_good(:, 2)) .^ 2)); % distance
                 ind_close   = find(dist < dist_max);
                 if (length(ind_close) > num_obj_max)
                     [~, ind_close_sort] ...
@@ -256,11 +257,11 @@ end
 
 % figure
 % subplot(211)
-% imagesc(amp_bin_lo)
+% imagesc(amp_bin_hi)
 % colormap(jet)
 % colorbar('fontsize', 20)
 % title(['Binary ' name_file{ii}(1:(end - 4))], 'interpreter', 'none')
 % subplot(212)
-% imagesc(ind_decim_x, ind_decim_z, slope_med, [-15 15])
+% imagesc(ind_decim_x, ind_decim_z, slope_med, [-angle_max angle_max])
 % colorbar('fontsize', 20)
 % title('ARESP angle')
