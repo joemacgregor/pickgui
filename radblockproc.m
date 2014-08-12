@@ -1,7 +1,7 @@
-function radblockproc(dir_in, file_in, file_block, num_file_block, num_overlap, lat_std, do_norm, dir_out)
+function radblockproc(dir_in, file_in, file_block, num_file_block, num_overlap, lat_std, do_norm, do_gimp, dir_out)
 % RADBLOCKPROC Consolidate and pre-process CReSIS ice-penetrating radar data files into manageable blocks.
 % 
-%   RADBLOCKPROC(DIR_IN,FILE_IN,FILE_BLOCK,NUM_FILE_BLOCK,NUM_OVERLAP,LAT_STD,DO_NORM,DIR_OUT)
+%   RADBLOCKPROC(DIR_IN,FILE_IN,FILE_BLOCK,NUM_FILE_BLOCK,NUM_OVERLAP,LAT_STD,DO_NORM,DO_GIMP,DIR_OUT)
 %   pre-processes raw radar data stored in DIR_IN whose names are of the
 %   form FILE_IN, which can contain wildcards (*), and saves them in
 %   DIR_OUT with the form of FILE_BLOCK. The ".mat" extension is implicit.
@@ -9,8 +9,11 @@ function radblockproc(dir_in, file_in, file_block, num_file_block, num_overlap, 
 %   for all blocks except the last one, which may have contain fewer files.
 %   NUM_OVERLAP is the number of overlapping files per block. LAT_STD is
 %   the standard parallel in a polar stereographic projection in decimal
-%   degrees (N: positive; S: negative). DO_NORM is a logical switch that,
-%   if true, normalizes the radar data by their maximum value.
+%   degrees (N: positive; S: negative). DO_NORM is a logical scalar that,
+%   if true, normalizes the radar data by their maximum value. DO_GIMP is a
+%   logical scalar that, if true, determines the GIMP surface elevation and
+%   generates GIMP-corrected elevation variables. This latter option is
+%   only suitable for data over the Greenland Ice Sheet.
 % 
 %   If the Mapping Toolbox is licensed and available and the radar transect
 %   is north of the equator, polar stereographic coordinates will be
@@ -19,10 +22,10 @@ function radblockproc(dir_in, file_in, file_block, num_file_block, num_overlap, 
 %   within the user's path.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 08/08/14
+% Last updated: 08/12/14
 
-if (nargin ~= 8)
-    error('radblockproc:inputs', ['Number input arguments (' numstr(nargin) ') should be 8.'])
+if (nargin ~= 9)
+    error('radblockproc:inputs', ['Number input arguments (' numstr(nargin) ') should be 9.'])
 end
 if ~ischar(dir_in)
     error('radblockproc:dirinstr', 'Data input directory (DIR_IN) is not a string.')
@@ -68,6 +71,12 @@ end
 if ~islogical(do_norm) || ~isscalar(do_norm)
     error('radblockproc:donorm', 'DO_NORM must be a logical scalar.')
 end
+if ~islogical(do_gimp) || ~isscalar(do_gimp)
+    error('radblockproc:dogimp', 'DO_GIMP must be a logical scalar.')
+end
+if (do_gimp && ~exist('mat/gimp_90m.mat', 'file'))
+    error('radblockproc:gimp90', 'File mat/gimp_90m.mat is unavailable.')
+end
 if ~ischar(dir_out)
     error('radblockproc:diroutstr', 'Block output directory (DIR_OUT) is not a string.')
 end
@@ -99,6 +108,17 @@ while true % sort out number of blocks based on number of files and desired over
     num_block               = num_block + 1;
 end
 
+% load GIMP files if necessary
+if do_gimp
+    load mat/gimp_90m elev_surf_gimp x_gimp y_gimp
+    decim                   = 5;
+    [elev_surf_gimp, x_gimp, y_gimp] ...
+                            = deal(single(elev_surf_gimp(1:decim:end, 1:decim:end)), x_gimp(1:decim:end), y_gimp(1:decim:end));
+    [x_gimp, y_gimp]        = meshgrid((1e-3 .* x_gimp), (1e-3 .* y_gimp));
+    dist_pad                = 2.5; % km
+    speed_vacuum            = 299792458; % m/s
+end
+
 for ii = 1:num_block
     
     block                   = struct;
@@ -106,8 +126,8 @@ for ii = 1:num_block
     block.param             = struct;
     
     % preserve function call
-    [block.call.dir_in, block.call.file_basename, block.call.block_basename, block.call.num_file_block, block.call.num_overlap, block.call.lat_std, block.call.dir_out] ...
-                            = deal(dir_in, file_in, file_block, num_file_block, num_overlap, lat_std, dir_out); % save function call
+    [block.call.dir_in, block.call.file_in, block.call.file_block, block.call.num_file_block, block.call.num_overlap, block.call.lat_std, block.do_norm, block.do_gimp, block.call.dir_out] ...
+                            = deal(dir_in, file_in, file_block, num_file_block, num_overlap, lat_std, do_norm, do_gimp, dir_out); % save function call
     
     % get ready to load by determining the breakout between files and blocks
     if (ii == 1)
@@ -284,7 +304,7 @@ for ii = 1:num_block
     
     % make sure traveltime is a column vector
     if isrow(block.twtt)
-        block.twtt          = block.twtt'; 
+        block.twtt          = block.twtt';
     end
     block.dt                = block.twtt(2) - block.twtt(1);
     
@@ -304,6 +324,25 @@ for ii = 1:num_block
     block.twtt_bed          = [load_struct(:).twtt_bed];
     if gps_nan
         block.twtt_bed      = block.twtt_bed(ind_nonan);
+    end
+    
+    % determine GIMP-corrected aircraft elevation
+    if do_gimp
+        ind_x               = find((x_gimp(1, :) >= (min(block.x) - dist_pad)) & (x_gimp(1, :) <= (max(block.x) + dist_pad)));
+        ind_y               = find((y_gimp(:, 1) >= (min(block.y) - dist_pad)) & (y_gimp(:, 1) <= (max(block.y) + dist_pad)));
+        if ((length(ind_x) > 1) && (length(ind_y) > 1))
+            try
+                block.elev_air_gimp ...
+                            = block.elev_air + (interp2(x_gimp(ind_y, ind_x), y_gimp(ind_y, ind_x), elev_surf_gimp(ind_y, ind_x), block.x, block.y, 'spline') - (block.elev_air - (block.twtt_surf .* (speed_vacuum / 2))));
+            catch
+                block.elev_air_gimp ...
+                            = NaN(1, block.num_trace);
+                warning('radblockproc:elevairgimp', 'Calculation of GIMP-corrected aircraft elevation failed.')
+            end
+        else
+            block.elev_air_gimp ...
+                            = NaN(1, block.num_trace);
+        end
     end
     
     % order fields alphabetically
