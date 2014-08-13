@@ -25,7 +25,7 @@ function radblockproc(dir_in, file_in, file_block, num_file_block, num_overlap, 
 % Last updated: 08/12/14
 
 if (nargin ~= 9)
-    error('radblockproc:inputs', ['Number input arguments (' numstr(nargin) ') should be 9.'])
+    error('radblockproc:inputs', ['Number input arguments (' num2str(nargin) ') should be 9.'])
 end
 if ~ischar(dir_in)
     error('radblockproc:dirinstr', 'Data input directory (DIR_IN) is not a string.')
