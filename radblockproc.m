@@ -22,7 +22,7 @@ function radblockproc(dir_in, file_in, file_block, num_file_block, num_overlap, 
 %   within the user's path.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 08/12/14
+% Last updated: 08/13/14
 
 if (nargin ~= 9)
     error('radblockproc:inputs', ['Number input arguments (' num2str(nargin) ') should be 9.'])
@@ -135,7 +135,9 @@ for ii = 1:num_block
     else
         num_start           = 1 + ((ii - 1) * (num_file_block - num_overlap)); % file number to start at, accounting for overlap
     end
+    
     curr_files              = num_start:(num_start + num_file_block - 1); % current file numbers to be blocked
+    
     if any(curr_files > num_file) % last block may need shortening
         curr_files          = num_start:num_file;
     end
@@ -229,15 +231,15 @@ for ii = 1:num_block
         block.amp           = single([load_struct(:).data]); % amplitude
         block.twtt          = [load_struct(1).twtt]; % traveltime
     catch %#ok<CTCH> % different block sizes
-        tmp2                = zeros(length(curr_files), 2);
+        tmp1                = zeros(length(curr_files), 2);
         for jj = 1:length(curr_files)
-            tmp2(jj, :)     = size(load_struct(jj).data);
+            tmp1(jj, :)     = size(load_struct(jj).data);
         end
-        [tmp4, tmp5]        = max(tmp2(:, 1));
+        [tmp4, tmp5]        = max(tmp1(:, 1));
         for jj = 1:length(curr_files)
-            if (tmp2(jj, 1) < tmp4)
+            if (tmp1(jj, 1) < tmp4)
                 load_struct(jj).data ...
-                            = [load_struct(jj).data; NaN((tmp4 - tmp2(jj, 1)), tmp2(jj, 2))];
+                            = [load_struct(jj).data; NaN((tmp4 - tmp1(jj, 1)), tmp1(jj, 2))];
             end
         end
         block.amp           = single([load_struct(:).data]);
