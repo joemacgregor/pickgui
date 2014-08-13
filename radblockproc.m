@@ -364,7 +364,9 @@ for ii = 1:num_block
     end
     
     % get x/y/distance values at end of data before overlap, so that distance vector can stay sane
-    tmp3                    = [block.x(tmp2) block.y(tmp2) block.dist(tmp2) block.dist_lin(tmp2)];
+    if (num_block > 1)
+        tmp3                = [block.x(tmp2) block.y(tmp2) block.dist(tmp2) block.dist_lin(tmp2)];
+    end
     
     % clear the big stuff
     clear load_struct block
