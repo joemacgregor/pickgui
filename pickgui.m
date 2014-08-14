@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 08/08/14
+% Last updated: 08/12/14
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -1825,12 +1825,12 @@ set(disp_group, 'selectedobject', disp_check(1))
                         tmp2(tmp2 > num_sample_trim) ...
                             = num_sample_trim;
                         p_arespdepth(ii) ...
-                            = plot(dist_lin(tmp1), (1e6 .* block.twtt(tmp2)), 'c', 'linewidth', 1, 'visible', 'off');
+                            = plot(block.dist_lin(tmp1), (1e6 .* block.twtt(tmp2)), 'c', 'linewidth', 1, 'visible', 'off');
                     end
                     tmp1    = pk.ind_y_start_aresp - ind_surf(pk.ind_x_start_aresp) + 1;
                     tmp1    = tmp1((tmp1 > 0) & (tmp1 < num_sample_trim));
                     p_startarespdepth ...
-                            = plot((ones(1, length(tmp1)) .* dist_lin(pk.ind_x_start_aresp)), (1e6 .* block.twtt(tmp1)), 'r.', 'markersize', 12, 'visible', 'off'); % plot the starting y indices
+                            = plot((ones(1, length(tmp1)) .* block.dist_lin(pk.ind_x_start_aresp)), (1e6 .* block.twtt(tmp1)), 'r.', 'markersize', 12, 'visible', 'off'); % plot the starting y indices
                 end
                 set(aresp_check, 'value', 1)
                 aresp_done  = true;
@@ -5061,8 +5061,8 @@ set(disp_group, 'selectedobject', disp_check(1))
         tmp1                = pk;
         
         % save many variables in pk structure for easy reference independent of data later on
-        [pk.lat, pk.lon, pk.x, pk.y, pk.num_sample, pk.num_trace, pk.file_in, pk.file_block, pk.twtt_min_ref, pk.twtt_max_ref, pk.dist, pk.block.dist_lin, pk.ind_overlap, pk.elev_air] ...
-                            = deal(block.lat, block.lon, block.x, block.y, block.num_sample, block.num_trace, block.file_in, file_data(1:(end - 4)), twtt_min_ref, twtt_max_ref, block.dist, block.dist_lin, block.ind_overlap, block.elev_air);
+        [pk.lat, pk.lon, pk.x, pk.y, pk.num_sample, pk.num_trace, pk.file_in, pk.file_block, pk.twtt_min_ref, pk.twtt_max_ref, pk.dist, pk.block.dist_lin, pk.ind_overlap, pk.elev_air, pk.time] ...
+                            = deal(block.lat, block.lon, block.x, block.y, block.num_sample, block.num_trace, block.file_in, file_data(1:(end - 4)), twtt_min_ref, twtt_max_ref, block.dist, block.dist_lin, block.ind_overlap, block.elev_air, block.time);
         if isfield(block, 'elev_air_gimp')
             pk.elev_air_gimp= block.elev_air_gimp;
         else
