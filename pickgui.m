@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 08/12/14
+% Last updated: 08/15/14
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -77,19 +77,19 @@ disp_type                   = 'twtt';
 cmaps                       = {'bone' 'jet'}';
 ref_start_or_end            = 'start';
 
-% if license('checkout', 'distrib_computing_toolbox')
-%     pool_check              = gcp('nocreate');
-%     if isempty(pool_check)
-%         try
-%             parpool(4);
-%         catch
-%             parpool;
-%         end
-%     end
-%     parallel_check          = true;
-% else
+if license('checkout', 'distrib_computing_toolbox')
+    pool_check              = gcp('nocreate');
+    if isempty(pool_check)
+        try
+            parpool(4);
+        catch
+            parpool;
+        end
+    end
+    parallel_check          = true;
+else
     parallel_check          = false;
-% end
+end
 
 % pre-allocate a bunch of variables
 [aresp_avail, aresp_done, bed_avail, depth_avail, do_surfbed, flat_done, keep_phase_done, keep_aresp_done, load_done, load_flat, match_done, phase_avail, phase_done, pk_done, ref_done, smooth_done, surf_avail, trim_done] ...
@@ -5073,7 +5073,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         % get traveltimes and echo intensities from indices, and adjust indices as appropriate assuming trimming has occurred
         pk.elev_surf        = block.elev_air - (block.twtt_surf .* (speed_vacuum / 2)); % ice-sheet surface elevation (used to calculate layer elevations)
-        pk.elev_surf_gimp   = block.elev_air_gimp - (block.twtt_surf .* (speed_vacuum / 2));
+        pk.elev_surf_gimp   = pk.elev_air_gimp - (block.twtt_surf .* (speed_vacuum / 2));
         pk.elev_bed         = pk.elev_surf - ((block.twtt_bed - block.twtt_surf) .* (speed_ice / 2)); % bed elevation
         pk.elev_bed_gimp    = pk.elev_surf_gimp - ((block.twtt_bed - block.twtt_surf) .* (speed_ice / 2));
         
