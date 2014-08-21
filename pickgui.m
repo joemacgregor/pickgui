@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 08/15/14
+% Last updated: 08/21/14
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -401,11 +401,19 @@ set(disp_group, 'selectedobject', disp_check(1))
             if isfield(tmp1, 'Data')
                 block       = struct;
                 try
-                    [block.amp, block.lat, block.lon, block.num_trace, block.twtt, block.twtt_surf, block.elev_air, block.dt, block.num_sample, block.file_in, block.ind_overlap] ...
-                            = deal(double(tmp1.Data), tmp1.Latitude, tmp1.Longitude, length(tmp1.Latitude), tmp1.Time, tmp1.Surface, tmp1.Elevation, (tmp1.Time(2) - tmp1.Time(1)), length(tmp1.Time), file_data(1:(end - 4)), NaN(1, 2));
+                    [block.amp, block.lat, block.lon, block.num_trace, block.twtt, block.elev_air, block.dt, block.num_sample, block.file_in, block.ind_overlap] ...
+                            = deal(double(tmp1.Data), tmp1.Latitude, tmp1.Longitude, length(tmp1.Latitude), tmp1.Time, tmp1.Elevation, (tmp1.Time(2) - tmp1.Time(1)), length(tmp1.Time), file_data(1:(end - 4)), NaN(1, 2));
                 catch
                     set(status_box, 'string', 'Selected file does not contain expected variables.')
                     return
+                end
+                try
+                    block.twtt_surf ...
+                            = tmp1.Surface;
+                catch
+                    block.twtt_surf ...
+                            = NaN(1, block.num_trace);
+                    set(status_box, 'string', 'Selected file does not contain the Surface variable. Setting bed pick to NaN.')
                 end
                 try
                     block.twtt_bed ...
@@ -420,6 +428,9 @@ set(disp_group, 'selectedobject', disp_check(1))
                     block.twtt ...
                             = block.twtt';
                 end
+                block.dist  = 1e-3 .* cumsum([0 distance([block.lat(1:(end - 1))' block.lon(1:(end - 1))'], [block.lat(2:end)' block.lon(2:end)'], wgs84Ellipsoid)']);
+                block.dist_lin ...
+                            = interp1([1 block.num_trace], block.dist([1 end]), 1:block.num_trace);
                 tmp1        = 0;
                 set(file_box, 'string', file_data(6:(end - 4)))
                 
@@ -5640,10 +5651,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             reset_dist_min
         else
             if (tmp1(1) < get(dist_min_slide, 'min'))
-                set(dist_min_slide, 'value', get(dist_min_slide, 'min'))
-            else
-                set(dist_min_slide, 'value', tmp1(1))
+                tmp1(1)     = dist_min_ref;
             end
+            set(dist_min_slide, 'value', tmp1(1))
             set(dist_min_edit, 'string', sprintf('%3.1f', tmp1(1)))
             dist_min        = tmp1(1);
         end
@@ -5651,10 +5661,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             reset_dist_max
         else
             if (tmp1(2) > get(dist_max_slide, 'max'))
-                set(dist_max_slide, 'value', get(dist_max_slide, 'max'))
-            else
-                set(dist_max_slide, 'value', tmp1(2))
+                tmp1(2)     = dist_max_ref;
             end
+            set(dist_max_slide, 'value', tmp1(2))
             set(dist_max_edit, 'string', sprintf('%3.1f', tmp1(2)))
             dist_max        = tmp1(2);
         end
@@ -6920,15 +6929,13 @@ set(disp_group, 'selectedobject', disp_check(1))
             [tmp4(1), tmp4(2)] ...
                             = deal(tmp1(1), tmp1(2));
             if (tmp4(1) < get(cb_min_slide, 'min'))
-                set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
-            else
-                set(cb_min_slide, 'value', tmp4(1))
+                tmp4(1)     = db_min_ref;
             end
+            set(cb_min_slide, 'value', tmp4(1))
             if (tmp4(2) > get(cb_max_slide, 'max'))
-                set(cb_max_slide, 'value', get(cb_max_slide, 'max'))
-            else
-                set(cb_max_slide, 'value', tmp4(2))
+                tmp4(2)     = db_min_ref;                
             end
+            set(cb_max_slide, 'value', tmp4(2))
             set(cb_min_edit, 'string', sprintf('%3.0f', tmp4(1)))
             set(cb_max_edit, 'string', sprintf('%3.0f', tmp4(2)))
             caxis(tmp4)
@@ -7146,12 +7153,12 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Mouse wheel shortcut
 
     function wheel_zoom(~, eventdata)
-        switch eventdata.VerticalScrollCount
-            case -1
-                zoom_in
-            case 1
-                zoom_out
-        end
+%         switch eventdata.VerticalScrollCount
+%             case -1
+%                 zoom_in
+%             case 1
+%                 zoom_out
+%         end
     end
 
 %% Mouse click

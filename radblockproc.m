@@ -291,7 +291,7 @@ for ii = 1:num_block
     end
     [block.x, block.y]      = deal((1e-3 .* block.x), (1e-3 .* block.y)); % m to km
     
-    block.dist              = 1e-3 .* cumsum([0 distance([block.lat(1:(end - 1))' block.lon(1:(end - 1))'], [block.lat(2:end)' block.lon(2:end)'], almanac('earth', 'wgs84', 'meters'))']);
+    block.dist              = 1e-3 .* cumsum([0 distance([block.lat(1:(end - 1))' block.lon(1:(end - 1))'], [block.lat(2:end)' block.lon(2:end)'], wgs84Ellipsoid)']);
     block.dist_lin          = interp1([1 block.num_trace], block.dist([1 end]), 1:block.num_trace);
     if (ii > 1) % increment distance vectors along transect, i.e., don't restart them for each block
         block.dist          = block.dist + tmp3(3) + sqrt(((block.x(1) - tmp3(1)) ^ 2) + ((block.y(1) - tmp3(2)) ^ 2));

@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 08/07/14
+% Last updated: 08/21/14
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -22,9 +22,6 @@ if ~exist('smooth_lowess', 'file')
 end
 
 %% Intialize variables
-
-% deep ('deep') or accumulation ('accum') radar data
-radar_type                  = 'deep';
 
 pk                          = struct;
 
@@ -55,7 +52,7 @@ num_cell                    = length(var_cell);
 num_zero                    = length(var_zero);
 var_layer                   = {'ind_y' 'twtt' 'twtt_ice' 'int' 'ind_y_smooth' 'twtt_smooth' 'twtt_ice_smooth' 'int_smooth' 'depth' 'depth_smooth' 'elev' 'elev_smooth'}; % layer variables
 var_layer_gimp              = {'elev_gimp' 'elev_smooth_gimp'}; % layer variables
-var_pos                     = {'dist' 'lat' 'lon' 'x' 'y' 'elev_air' 'twtt_surf' 'elev_surf' 'int_surf' 'twtt_bed' 'elev_bed' 'int_bed'}; % position variables
+var_pos                     = {'dist' 'lat' 'lon' 'x' 'y' 'elev_air' 'time' 'twtt_surf' 'elev_surf' 'int_surf' 'twtt_bed' 'elev_bed' 'int_bed'}; % position variables
 var_pos_gimp                = {'elev_air_gimp' 'elev_surf_gimp' 'elev_bed_gimp'}; % position variables
 num_var_layer               = length(var_layer);
 num_var_layer_gimp          = length(var_layer_gimp);
@@ -79,30 +76,30 @@ colors_def                  = [0    0       0.75;
 letters                     = 'a':'z';
 
 % allocate a bunch of variables
-[age_done, bed_avail, core_done, data_done, edit_flag, flat_done, merge_done, merge_file, surf_avail] ...
+[age_done, bed_avail, core_done, data_done, edit_flag, flat_done, merge_done, merge_file, surf_avail, time_avail] ...
                             = deal(false);
 [age, age_curr, amp_depth, amp_elev, amp_flat, button, colors, colors_age, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ...
  ind_x_pk, ind_x_ref, ind_y_pk, int_core, jj, kk, name_core, name_trans, num_chunk, num_core, num_data, num_decim, num_int, num_pk, num_sample, num_trans, num_year, p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, ...
  p_data, pk_all, p_pk, p_pkdepth, p_pkflat, p_snr, p_surf, pkfig, p_refflat, rad_threshold, snr_all, snrgui, snrlist, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
                             = deal(0);
-[file_age, file_data, file_core, file_pk, file_pk_short, file_save, file_snr, path_age, path_core, path_data, path_pk, path_save, path_snr] ...
+[file_age, file_data, file_core, file_pk, file_pk_short, file_save, file_snr, path_age, path_core, path_data, path_pk, path_save, path_snr, radar_type] ...
                             = deal('');
 layer_str                   = {};
 cb_type                     = 'std';
 
-% if license('checkout', 'distrib_computing_toolbox')
-%     pool_check              = gcp('nocreate');
-%     if isempty(pool_check)
-%         try
-%             parpool('local', 4);
-%         catch
-%             parpool('local');
-%         end
-%     end
-%     parallel_check          = true;
-% else
+if license('checkout', 'distrib_computing_toolbox')
+    pool_check              = gcp('nocreate');
+    if isempty(pool_check)
+        try
+            parpool('local', 4);
+        catch
+            parpool('local');
+        end
+    end
+    parallel_check          = true;
+else
     parallel_check          = false;
-% end
+end
 
 if ispc
     if exist('\\melt\icebridge\data\mat\grl_coast.mat', 'file')
@@ -322,13 +319,13 @@ set(cb_group, 'selectedobject', cb_check(1))
 
     function clear_data(source, eventdata)
         pk                  = struct;
-        [bed_avail, data_done, edit_flag, flat_done, merge_done, merge_file, surf_avail] ...
+        [bed_avail, data_done, edit_flag, flat_done, merge_done, merge_file, surf_avail, time_avail] ...
                             = deal(false);
         [age_curr, amp_depth, amp_elev, amp_flat, colors, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ind_x_pk, ind_x_ref, ind_y_pk, ...
          jj, kk, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, p_pk, p_pkdepth, p_pkflat, p_refflat, p_snr, p_surf, pk_all, pkfig, snrgui, snrlist, ...
          tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
                             = deal(0);
-        [file_data, file_pk, file_pk_short, file_save] ...
+        [file_data, file_pk, file_pk_short, file_save, radar_type] ...
                             = deal('');
         set(file_box, 'string', '')
     end
@@ -403,7 +400,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         % load picks files
         num_pk              = length(file_pk);
         pk_all              = cell(1, num_pk);
-        [bed_avail, surf_avail] ...
+        [bed_avail, surf_avail, time_avail] ...
                             = deal(false(1, num_pk));
         
         for ii = 1:num_pk %#ok<*FXUP>
@@ -413,7 +410,11 @@ set(cb_group, 'selectedobject', cb_check(1))
             try
                 pk_all{ii}  = tmp1.pk;
                 tmp1        = 0;
-                % check to see if surface and bed picks are available
+                % check to see if time, surface and bed picks are available
+                if isfield(pk_all{ii}, 'time')
+                    time_avail(ii) ...
+                            = true;
+                end
                 if isfield(pk_all{ii}, 'elev_bed')
                     bed_avail(ii) ...
                             = true;
@@ -533,8 +534,10 @@ set(cb_group, 'selectedobject', cb_check(1))
                 % merge layer data
                 for jj = 1:pk.num_layer
                     if any(pk.ind_match{ii} == jj)
-                        tmp2                        = find((pk.ind_match{ii} == jj), 1);
-                        pk.ind_match_block(jj, ii)  = true;
+                        tmp2 ...
+                            = find((pk.ind_match{ii} == jj), 1);
+                        pk.ind_match_block(jj, ii)  ...
+                            = true;
                         if (ii == 1)
                             for kk = 1:num_var_layer
                                 eval(['pk.' var_layer{kk} '(jj, tmp1) = single(pk_all{ii}.layer(tmp2).' var_layer{kk} ');'])
@@ -556,21 +559,28 @@ set(cb_group, 'selectedobject', cb_check(1))
                             end
                         end
                     else
-                        pk.ind_layer_all            = setdiff(pk.ind_layer_all, jj);
+                        pk.ind_layer_all ...
+                            = setdiff(pk.ind_layer_all, jj);
                     end
+                end
+                
+                switch num2str([time_avail(ii) surf_avail(ii) bed_avail(ii)])
+                    case '1  1  1'
+                        tmp4= 1:num_var_pos;
+                    case '0  1  1'
+                        tmp4= [1:6 8:num_var_pos];
+                    case '1  0  1'
+                        tmp4= [1:7 (num_var_pos - 3):num_var_pos];
+                    case '0  0  1'
+                        tmp4= [1:6 (num_var_pos - 3):num_var_pos];
+                    case '1  1  0'
+                        tmp4= 1:(num_var_pos - 3);
+                    case '0  1  0'
+                        tmp4= [1:6 8:(num_var_pos - 3)];
                 end
                 
                 % merge position data, dependent on first block
                 if (ii == 1)
-                    if (surf_avail(ii) && bed_avail(ii))
-                        tmp4= 1:num_var_pos;
-                    elseif (surf_avail(ii) && ~bed_avail(ii))
-                        tmp4= 1:(num_var_pos - 3);
-                    elseif (~surf_avail(ii) && bed_avail(ii))
-                        tmp4= [1:6 10:12];
-                    else
-                        tmp4=1:(num_var_pos - 6);
-                    end
                     for jj = tmp4
                         if isfield(pk_all{ii}, var_pos(jj))
                             eval(['pk.' var_pos{jj} '(tmp1) = pk_all{ii}.' var_pos{jj} ';'])
@@ -2053,6 +2063,22 @@ set(cb_group, 'selectedobject', cb_check(1))
         if core_done
             set(status_box, 'string', 'Core intersections already loaded.')
             return
+        end
+        
+        if isempty(radar_type)
+            set(status_box, 'string', 'Deep (D) or accumulation (A) radar?...')
+            waitforbuttonpress
+            switch get(mgui, 'currentcharacter')
+                case {'d' 'D'}
+                    radar_type ...
+                            = 'deep';
+                case {'a' 'A'}
+                    radar_type ...
+                            = 'accum';
+                otherwise
+                    set(status_box, 'string', 'Choice unclear. Try again.')
+                    return
+            end
         end
         
         if merge_file
@@ -4375,7 +4401,7 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Test something
 
     function misctest(source, eventdata)
-        
+        radar_type='';
     end
 
 %%
