@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 08/21/14
+% Last updated: 08/25/14
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -1121,9 +1121,23 @@ set(cb_group, 'selectedobject', cb_check(1))
         pk.poly_flat_merge  = NaN((ord_poly + 1), num_decim, 'single');
         depth_curr          = [zeros(1, num_decim); pk.depth_smooth(:, ind_decim)];
         
-        % keep the maximum number of layers for first go
-        ind_x_ref           = sum(isnan(depth_curr));
-        ind_x_ref           = find((ind_x_ref == min(ind_x_ref)), 1); % reference trace, i.e., the trace with the most layers
+        % keep the maximum number of layers or user-selected trace for first go
+        set(status_box, 'string', 'Select trace to flatten (Y) or let MERGEGUI select automatically...')
+        waitforbuttonpress
+        if strcmpi(get(mgui, 'currentcharacter'), 'Y')
+            set(status_box, 'string', 'Select trace to flatten from...')
+            [ind_x_ref, ~]  = ginput(1);
+            ind_x_ref       = interp1(pk.dist_lin(ind_decim), 1:num_decim, ind_x_ref, 'nearest', 'extrap');
+            if isempty(find(~isnan(pk.depth_smooth(:, ind_decim(ind_x_ref))), 1))
+                set(status_box, 'string', 'No picked layers at that trace so selecting automatically...')
+                pause(0.5)
+                ind_x_ref   = sum(isnan(depth_curr));
+                ind_x_ref   = find((ind_x_ref == min(ind_x_ref)), 1); % reference trace, i.e., the trace with the most layers
+            end
+        else
+            ind_x_ref       = sum(isnan(depth_curr));
+            ind_x_ref       = find((ind_x_ref == min(ind_x_ref)), 1); % reference trace, i.e., the trace with the most layers
+        end
         depth_layer_ref     = depth_curr(:, ind_x_ref); % layer depths at reference trace
         tmp1                = depth_curr(~isnan(depth_layer_ref), :); % depth of all layers that are not nan at the reference trace
         tmp2                = tmp1(:, ind_x_ref); % depths of non-nan layers at reference trace
