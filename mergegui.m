@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 08/25/14
+% Last updated: 09/15/14
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -612,9 +612,9 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
             
             % sort layers by decreasing elevation
-            tmp1        = zeros(pk.num_layer, 1);
+            tmp1            = zeros(pk.num_layer, 1);
             for ii = 1:pk.num_layer
-                tmp1(ii)= nanmean(pk.elev_smooth_gimp(ii, :));
+                tmp1(ii)    = nanmean(pk.elev_smooth_gimp(ii, :));
             end
             [~, tmp1]       = sort(tmp1);
             for ii = 1:num_var_layer
@@ -2541,7 +2541,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             plot(amp_elev(:, tmp1), elev, 'k', 'linewidth', 2)
             for jj = 1:length(tmp3{ii})
                 p_snr{ii}(jj, 1) ...
-                            = plot(amp_elev(interp1(elev, num_sample, pk.elev_gimp(tmp3{ii}(jj), ind_int(tmp2(ii))), 'nearest', 'extrap'), tmp1), pk.elev_gimp(tmp3{ii}(jj), ind_int(tmp2(ii))), 'ko', 'markersize', 8, 'markerfacecolor', 'r');
+                            = plot(amp_elev(interp1(elev, 1:num_sample, pk.elev_gimp(tmp3{ii}(jj), ind_int(tmp2(ii))), 'nearest', 'extrap'), tmp1), pk.elev_gimp(tmp3{ii}(jj), ind_int(tmp2(ii))), 'ko', 'markersize', 8, 'markerfacecolor', 'r');
             end
             set(gca, 'fontsize', 20)
             xlabel('Returned power (dB)')
@@ -2550,7 +2550,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             grid on
             box on
             snrlist(ii)     = uicontrol(snrgui(ii), 'style', 'popupmenu', 'string', num2cell(tmp3{ii}), 'value', 1, 'units', 'normalized', 'position', [0.88 0.85 0.1 0.05], 'fontsize', size_font, 'foregroundcolor', 'k', 'callback', eval(['@choose_snr' num2str(ii)]));
-            uicontrol(snrgui(ii), 'style', 'pushbutton', 'string', 'Pick', 'units', 'normalized', 'position', [0.88 0.75 0.1 0.05], 'callback', eval(['@do_snr' num2str(ii)]), 'fontsize', size_font, 'foregroundcolor', 'm')                                    
+            uicontrol(snrgui(ii), 'style', 'pushbutton', 'string', 'Pick', 'units', 'normalized', 'position', [0.88 0.75 0.1 0.05], 'callback', eval(['@do_snr' num2str(ii)]), 'fontsize', size_font, 'foregroundcolor', 'm')
             uicontrol(snrgui(ii), 'style', 'pushbutton', 'string', 'Save', 'units', 'normalized', 'position', [0.88 0.1 0.1 0.05], 'callback', @save_snr, 'fontsize', size_font, 'foregroundcolor', 'g')
         end
         
@@ -2575,7 +2575,6 @@ set(cb_group, 'selectedobject', cb_check(1))
 
     function choose_snr(source, eventdata)
         tmp5                = tmp3{ii}(get(snrlist(ii), 'value'));
-        set(p_snr{ii}(:, 1), 'markersize', 8, 'markerfacecolor', 'r')
         set(p_snr{ii}(get(snrlist(ii), 'value'), 1), 'markersize', 16, 'markerfacecolor', 'b')
         pause(0.1)
     end
@@ -3943,18 +3942,18 @@ set(cb_group, 'selectedobject', cb_check(1))
                 end
                 if get(surfbed_check, 'value')
                     if (any(surf_avail) && any(~isnan(pk.elev_surf)))
-                        plot(pk.dist_lin(ind_decim), pk.elev_surf_gimp(ind_decim), 'm.', 'markersize', 12)
+                        plot(pk.dist_lin(ind_decim), pk.elev_surf_gimp(ind_decim), 'g.', 'markersize', 6)
                     end
                     if (any(bed_avail) && any(~isnan(pk.elev_bed)))
-                        plot(pk.dist_lin(ind_decim), pk.elev_bed_gimp(ind_decim), 'm.', 'markersize', 12)
+                        plot(pk.dist_lin(ind_decim), pk.elev_bed_gimp(ind_decim), 'g.', 'markersize', 6)
                     end
                 end
                 if get(pk_check, 'value')
                     for ii = 1:pk.num_layer
                         if any(~isnan(pk.elev_smooth(ii, ind_decim)))
-                            tmp1 = plot(pk.dist_lin(ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), pk.elev_smooth_gimp(ii, ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12);
+                            tmp1 = plot(pk.dist_lin(ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), pk.elev_smooth_gimp(ii, ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 6);
                             if (ii == curr_layer)
-                                set(tmp1, 'markersize', 24)
+%                                 set(tmp1, 'markersize', 24)
                             end
                         end
                     end
@@ -3975,7 +3974,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                         tmp1 = double(pk.dist_lin);
                         tmp2 = find(~isnan(ind_int));
                         plot(repmat(tmp1(ind_int(tmp2(ii))), 1, 2), [elev_min elev_max], 'm', 'linewidth', 2)
-                        text(double(tmp1(ind_int(tmp2(ii))) + 1), double(elev_max - (0.2 * (elev_max - elev_min))), name_core{int_core{curr_year}{curr_trans}(tmp2(ii), 3)}, 'color', 'm', 'fontsize', size_font)
+                        text(double(tmp1(ind_int(tmp2(ii))) - 15), double(elev_max + (0.02 * (elev_max - elev_min))), name_core{int_core{curr_year}{curr_trans}(tmp2(ii), 3)}, 'color', 'm', 'fontsize', size_font)
                     end
                 end
                 ylabel('Elevation (m)', 'fontsize', 20)
@@ -3991,16 +3990,16 @@ set(cb_group, 'selectedobject', cb_check(1))
                         tmp2= amp_flat;
                     end
                     tmp2(isnan(tmp2)) ...
-                            = db_max;
+                            = db_min;
                     imagesc(tmp1(ind_decim), depth, tmp2, [db_min db_max])
                     tmp2    = 0;
                 end
                 if get(surfbed_check, 'value')
                     if (any(bed_avail) && any(~isnan(pk.elev_bed)))
                         if any(isnan(depth_bed_flat))
-                            plot(tmp1(ind_decim(~isnan(depth_bed_flat))), depth_bed_flat(~isnan(depth_bed_flat)), 'm.', 'markersize', 12)
+                            plot(tmp1(ind_decim(~isnan(depth_bed_flat))), depth_bed_flat(~isnan(depth_bed_flat)), 'g.', 'markersize', 6)
                         else
-                            plot(tmp1(ind_decim), depth_bed_flat, 'm.', 'markersize', 12)
+                            plot(tmp1(ind_decim), depth_bed_flat, 'g.', 'markersize', 6)
                         end
                     end
                 end
@@ -4008,14 +4007,14 @@ set(cb_group, 'selectedobject', cb_check(1))
                     for ii = 1:pk.num_layer
                         if strcmp(disp_type, 'depth')
                             if any(~isnan(pk.depth_smooth(ii, ind_decim)))
-                                tmp1 = plot(pk.dist_lin(ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), pk.depth_smooth(ii, ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12);
+                                tmp1 = plot(pk.dist_lin(ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), pk.depth_smooth(ii, ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 6);
                                 if (ii == curr_layer)
-                                    set(tmp1, 'markersize', 24)
+%                                     set(tmp1, 'markersize', 24)
                                 end
                             end
                         else
                             if ~isempty(find(~isnan(depth_layer_flat(ii, :)), 1))
-                                plot(tmp1(ind_decim(~isnan(depth_layer_flat(ii, :)))), depth_layer_flat(ii, ~isnan(depth_layer_flat(ii, :))), '.', 'markersize', 12, 'color', colors(ii, :))
+                                plot(tmp1(ind_decim(~isnan(depth_layer_flat(ii, :)))), depth_layer_flat(ii, ~isnan(depth_layer_flat(ii, :))), '.', 'markersize', 6, 'color', colors(ii, :))
                             end
                         end
                     end
@@ -4035,7 +4034,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                     tmp2 = find(~isnan(ind_int));
                     for ii = tmp2
                         plot(repmat(tmp1(ind_int(ii)), 1, 2), [depth_min depth_max], 'm', 'linewidth', 2)
-                        text(double(tmp1(ind_int(ii)) + 1), double(depth_min + (0.2 * (depth_max - depth_min))), name_core{int_core{curr_year}{curr_trans}(ii, 3)}, 'color', 'm', 'fontsize', size_font)
+                        text(double(tmp1(ind_int(ii)) - 15), double(depth_min - (0.02 * (depth_max - depth_min))), name_core{int_core{curr_year}{curr_trans}(ii, 3)}, 'color', 'm', 'fontsize', size_font)
                     end
                 end
                 if (strcmp(disp_type, 'flat') && get(surfbed_check, 'value'))
@@ -4046,7 +4045,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         set(gca, 'fontsize', 20, 'layer', 'top')
         xlabel('Distance (km)')
-        title(file_pk_short, 'fontweight', 'bold', 'interpreter', 'none')
+%         title(file_pk_short, 'fontweight', 'bold', 'interpreter', 'none')
         colorbar('fontsize', 20)
         if get(grid_check, 'value')
             grid on
@@ -4415,7 +4414,7 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Test something
 
     function misctest(source, eventdata)
-        radar_type='';
+        
     end
 
 %%

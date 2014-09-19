@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 08/21/14
+% Last updated: 08/24/14
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -1573,7 +1573,6 @@ set(disp_group, 'selectedobject', disp_check(1))
         % loop through each starter y index at pk.ind_x_start_phase and propagate from that x index using the filtered phase gradient
         for ii = 1:pk.num_phase %#ok<*FXUP>
             for jj = (pk.ind_x_start_phase - 1):-1:1 % loop heading left of pk.ind_x_start_phase
-%                 ind_y_phase(ii, jj)     = ind_y_phase(ii, (jj + 1)) + interp1(1:num_sample_trim, tmp1(:, (jj + 1)), ind_y_phase(ii, (jj + 1)));
                 ind_y_phase(ii, jj)     = ind_y_phase(ii, (jj + 1)) + tmp1(round(ind_y_phase(ii, (jj + 1))), (jj + 1));
                 if (ind_y_phase(ii, jj) < 1)
                     ind_y_phase(ii, jj) = 1;
@@ -1582,7 +1581,6 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
             end
             for jj = (pk.ind_x_start_phase + 1):block.num_trace % loop heading right of pk.ind_x_start_phase
-%                 ind_y_phase(ii, jj)     = ind_y_phase(ii, (jj - 1)) - interp1(1:num_sample_trim, tmp1(:, (jj - 1)), ind_y_phase(ii, (jj - 1)));
                 ind_y_phase(ii, jj)     = ind_y_phase(ii, (jj - 1)) - tmp1(round(ind_y_phase(ii, (jj - 1))), (jj - 1));
                 if (ind_y_phase(ii, jj) < 1)
                     ind_y_phase(ii, jj) = 1;
@@ -1591,8 +1589,6 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
             end
         end
-        
-%         ind_y_phase         = round(ind_y_phase);
         
         tmp1                = 0;
         
@@ -1865,7 +1861,6 @@ set(disp_group, 'selectedobject', disp_check(1))
         % loop through each starter y index at pk.ind_x_start and propagate from that x index using the ARESP slope
         for ii = 1:pk.num_aresp %#ok<*FXUP>
             for jj = (pk.ind_x_start_aresp - 1):-1:1 % loop heading left of pk.ind_x_start
-%                 ind_y_aresp(ii, jj)     = ind_y_aresp(ii, (jj + 1)) + interp1(1:num_sample_trim, block.slope_aresp(:, (jj + 1)), ind_y_aresp(ii, (jj + 1)));
                 ind_y_aresp(ii, jj)     = ind_y_aresp(ii, (jj + 1)) + block.slope_aresp(round(ind_y_aresp(ii, (jj + 1))), (jj + 1));
                 if (ind_y_aresp(ii, jj) < 1)
                     ind_y_aresp(ii, jj) = 1;
@@ -1876,7 +1871,6 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
             end
             for jj = (pk.ind_x_start_aresp + 1):block.num_trace % loop heading right of pk.ind_x_start
-%                 ind_y_aresp(ii, jj)     = ind_y_aresp(ii, (jj - 1)) - interp1(1:num_sample_trim, block.slope_aresp(:, (jj - 1)), ind_y_aresp(ii, (jj - 1)));
                 ind_y_aresp(ii, jj)     = ind_y_aresp(ii, (jj - 1)) - block.slope_aresp(round(ind_y_aresp(ii, (jj - 1))), (jj - 1));
                 if (ind_y_aresp(ii, jj) < 1)
                     ind_y_aresp(ii, jj) = 1;
@@ -1887,8 +1881,6 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
             end
         end
-        
-%         ind_y_aresp         = round(ind_y_aresp);
         
         % remove ARESP layers that NaN'd out
         tmp1                = find(sum(isnan(ind_y_aresp), 2));
@@ -4780,7 +4772,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             plot_twtt
         end
         if ~ref_done
-            set(status_box, 'string', 'First block of the transect? Y: yes; otherwise: no.')
+            set(status_box, 'string', 'First picked block of the sub-transect? Y: yes; otherwise: no.')
             waitforbuttonpress
             if strcmpi(get(pkgui, 'currentcharacter'), 'Y')
                 pk.ind_match= (1:pk.num_layer)';
@@ -7153,12 +7145,12 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Mouse wheel shortcut
 
     function wheel_zoom(~, eventdata)
-%         switch eventdata.VerticalScrollCount
-%             case -1
-%                 zoom_in
-%             case 1
-%                 zoom_out
-%         end
+        switch eventdata.VerticalScrollCount
+            case -1
+                zoom_in
+            case 1
+                zoom_out
+        end
     end
 
 %% Mouse click

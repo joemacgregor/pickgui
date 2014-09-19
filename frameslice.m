@@ -7,7 +7,7 @@ function frameslice(dir_in, file_in, num_slice, dir_out)
 %   in DIR_OUT.
 %
 % Joe MacGregor (UTIG)
-% Last updated: 06/20/14
+% Last updated: 08/23/14
 
 % warning/error checks
 if (nargin < 4)
@@ -63,7 +63,9 @@ for ii = 1:num_in
             ind_tmp         = find(tmp1.GPS_time > tmp1_old.GPS_time(end)); %#ok<EFIND>
             if ~isempty(ind_tmp)
                 for jj = 1:length(vars2slice)
-                    eval(['tmp1.' vars2slice{jj} ' = tmp1.' vars2slice{jj} '(:, ind_tmp);'])
+                    if isfield(tmp1, vars2slice{jj})
+                        eval(['tmp1.' vars2slice{jj} ' = tmp1.' vars2slice{jj} '(:, ind_tmp);'])
+                    end
                 end
             else
                 disp(['Skipping ' file_in_all{ii} ' because it overlaps completely in time with the previous data file (' file_in_all{ii - 1} ').'])
@@ -78,7 +80,12 @@ for ii = 1:num_in
     ind_slice(end)          = num_trace + 1; % adjust the last index to simplify loop
     
     Time                    = tmp1.Time; % two-way traveltime doesn't need slicing
-    Depth                   = tmp1.Depth; % same for depth
+    if isfield(tmp1, 'Depth')
+        Depth               = tmp1.Depth; % same for depth
+    else
+        Depth               = NaN(length(Time), 1);
+        disp([file_in_all{ii}(1:(end - 4)) ' missing Depth.'])
+    end
     
     % loop through slices
     for jj = 1:num_slice
@@ -86,7 +93,9 @@ for ii = 1:num_in
         curr_ind            = ind_slice(jj):(ind_slice(jj + 1) - 1); % indices within original dataset to keep for this loop iteration
         
         for kk = 1:length(vars2slice) % go through each variable and get the values of the current indices
-            eval([vars2slice{kk} ' = tmp1.' vars2slice{kk} '(:, curr_ind);'])
+            if isfield(tmp1, vars2slice{kk})
+                eval([vars2slice{kk} ' = tmp1.' vars2slice{kk} '(:, curr_ind);'])
+            end
         end
         
         if isfield(tmp1, 'param_records') % new format
@@ -140,8 +149,11 @@ for ii = 1:num_in
                             = [];
             end
             if (jj < 10)
-                save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_0' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Depth', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time', ...
-                                                                                             'array_param', 'param_combine_wf_chan', 'param_csarp', 'param_radar', 'param_records', 'param_get_heights', 'param_qlook', 'param_vectors')
+                save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_00' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Depth', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time', ...
+                                                                                              'array_param', 'param_combine_wf_chan', 'param_csarp', 'param_radar', 'param_records', 'param_get_heights', 'param_qlook', 'param_vectors')
+            elseif (jj < 100)
+                save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_00' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Depth', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time', ...
+                                                                                              'array_param', 'param_combine_wf_chan', 'param_csarp', 'param_radar', 'param_records', 'param_get_heights', 'param_qlook', 'param_vectors')
             else
                 save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Depth', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time', ...
                                                                                             'array_param', 'param_combine_wf_chan', 'param_csarp', 'param_radar', 'param_records', 'param_get_heights', 'param_qlook', 'param_vectors')

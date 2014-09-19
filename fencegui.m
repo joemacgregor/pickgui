@@ -11,7 +11,7 @@ function fencegui
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 08/08/14
+% Last updated: 09/08/14
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -22,17 +22,14 @@ end
 
 %% Intialize variables
 
-% deep ('deep') or accumulation ('accum') radar data
-radar_type                  = 'accum';
 
 % elevation/depth defaults
 [elev_min_ref, elev_max_ref]= deal(0, 1);
-elev_min                    = zeros(1, 3);
-elev_max                    = ones(1, 3);
+elev_min                    = zeros(1, 2);
+elev_max                    = ones(1, 2);
 [depth_min_ref, depth_max_ref] ...
                             = deal(0, 1);
-depth_min                   = zeros(1, 2);
-depth_max                   = ones(1, 2);
+[depth_min, depth_max]      = deal(0, 1);
 
 % x/y defaults
 [x_min_ref, x_max_ref]      = deal(0, 1);
@@ -92,7 +89,7 @@ p_int1                      = cell(2, 3);
                             = deal(1);
 curr_rad_alt                = 2;
 curr_dim                    = '3D';
-[file_core, file_master, file_ref, path_core, path_master, path_ref] ...
+[file_core, file_master, file_ref, path_core, path_master, path_ref, radar_type] ...
                             = deal('');
 letters                     = 'a':'z';
 
@@ -284,8 +281,6 @@ dist_min_slide(2)           = uicontrol(fgui(2), 'style', 'slider', 'units', 'no
 dist_max_slide(2)           = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.81 0.005 0.12 0.02], 'callback', @slide_dist_max2, 'min', dist_min_ref(2), 'max', dist_max_ref(2), 'value', dist_max_ref(2), 'sliderstep', [0.01 0.1]);
 z_min_slide(2)              = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.07 width_slide 0.32], 'callback', @slide_z_min2, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min_ref, 'sliderstep', [0.01 0.1]);
 z_max_slide(2)              = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.005 0.50 width_slide 0.32], 'callback', @slide_z_max2, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max_ref, 'sliderstep', [0.01 0.1]);
-z_min_slide(3)              = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.505 0.07 width_slide 0.32], 'callback', @slide_z_min3, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min_ref, 'sliderstep', [0.01 0.1]);
-z_max_slide(3)              = uicontrol(fgui(2), 'style', 'slider', 'units', 'normalized', 'position', [0.505 0.50 width_slide 0.32], 'callback', @slide_z_max3, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max_ref, 'sliderstep', [0.01 0.1]);
 
 % slider values
 cb_min_edit(2)              = annotation('textbox', [0.48 0.39 0.04 0.03], 'string', num2str(db_min(1)), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
@@ -297,9 +292,7 @@ dist_min_edit(2)            = annotation('textbox', [0.55 0.005 0.04 0.03], 'str
 dist_max_edit(1)            = annotation('textbox', [0.295 0.005 0.04 0.03], 'string', num2str(dist_max_ref(1)), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 dist_max_edit(2)            = annotation('textbox', [0.775 0.005 0.04 0.03], 'string', num2str(dist_max_ref(2)), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 z_min_edit(2)               = annotation('textbox', [0.005 0.39 0.04 0.03], 'string', num2str(elev_min_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-z_min_edit(3)               = annotation('textbox', [0.51 0.39 0.04 0.03], 'string', num2str(elev_min_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-z_max_edit(2)               = annotation('textbox', [0.005 0.82 0.04 0.03], 'string', num2str(elev_max_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-z_max_edit(3)               = annotation('textbox', [0.51 0.82 0.04 0.03], 'string', num2str(elev_max_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+z_max_edit(2)               = annotation('textbox', [0.005 0.82 0.04 0.03], 'string', num2str(elev_min_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 
 % push buttons
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Load master data', 'units', 'normalized', 'position', [0.005 0.925 0.085 0.03], 'callback', @load_data1, 'fontsize', size_font, 'foregroundcolor', 'b')
@@ -321,8 +314,6 @@ uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalize
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.455 0.005 0.03 0.03], 'callback', @reset_dist_max1, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.48 0.03 0.03 0.03], 'callback', @reset_db_min2, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.48 0.46 0.03 0.03], 'callback', @reset_db_max2, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.51 0.03 0.03 0.03], 'callback', @reset_z_min3, 'fontsize', size_font, 'foregroundcolor', 'r')
-uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.51 0.46 0.03 0.03], 'callback', @reset_z_max3, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.705 0.005 0.03 0.03], 'callback', @reset_dist_min2, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.935 0.005 0.03 0.03], 'callback', @reset_dist_max2, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.965 0.03 0.03 0.03], 'callback', @reset_db_min3, 'fontsize', size_font, 'foregroundcolor', 'r')
@@ -333,8 +324,8 @@ uicontrol(fgui(2), 'style', 'pushbutton', 'string', 'Focus', 'units', 'normalize
 % fixed text annotations
 b(1)                        = annotation('textbox', [0.10 0.925 0.03 0.03], 'string', 'N_{decim}', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
 b(2)                        = annotation('textbox', [0.465 0.925 0.03 0.03], 'string', 'N_{decim}', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
-b(3)                        = annotation('textbox', [0.49 0.42 0.03 0.03], 'string', 'dB/z_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-b(4)                        = annotation('textbox', [0.49 0.85 0.03 0.03], 'string', 'dB/z_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+b(3)                        = annotation('textbox', [0.49 0.42 0.03 0.03], 'string', 'dB_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+b(4)                        = annotation('textbox', [0.49 0.85 0.03 0.03], 'string', 'dB_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 b(5)                        = annotation('textbox', [0.965 0.42 0.03 0.03], 'string', 'dB_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 b(6)                        = annotation('textbox', [0.965 0.85 0.03 0.03], 'string', 'dB_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 b(7)                        = annotation('textbox', [0.18 0.965 0.03 0.03], 'string', 'Layer', 'fontsize', size_font, 'color', 'm', 'edgecolor', 'none');
@@ -348,19 +339,18 @@ b(14)                       = annotation('textbox', [0.74 0.005 0.03 0.03], 'str
 b(15)                       = annotation('textbox', [0.005 0.42 0.03 0.03], 'string', 'z_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 b(16)                       = annotation('textbox', [0.005 0.85 0.03 0.03], 'string', 'z_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 b(17)                       = annotation('textbox', [0.005 0.88 0.03 0.03], 'string', 'fix', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-b(18)                       = annotation('textbox', [0.525 0.88 0.03 0.03], 'string', 'fix', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-b(19)                       = annotation('textbox', [0.485 0.005 0.03 0.03], 'string', 'fix', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-b(20)                       = annotation('textbox', [0.965 0.005 0.03 0.03], 'string', 'fix', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-b(21)                       = annotation('textbox', [0.95 0.88 0.03 0.03], 'string', 'fix 1', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-b(22)                       = annotation('textbox', [0.98 0.88 0.03 0.03], 'string', '2', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-b(23)                       = annotation('textbox', [0.465 0.88 0.03 0.03], 'string', 'fix 1', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-b(24)                       = annotation('textbox', [0.4925 0.88 0.03 0.03], 'string', '2', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-b(25)                       = annotation('textbox', [0.04 0.88 0.08 0.03], 'string', 'Intersection #', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
-b(26)                       = annotation('textbox', [0.15 0.88 0.08 0.03], 'string', 'Core', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
-b(27)                       = annotation('textbox', [0.56 0.88 0.08 0.03], 'string', 'Intersections', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
-b(28)                       = annotation('textbox', [0.635 0.88 0.08 0.03], 'string', 'Core', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
-b(29)                       = annotation('textbox', [0.74 0.925 0.08 0.03], 'string', 'Nearest', 'fontsize', size_font, 'color', 'm', 'edgecolor', 'none');
-b(30)                       = annotation('textbox', [0.79 0.925 0.08 0.03], 'string', 'Match', 'fontsize', size_font, 'color', 'm', 'edgecolor', 'none');
+b(18)                       = annotation('textbox', [0.485 0.005 0.03 0.03], 'string', 'fix', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+b(19)                       = annotation('textbox', [0.965 0.005 0.03 0.03], 'string', 'fix', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+b(20)                       = annotation('textbox', [0.95 0.88 0.03 0.03], 'string', 'fix 1', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+b(21)                       = annotation('textbox', [0.98 0.88 0.03 0.03], 'string', '2', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+b(22)                       = annotation('textbox', [0.465 0.88 0.03 0.03], 'string', 'fix 1', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+b(23)                       = annotation('textbox', [0.4925 0.88 0.03 0.03], 'string', '2', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
+b(24)                       = annotation('textbox', [0.04 0.88 0.08 0.03], 'string', 'Intersection #', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
+b(25)                       = annotation('textbox', [0.15 0.88 0.08 0.03], 'string', 'Core', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
+b(26)                       = annotation('textbox', [0.56 0.88 0.08 0.03], 'string', 'Intersections', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
+b(27)                       = annotation('textbox', [0.635 0.88 0.08 0.03], 'string', 'Core', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
+b(28)                       = annotation('textbox', [0.74 0.925 0.08 0.03], 'string', 'Nearest', 'fontsize', size_font, 'color', 'm', 'edgecolor', 'none');
+b(29)                       = annotation('textbox', [0.79 0.925 0.08 0.03], 'string', 'Match', 'fontsize', size_font, 'color', 'm', 'edgecolor', 'none');
 if ~ispc
     set(b, 'fontweight', 'bold')
 end
@@ -397,7 +387,6 @@ data_list(2)                = uicontrol(fgui(2), 'style', 'popupmenu', 'string',
 distfix_check(1)            = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.50 0.005 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
 distfix_check(2)            = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.98 0.005 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
 zfix_check(2)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.02 0.88 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
-zfix_check(3)               = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.54 0.88 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
 cbfix_check1(2)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.485 0.88 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
 cbfix_check1(3)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.97 0.88 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(2), 'color'));
 cbfix_check2(2)             = uicontrol(fgui(2), 'style', 'checkbox', 'units', 'normalized', 'position', [0.50 0.88 0.01 0.02], 'callback', @narrow_cb2, 'fontsize', size_font, 'value', 1, 'backgroundcolor', get(fgui(2), 'color'));
@@ -420,10 +409,6 @@ figure(fgui(1))
 linkprop(layer_list(:, 1), {'value' 'string'});
 linkprop(layer_list(:, 2), {'value' 'string'});
 linkaxes(ax(2:3), 'y')
-linkprop(z_min_slide(2:3), {'value' 'min' 'max'});
-linkprop(z_max_slide(2:3), {'value' 'min' 'max'});
-linkprop(z_min_edit(2:3), 'string');
-linkprop(z_max_edit(2:3), 'string');
 
 %% Clear plots
 
@@ -503,6 +488,21 @@ linkprop(z_max_edit(2:3), 'string');
         if int_done
             set(status_box(1), 'string', 'Transect intersections already loaded.')
             return
+        end
+        if isempty(radar_type)
+            set(status_box(1), 'string', 'Deep (D) or accumulation (A) radar?...')
+            waitforbuttonpress
+            switch get(fgui(1), 'currentcharacter')
+                case {'d' 'D'}
+                    radar_type ...
+                            = 'deep';
+                case {'a' 'A'}
+                    radar_type ...
+                            = 'accum';
+                otherwise
+                    set(status_box(1), 'string', 'Choice unclear. Try again.')
+                    return
+            end
         end
         if ispc
             if exist('\\melt\icebridge\data\mat\', 'dir')
@@ -1177,48 +1177,43 @@ linkprop(z_max_edit(2:3), 'string');
         if (curr_rad == 2)
             [tmp1, tmp2, tmp3, tmp4, tmp5] ...
                             = deal([x{1}(~isinf(x{1})) x{2}(~isinf(x{2}))], [y{1}(~isinf(y{1})) y{2}(~isinf(y{2}))], ...
-                                   [elev_surf{1}(~isinf(elev_surf{1})) elev_surf{2}(~isinf(elev_surf{2}))], [elev_bed{1}(~isinf(elev_bed{1})) elev_bed{2}(~isinf(elev_bed{2}))], ...
-                                   [elev_smooth{1}(~isinf(elev_smooth{1}(:))); elev_smooth{2}(~isinf(elev_smooth{2}(:)))]);
+                                   [elev_surf{1}(~isinf(elev_surf{1})) elev_surf{2}(~isinf(elev_surf{2}))], [elev_bed{1}(~isinf(elev_bed{1})) elev_bed{2}(~isinf(elev_bed{2}))], [elev_smooth{1}(~isinf(elev_smooth{1}(:))); elev_smooth{2}(~isinf(elev_smooth{2}(:)))]);
             [x_min_ref, x_max_ref, x_min, x_max] ...
                             = deal(nanmin(tmp1), nanmax(tmp1), nanmin(tmp1), nanmax(tmp1));
             [y_min_ref, y_max_ref, y_min, y_max] ...
                             = deal(nanmin(tmp2), nanmax(tmp2), nanmin(tmp2), nanmax(tmp2));
             if all(surf_avail)
-                [elev_max_ref, elev_max(1:3)] ...
+                [elev_max_ref, elev_max(1:2)] ...
                             = deal(max(tmp3));
             else
-                [elev_max_ref, elev_max(1:3)] ...
+                [elev_max_ref, elev_max(1:2)] ...
                             = deal(nanmax(tmp5) + (0.1 * (nanmax(tmp5) - nanmin(tmp5))));
             end
             if all(bed_avail)
-                [elev_min_ref, elev_min(1:3)] ...
+                [elev_min_ref, elev_min(1:2)] ...
                             = deal(nanmin(tmp4));
             else
-                [elev_min_ref, elev_min(1:3)] ...
+                [elev_min_ref, elev_min(1:2)] ...
                             = deal(nanmin(tmp5) - (0.1 * (nanmax(tmp5) - nanmin(tmp5))));
             end
         else
             [x_min_ref, x_max_ref, x_min, x_max] ...
-                            = deal(nanmin(x{curr_rad}(~isinf(x{curr_rad}))), nanmax(x{curr_rad}(~isinf(x{curr_rad}))), nanmin(x{curr_rad}(~isinf(x{curr_rad}))), ...
-                                   nanmax(x{curr_rad}(~isinf(x{curr_rad}))));
+                            = deal(nanmin(x{curr_rad}(~isinf(x{curr_rad}))), nanmax(x{curr_rad}(~isinf(x{curr_rad}))), nanmin(x{curr_rad}(~isinf(x{curr_rad}))), nanmax(x{curr_rad}(~isinf(x{curr_rad}))));
             [y_min_ref, y_max_ref, y_min, y_max] ...
-                            = deal(nanmin(y{curr_rad}(~isinf(y{curr_rad}))), nanmax(y{curr_rad}(~isinf(y{curr_rad}))), nanmin(y{curr_rad}(~isinf(y{curr_rad}))), ...
-                                   nanmax(y{curr_rad}(~isinf(y{curr_rad}))));
+                            = deal(nanmin(y{curr_rad}(~isinf(y{curr_rad}))), nanmax(y{curr_rad}(~isinf(y{curr_rad}))), nanmin(y{curr_rad}(~isinf(y{curr_rad}))), nanmax(y{curr_rad}(~isinf(y{curr_rad}))));
             if surf_avail(curr_rad)
                 [elev_max_ref, elev_max(1:2)] ...
                             = deal(nanmax(elev_surf{curr_rad}(~isinf(elev_surf{curr_rad}))));
             else
                 [elev_max_ref, elev_max(1:2)] ...
-                            = deal(nanmax(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))) + (0.1 * (nanmax(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))) - ...
-                                   nanmin(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))))));
+                            = deal(nanmax(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))) + (0.1 * (nanmax(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))) - nanmin(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))))));
             end
             if bed_avail(curr_rad)
                 [elev_min_ref, elev_min(1:2)] ...
                             = deal(nanmin(elev_bed{curr_rad}(~isinf(elev_bed{curr_rad}))));
             else
                 [elev_min_ref, elev_min(1:2)] ...
-                            = deal(nanmin(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))) - (0.1 * (nanmax(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))) - ...
-                                   nanmin(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))))));
+                            = deal(nanmin(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))) - (0.1 * (nanmax(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))) - nanmin(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))))));
             end
         end
         
@@ -1238,9 +1233,6 @@ linkprop(z_max_edit(2:3), 'string');
         set(dist_max_edit(curr_rad), 'string', sprintf('%4.1f', dist_max_ref(curr_rad)))
         set(z_min_edit, 'string', sprintf('%4.0f', elev_min_ref))
         set(z_max_edit, 'string', sprintf('%4.0f', elev_max_ref))
-        update_x_range
-        update_y_range
-        update_z_range
         
         pk_done(curr_rad)   = true;
         set(pk_check(:, curr_rad), 'value', 1)
@@ -1343,10 +1335,11 @@ linkprop(z_max_edit(2:3), 'string');
             load_core_breakout
         end
         
-        if (curr_rad == 2)
-            reset_xz1
-            curr_rad        = 2;
+        if all(pk_done)
+            set(intnum_list, 'value', 1)
+            change_int
         end
+        reset_xyz
         
         set(status_box(1), 'string', ['Loaded ' file_pk_short{curr_rad} '.'])
     end
@@ -1573,13 +1566,18 @@ linkprop(z_max_edit(2:3), 'string');
         end
         [amp_elev{curr_rad}, ind_corr{curr_rad}] ...
                             = topocorr(amp_depth{curr_rad}, depth{curr_rad}, tmp3); % topographically correct data
+
+%%%
+amp_depth{curr_rad}=0;
+%%%
+                        
         amp_elev{curr_rad}  = flipud(amp_elev{curr_rad}); % flip for axes
         ind_corr{curr_rad}  = max(ind_corr{curr_rad}) - ind_corr{curr_rad} + 1;
         depth{curr_rad}     = (speed_ice / 2) .* (0:dt(curr_rad):((num_sample(curr_rad) - 1) * dt(curr_rad)))'; % simple monotonically increasing depth vector
         elev{curr_rad}      = flipud(max(elev_surf{curr_rad}(ind_decim{curr_rad})) - depth{curr_rad}); % elevation vector
         
         % assign traveltime and distance reference values/sliders based on data
-        [elev_min_ref, db_min_ref(curr_ax), elev_max_ref, db_max_ref(curr_ax), elev_min(curr_ax), db_min(curr_ax), elev_max(curr_ax), db_max(curr_ax), depth_min(curr_rad), depth_max(curr_rad)] ...
+        [elev_min_ref, db_min_ref(curr_ax), elev_max_ref, db_max_ref(curr_ax), elev_min(curr_gui), db_min(curr_ax), elev_max(curr_gui), db_max(curr_ax), depth_min, depth_max] ...
                             = deal(nanmin([nanmin(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_min_ref]), nanmin(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:)))), nanmax([nanmax(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_max_ref]), ...
                                    nanmax(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:)))), nanmin([nanmin(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_min_ref]), nanmin(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:)))), ...
                                    nanmax([max(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_max_ref]), nanmax(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:)))), min(depth{curr_rad}), max(depth{curr_rad}));
@@ -1594,7 +1592,6 @@ linkprop(z_max_edit(2:3), 'string');
         set(cb_max_slide(curr_ax), 'min', db_min_ref(curr_ax), 'max', db_max_ref(curr_ax), 'value', db_max_ref(curr_ax))
         set(cb_min_edit(curr_ax), 'string', sprintf('%3.0f', db_min_ref(curr_ax)))
         set(cb_max_edit(curr_ax), 'string', sprintf('%3.0f', db_max_ref(curr_ax)))
-        update_z_range
         
         if all(pk_done)
             for ii = 1:3
@@ -1909,24 +1906,24 @@ linkprop(z_max_edit(2:3), 'string');
                     tmp1(2) = elev_max_ref;
                 end
                 ylim(tmp1)
-                [elev_min(curr_ax), elev_max(curr_ax)] ...
+                [elev_min(curr_gui), elev_max(curr_gui)] ...
                             = deal(tmp1(1), tmp1(2));
-                if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                elseif (elev_min(curr_ax) > get(z_min_slide(curr_ax), 'max'))
-                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                if (elev_min(curr_gui) < get(z_min_slide(curr_gui), 'min'))
+                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
+                elseif (elev_min(curr_gui) > get(z_min_slide(curr_gui), 'max'))
+                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'max'))
                 else
-                    set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                    set(z_min_slide(curr_gui), 'value', elev_min(curr_gui))
                 end
-                if (elev_max(curr_ax) < get(z_max_slide(curr_ax), 'min'))
-                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
-                elseif (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                if (elev_max(curr_gui) < get(z_max_slide(curr_gui), 'min'))
+                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'min'))
+                elseif (elev_max(curr_gui) > get(z_max_slide(curr_gui), 'max'))
+                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                 else
-                    set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                    set(z_max_slide(curr_gui), 'value', elev_max(curr_gui))
                 end
-                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_min(curr_gui)))
+                set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_max(curr_gui)))
             case 'depth'
                 ylim([min(pk{curr_rad}.depth_smooth(curr_layer(curr_rad), ind_decim{curr_rad})) max(pk{curr_rad}.depth_smooth(curr_layer(curr_rad), ind_decim{curr_rad}))])
                 tmp1        = get(ax_radar, 'ylim');
@@ -1939,24 +1936,24 @@ linkprop(z_max_edit(2:3), 'string');
                     tmp1(2) = depth_max_ref;
                 end
                 ylim(tmp1)
-                [depth_min(curr_rad), depth_max(curr_rad)] ...
+                [depth_min, depth_max] ...
                             = deal(tmp1(1), tmp1(2));
-                if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
-                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
-                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                if ((depth_max_ref - (depth_max - depth_min_ref)) < get(z_min_slide(curr_gui), 'min'))
+                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
+                elseif ((depth_max_ref - (depth_max - depth_min_ref)) > get(z_min_slide(curr_gui), 'max'))
+                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'max'))
                 else
-                    set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                    set(z_min_slide(curr_gui), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
                 end
-                if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
-                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
-                elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
-                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                if ((depth_max_ref - (depth_min - depth_min_ref)) < get(z_max_slide(curr_gui), 'min'))
+                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'min'))
+                elseif ((depth_max_ref - (depth_min - depth_min_ref)) > get(z_max_slide(curr_gui), 'max'))
+                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                 else
-                    set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                    set(z_max_slide(curr_gui), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
                 end
-                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
-                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+                set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', depth_max))
+                set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', depth_min))
         end
         narrow_cb
         set(status_box(2), 'string', ['Focused on layer #' num2str(curr_layer(curr_rad)) '.'])
@@ -2229,8 +2226,8 @@ linkprop(z_max_edit(2:3), 'string');
             set(status_box(1), 'string', 'Locate master layer ID list before saving picks.')
             return
         else
-            set(status_box(1), 'string', 'Confirm that master layer ID list is not being accessed. Press any key...')
-            waitforbuttonpress
+%             set(status_box(1), 'string', 'Confirm that master layer ID list is not being accessed. Press any key...')
+%             waitforbuttonpress
             try
                 tmp1        = load([path_master file_master]);
                 [id_layer_master_mat, id_layer_master_cell] ...
@@ -2242,35 +2239,35 @@ linkprop(z_max_edit(2:3), 'string');
             end
         end
         
-        set(status_box(1), 'string', 'Select locations to save picks...')
-        pause(0.1)
-        
-        [tmp1, tmp2, tmp3, tmp4] ...
-                            = deal(file_pk{1}, path_pk{1}, file_pk{2}, path_pk{2});
-        
-        if ~isempty(path_pk{1})
-            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_pk{1} file_pk{1}]);
-        elseif ~isempty(path_data{1})
-            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_data{1} file_pk{1}]);
-        elseif ~isempty(path_pk{2})
-            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_pk{2} file_pk{1}]);
-        elseif ~isempty(path_data{2})
-            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_data{2} file_pk{1}]);
-        else
-            [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', file_pk{1});
-        end
-        
-        if ~isempty(path_pk{2})
-            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_pk{2} file_pk{2}]);
-        elseif ~isempty(path_data{2})
-            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_data{2} file_pk{2}]);
-        elseif ~isempty(path_pk{1})
-            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_pk{1} file_pk{2}]);
-        elseif ~isempty(path_data{1})
-            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_data{1} file_pk{2}]);
-        else
-            [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', file_pk{2});
-        end
+%         set(status_box(1), 'string', 'Select locations to save picks...')
+%         pause(0.1)
+%         
+%         [tmp1, tmp2, tmp3, tmp4] ...
+%                             = deal(file_pk{1}, path_pk{1}, file_pk{2}, path_pk{2});
+%         
+%         if ~isempty(path_pk{1})
+%             [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_pk{1} file_pk{1}]);
+%         elseif ~isempty(path_data{1})
+%             [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_data{1} file_pk{1}]);
+%         elseif ~isempty(path_pk{2})
+%             [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_pk{2} file_pk{1}]);
+%         elseif ~isempty(path_data{2})
+%             [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_data{2} file_pk{1}]);
+%         else
+%             [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', file_pk{1});
+%         end
+%         
+%         if ~isempty(path_pk{2})
+%             [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_pk{2} file_pk{2}]);
+%         elseif ~isempty(path_data{2})
+%             [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_data{2} file_pk{2}]);
+%         elseif ~isempty(path_pk{1})
+%             [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_pk{1} file_pk{2}]);
+%         elseif ~isempty(path_data{1})
+%             [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_data{1} file_pk{2}]);
+%         else
+%             [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', file_pk{2});
+%         end
         
         if (~ischar(file_pk{1}) || ~ischar(file_pk{2}))
             [file_pk{1}, path_pk{1}, file_pk{2}, path_pk{2}] ...
@@ -2373,6 +2370,11 @@ linkprop(z_max_edit(2:3), 'string');
         catch
             set(status_box(1), 'string', 'MASTER LAYER ID LIST DID NOT SAVE. Try saving again shortly. Don''t perform any other operation.')
             return
+        end
+        
+        if (get(int_list, 'value') < length(get(int_list, 'string')))
+            set(int_list, 'value', (get(int_list, 'value') + 1))
+            load_pk2
         end
     end
 
@@ -2585,93 +2587,87 @@ linkprop(z_max_edit(2:3), 'string');
         slide_z_min
     end
 
-    function slide_z_min3(source, eventdata)
-        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
-                            = deal(2, 3, 2, 1);
-        slide_z_min
-    end
-
     function slide_z_min(source, eventdata)
         if ((curr_gui == 1) || strcmp(disp_type, 'elev.'))
-            if (get(z_min_slide(curr_ax), 'value') < elev_max(curr_ax))
-                if get(zfix_check(curr_ax), 'value')
-                    tmp1    = elev_max(curr_ax) - elev_min(curr_ax);
+            if (get(z_min_slide(curr_gui), 'value') < elev_max(curr_gui))
+                if get(zfix_check(curr_gui), 'value')
+                    tmp1    = elev_max(curr_gui) - elev_min(curr_gui);
                 end
-                elev_min(curr_ax) = get(z_min_slide(curr_ax), 'value');
-                if get(zfix_check(curr_ax), 'value')
-                    elev_max(curr_ax) = elev_min(curr_ax) + tmp1;
-                    if (elev_max(curr_ax) > elev_max_ref)
-                        elev_max(curr_ax) = elev_max_ref;
-                        elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
-                        if (elev_min(curr_ax) < elev_min_ref)
-                            elev_min(curr_ax) = elev_min_ref;
+                elev_min(curr_gui) = get(z_min_slide(curr_gui), 'value');
+                if get(zfix_check(curr_gui), 'value')
+                    elev_max(curr_gui) = elev_min(curr_gui) + tmp1;
+                    if (elev_max(curr_gui) > elev_max_ref)
+                        elev_max(curr_gui) = elev_max_ref;
+                        elev_min(curr_gui) = elev_max(curr_gui) - tmp1;
+                        if (elev_min(curr_gui) < elev_min_ref)
+                            elev_min(curr_gui) = elev_min_ref;
                         end
-                        if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                        if (elev_min(curr_gui) < get(z_min_slide(curr_gui), 'min'))
+                            set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
                         else
-                            set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                            set(z_min_slide(curr_gui), 'value', elev_min(curr_gui))
                         end
                     end
-                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-                    if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                    set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_max(curr_gui)))
+                    if (elev_max(curr_gui) > get(z_max_slide(curr_gui), 'max'))
+                        set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                     else
-                        set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                        set(z_max_slide(curr_gui), 'value', elev_max(curr_gui))
                     end
                 end
-                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_min(curr_gui)))
                 update_z_range
             else
-                if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                if (elev_min(curr_gui) < get(z_min_slide(curr_gui), 'min'))
+                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
                 else
-                    set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                    set(z_min_slide(curr_gui), 'value', elev_min(curr_gui))
                 end
             end
-        elseif((depth_max_ref - (get(z_min_slide(curr_ax), 'value') - depth_min_ref)) > depth_min(curr_rad))
-            if get(zfix_check(curr_ax), 'value')
-                tmp1            = depth_max(curr_rad) - depth_min(curr_rad);
+        elseif((depth_max_ref - (get(z_min_slide(curr_gui), 'value') - depth_min_ref)) > depth_min)
+            if get(zfix_check(curr_gui), 'value')
+                tmp1            = depth_max - depth_min;
             end
-            depth_max(curr_rad) = depth_max_ref - (get(z_min_slide(curr_ax), 'value') - depth_min_ref);
-            if get(zfix_check(curr_ax), 'value')
-                depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
-                if (depth_min(curr_rad) < depth_min_ref)
-                    depth_min(curr_rad) = depth_min_ref;
-                    depth_max(curr_rad) = depth_min(curr_rad) + tmp1;
-                    if (depth_max(curr_rad) > depth_max_ref)
-                        depth_max(curr_rad) = depth_max_ref;
+            depth_max = depth_max_ref - (get(z_min_slide(curr_gui), 'value') - depth_min_ref);
+            if get(zfix_check(curr_gui), 'value')
+                depth_min = depth_max - tmp1;
+                if (depth_min < depth_min_ref)
+                    depth_min = depth_min_ref;
+                    depth_max = depth_min + tmp1;
+                    if (depth_max > depth_max_ref)
+                        depth_max = depth_max_ref;
                     end
-                    if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
-                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                    elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
-                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                    if ((depth_max_ref - (depth_max - depth_min_ref)) < get(z_min_slide(curr_gui), 'min'))
+                        set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
+                    elseif ((depth_max_ref - (depth_max - depth_min_ref)) > get(z_min_slide(curr_gui), 'max'))
+                        set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'max'))
                     else
-                        set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                        set(z_min_slide(curr_gui), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
                     end
                 end
-                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
-                if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
-                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
-                elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
-                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', depth_max))
+                if ((depth_max_ref - (depth_min - depth_min_ref)) < get(z_max_slide(curr_gui), 'min'))
+                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'min'))
+                elseif ((depth_max_ref - (depth_min - depth_min_ref)) > get(z_max_slide(curr_gui), 'max'))
+                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                 else
-                    set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                    set(z_max_slide(curr_gui), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
                 end
             end
-            set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
+            set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', depth_max))
             update_z_range
         else
-            if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
-                set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-            elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
-                set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+            if ((depth_max_ref - (depth_max - depth_min_ref)) < get(z_min_slide(curr_gui), 'min'))
+                set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
+            elseif ((depth_max_ref - (depth_max - depth_min_ref)) > get(z_min_slide(curr_gui), 'max'))
+                set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'max'))
             else
-                set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                set(z_min_slide(curr_gui), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
             end
         end
-        set(z_min_slide(curr_ax), 'enable', 'off')
+        set(z_min_slide(curr_gui), 'enable', 'off')
         drawnow
-        set(z_min_slide(curr_ax), 'enable', 'on')
+        set(z_min_slide(curr_gui), 'enable', 'on')
     end
 
 %% Update maximum dB/x/y/z/dist
@@ -2883,91 +2879,84 @@ linkprop(z_max_edit(2:3), 'string');
         slide_z_max
     end
 
-    function slide_z_max3(source, eventdata)
-        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
-                            = deal(2, 3, 2, 1);
-        slide_z_max
-    end
-
     function slide_z_max(source, eventdata)
         if ((curr_gui == 1) || strcmp(disp_type, 'elev.'))
-            
-            if (get(z_max_slide(curr_ax), 'value') > elev_min(curr_ax))
-                if get(zfix_check(curr_ax), 'value')
-                    tmp1    = elev_max(curr_ax) - elev_min(curr_ax);
+            if (get(z_max_slide(curr_gui), 'value') > elev_min(curr_gui))
+                if get(zfix_check(curr_gui), 'value')
+                    tmp1    = elev_max(curr_gui) - elev_min(curr_gui);
                 end
-                elev_max(curr_ax) = get(z_max_slide(curr_ax), 'value');
-                if get(zfix_check(curr_ax), 'value')
-                    elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
-                    if (elev_min(curr_ax) < elev_min_ref)
-                        elev_min(curr_ax) = elev_min_ref;
-                        elev_max(curr_ax) = elev_min(curr_ax) + tmp1;
-                        if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                            set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                elev_max(curr_gui) = get(z_max_slide(curr_gui), 'value');
+                if get(zfix_check(curr_gui), 'value')
+                    elev_min(curr_gui) = elev_max(curr_gui) - tmp1;
+                    if (elev_min(curr_gui) < elev_min_ref)
+                        elev_min(curr_gui) = elev_min_ref;
+                        elev_max(curr_gui) = elev_min(curr_gui) + tmp1;
+                        if (elev_max(curr_gui) > get(z_max_slide(curr_gui), 'max'))
+                            set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                         else
-                            set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                            set(z_max_slide(curr_gui), 'value', elev_max(curr_gui))
                         end
                     end
-                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-                    if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                    set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_min(curr_gui)))
+                    if (elev_min(curr_gui) < get(z_min_slide(curr_gui), 'min'))
+                        set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
                     else
-                        set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                        set(z_min_slide(curr_gui), 'value', elev_min(curr_gui))
                     end
                 end
-                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
+                set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_max(curr_gui)))
                 update_z_range
             else
-                if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                if (elev_max(curr_gui) > get(z_max_slide(curr_gui), 'max'))
+                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                 else
-                    set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                    set(z_max_slide(curr_gui), 'value', elev_max(curr_gui))
                 end
             end
-        elseif ((depth_max_ref - (get(z_max_slide(curr_ax), 'value') - depth_min_ref)) < depth_max(curr_rad))
-            if get(zfix_check(curr_ax), 'value')
-                tmp1        = depth_max(curr_rad) - depth_min(curr_rad);
+        elseif ((depth_max_ref - (get(z_max_slide(curr_gui), 'value') - depth_min_ref)) < depth_max)
+            if get(zfix_check(curr_gui), 'value')
+                tmp1        = depth_max - depth_min;
             end
-            depth_min(curr_rad) = depth_max_ref - (get(z_max_slide(curr_ax), 'value') - depth_min_ref);
-            if get(zfix_check(curr_ax), 'value')
-                depth_max(curr_rad) = depth_min(curr_rad) + tmp1;
-                if (depth_max(curr_rad) > depth_max_ref)
-                    depth_max(curr_rad) = depth_max_ref;
-                    depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
-                    if (depth_min(curr_rad) < depth_min_ref)
-                        depth_min(curr_rad) = depth_min_ref;
+            depth_min = depth_max_ref - (get(z_max_slide(curr_gui), 'value') - depth_min_ref);
+            if get(zfix_check(curr_gui), 'value')
+                depth_max = depth_min + tmp1;
+                if (depth_max > depth_max_ref)
+                    depth_max = depth_max_ref;
+                    depth_min = depth_max - tmp1;
+                    if (depth_min < depth_min_ref)
+                        depth_min = depth_min_ref;
                     end
-                    if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
-                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
-                    elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
-                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                    if ((depth_max_ref - (depth_min - depth_min_ref)) < get(z_max_slide(curr_gui), 'min'))
+                        set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'min'))
+                    elseif ((depth_max_ref - (depth_min - depth_min_ref)) > get(z_max_slide(curr_gui), 'max'))
+                        set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                     else
-                        set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                        set(z_max_slide(curr_gui), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
                     end
                 end
-                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
-                if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide, 'min'))
-                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide, 'max'))
-                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', depth_max))
+                if ((depth_max_ref - (depth_max - depth_min_ref)) < get(z_min_slide, 'min'))
+                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
+                elseif ((depth_max_ref - (depth_max - depth_min_ref)) > get(z_min_slide, 'max'))
+                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'max'))
                 else
-                    set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                    set(z_min_slide(curr_gui), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
                 end
             end
-            set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+            set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', depth_min))
             update_z_range
         else
-            if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
-                set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
-            elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
-                set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+            if ((depth_max_ref - (depth_min - depth_min_ref)) < get(z_max_slide(curr_gui), 'min'))
+                set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'min'))
+            elseif ((depth_max_ref - (depth_min - depth_min_ref)) > get(z_max_slide(curr_gui), 'max'))
+                set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
             else
-                set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                set(z_max_slide(curr_gui), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
             end
         end
-        set(z_max_slide(curr_ax), 'enable', 'off')
+        set(z_max_slide(curr_gui), 'enable', 'off')
         drawnow
-        set(z_max_slide(curr_ax), 'enable', 'on')
+        set(z_max_slide(curr_gui), 'enable', 'on')
     end
 
 %% Reset minimum dB/x/y/z/dist
@@ -3060,44 +3049,38 @@ linkprop(z_max_edit(2:3), 'string');
         reset_z_min
     end
 
-    function reset_z_min3(source, eventdata)
-        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
-                            = deal(2, 3, 2, 1);
-        reset_z_min
-    end
-
     function reset_z_min(source, eventdata)
-        elev_min(curr_ax)   = elev_min_ref;
+        elev_min(curr_gui)   = elev_min_ref;
         switch curr_gui
             case 1
-                if (elev_min_ref < get(z_min_slide(curr_ax), 'min'))
-                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                if (elev_min_ref < get(z_min_slide(curr_gui), 'min'))
+                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
                 else
-                    set(z_min_slide(curr_ax), 'value', elev_min_ref)
+                    set(z_min_slide(curr_gui), 'value', elev_min_ref)
                 end
-                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min_ref))
+                set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_min_ref))
             case 2
-                depth_max(curr_rad) ...
+                depth_max ...
                             = depth_max_ref;
                 switch disp_type
                     case 'elev.'
-                        elev_min(curr_ax) ...
+                        elev_min(curr_gui) ...
                             = elev_min_ref;
-                        if (elev_min_ref < get(z_min_slide(curr_ax), 'min'))
-                            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                        if (elev_min_ref < get(z_min_slide(curr_gui), 'min'))
+                            set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
                         else
-                            set(z_min_slide(curr_ax), 'value', elev_min_ref)
+                            set(z_min_slide(curr_gui), 'value', elev_min_ref)
                         end
-                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min_ref))
+                        set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_min_ref))
                     case 'depth'
-                        if (depth_min_ref < get(z_min_slide(curr_ax), 'min'))
-                            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                        elseif (depth_min_ref > get(z_min_slide(curr_ax), 'max'))
-                            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                        if (depth_min_ref < get(z_min_slide(curr_gui), 'min'))
+                            set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
+                        elseif (depth_min_ref > get(z_min_slide(curr_gui), 'max'))
+                            set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'max'))
                         else
-                            set(z_min_slide(curr_ax), 'value', depth_min_ref)
+                            set(z_min_slide(curr_gui), 'value', depth_min_ref)
                         end
-                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max_ref))
+                        set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', depth_max_ref))
                 end
         end
         update_z_range
@@ -3192,42 +3175,36 @@ linkprop(z_max_edit(2:3), 'string');
         reset_z_max
     end
 
-    function reset_z_max3(source, eventdata)
-        [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
-                            = deal(2, 3, 2, 1);
-        reset_z_max
-    end
-
     function reset_z_max(source, eventdata)
-        elev_max(curr_ax)   = elev_max_ref;
+        elev_max(curr_gui)   = elev_max_ref;
         switch curr_gui
             case 1                
-                if (elev_max_ref > get(z_max_slide(curr_ax), 'max'))
-                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                if (elev_max_ref > get(z_max_slide(curr_gui), 'max'))
+                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                 else
-                    set(z_max_slide(curr_ax), 'value', elev_max_ref)
+                    set(z_max_slide(curr_gui), 'value', elev_max_ref)
                 end
-                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max_ref))
+                set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_max_ref))
             case 2
-                depth_min(curr_rad) ...
+                depth_min ...
                             = depth_min_ref;
                 switch disp_type
                     case 'elev.'
-                        if (elev_max_ref > get(z_max_slide(curr_ax), 'max'))
-                            set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                        if (elev_max_ref > get(z_max_slide(curr_gui), 'max'))
+                            set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                         else
-                            set(z_max_slide(curr_ax), 'value', elev_max_ref)
+                            set(z_max_slide(curr_gui), 'value', elev_max_ref)
                         end
-                        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max_ref))
+                        set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_max_ref))
                     case 'depth'
-                        if (depth_min_ref < get(z_min_slide(curr_ax), 'min'))
-                            set(z_min_slide, 'value', get(z_min_slide(curr_ax), 'min'))
-                        elseif (depth_min_ref > get(z_min_slide(curr_ax), 'max'))
-                            set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                        if (depth_min_ref < get(z_min_slide(curr_gui), 'min'))
+                            set(z_min_slide, 'value', get(z_min_slide(curr_gui), 'min'))
+                        elseif (depth_min_ref > get(z_min_slide(curr_gui), 'max'))
+                            set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'max'))
                         else
-                            set(z_min_slide(curr_ax), 'value', depth_min_ref)
+                            set(z_min_slide(curr_gui), 'value', depth_min_ref)
                         end
-                        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max_ref))
+                        set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', depth_max_ref))
                 end
         end
         update_z_range
@@ -3293,13 +3270,13 @@ linkprop(z_max_edit(2:3), 'string');
         set(rad_group, 'selectedobject', rad_check(curr_rad))
         axes(ax(curr_ax))
         if (curr_gui == 1)
-            zlim([elev_min(curr_ax) elev_max(curr_ax)])
+            zlim([elev_min(curr_gui) elev_max(curr_gui)])
         else
             switch disp_type
                 case 'elev.'
-                    ylim([elev_min(curr_ax) elev_max(curr_ax)])
+                    ylim([elev_min(curr_gui) elev_max(curr_gui)])
                 case 'depth'
-                    ylim([depth_min(curr_rad) depth_max(curr_rad)])
+                    ylim([depth_min depth_max])
             end
         end
         narrow_cb
@@ -3307,20 +3284,12 @@ linkprop(z_max_edit(2:3), 'string');
             case 2
                 [curr_ax, curr_rad] ...
                            = deal(3, 2);
-                [elev_min(3), elev_max(3)] ...
-                           = deal(elev_min(2), elev_max(2));
-                [depth_min(2), depth_max(2)] ...
-                            = deal(depth_min(1), depth_max(1));
                 narrow_cb
                 [curr_ax, curr_rad] ...
                            = deal(2, 1);
             case 3
                 [curr_ax, curr_rad] ...
                            = deal(2, 1);
-                [elev_min(2), elev_max(2)] ...
-                            = deal(elev_min(3), elev_max(3));
-                [depth_min(1), depth_max(1)] ...
-                            = deal(depth_min(2), depth_max(2));
                 narrow_cb
                 [curr_ax, curr_rad] ...
                            = deal(3, 2);
@@ -3372,54 +3341,54 @@ linkprop(z_max_edit(2:3), 'string');
                 if (tmp1(1) < elev_min_ref)
                     reset_y_min
                 else
-                    if (tmp1(1) < get(z_min_slide(curr_ax), 'min'))
-                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                    if (tmp1(1) < get(z_min_slide(curr_gui), 'min'))
+                        set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
                     else
-                        set(z_min_slide(curr_ax), 'value', tmp1(1))
+                        set(z_min_slide(curr_gui), 'value', tmp1(1))
                     end
-                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', tmp1(1)))
-                    elev_min(curr_ax) ...
+                    set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', tmp1(1)))
+                    elev_min(curr_gui) ...
                             = tmp1(1);
                 end
                 if (tmp1(2) > elev_max_ref)
                     reset_y_max
                 else
-                    if (tmp1(2) > get(z_max_slide(curr_ax), 'max'))
-                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                    if (tmp1(2) > get(z_max_slide(curr_gui), 'max'))
+                        set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                     else
-                        set(z_max_slide(curr_ax), 'value', tmp1(2))
+                        set(z_max_slide(curr_gui), 'value', tmp1(2))
                     end
-                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', tmp1(2)))
-                    elev_max(curr_ax) = tmp1(2);
+                    set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', tmp1(2)))
+                    elev_max(curr_gui) = tmp1(2);
                 end
             case 'depth'
-                tmp2        = [depth_min(curr_rad) depth_max(curr_rad)];
+                tmp2        = [depth_min depth_max];
                 if (tmp1(1) < depth_min_ref)
                     reset_z_min
                 else
-                    if (tmp1(1) < get(z_min_slide(curr_ax), 'min'))
-                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                    elseif (tmp1(1) > get(z_min_slide(curr_ax), 'max'))
-                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                    if (tmp1(1) < get(z_min_slide(curr_gui), 'min'))
+                        set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
+                    elseif (tmp1(1) > get(z_min_slide(curr_gui), 'max'))
+                        set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'max'))
                     else
-                        set(z_min_slide(curr_ax), 'value', tmp1(1))
+                        set(z_min_slide(curr_gui), 'value', tmp1(1))
                     end
-                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', tmp1(1)))
-                    depth_min(curr_rad) ...
+                    set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', tmp1(1)))
+                    depth_min ...
                             = tmp1(1);
                 end
                 if (tmp1(2) > depth_max_ref)
                     reset_z_max
                 else
-                    if (tmp1(2) < get(z_max_slide(curr_ax), 'min'))
-                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
-                    elseif (tmp1(2) > get(z_max_slide(curr_ax), 'max'))
-                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                    if (tmp1(2) < get(z_max_slide(curr_gui), 'min'))
+                        set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'min'))
+                    elseif (tmp1(2) > get(z_max_slide(curr_gui), 'max'))
+                        set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                     else
-                        set(z_max_slide(curr_ax), 'value', tmp1(2))
+                        set(z_max_slide(curr_gui), 'value', tmp1(2))
                     end
-                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', tmp1(2)))
-                    depth_max(curr_rad) ...
+                    set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', tmp1(2)))
+                    depth_max ...
                             = tmp1(2);
                 end
         end
@@ -3428,20 +3397,12 @@ linkprop(z_max_edit(2:3), 'string');
             case 2
                 [curr_ax, curr_rad] ...
                            = deal(3, 2);
-                [elev_min(3), elev_max(3)] ...
-                           = deal(elev_min(2), elev_max(2));
-                [depth_min(2), depth_max(2)] ...
-                            = deal(depth_min(1), depth_max(1));
                 narrow_cb
                 [curr_ax, curr_rad] ...
                            = deal(2, 1);
             case 3
                 [curr_ax, curr_rad] ...
                            = deal(2, 1);
-                [elev_min(2), elev_max(2)] ...
-                            = deal(elev_min(3), elev_max(3));
-                [depth_min(1), depth_max(1)] ...
-                            = deal(depth_min(2), depth_max(2));
                 narrow_cb
                 [curr_ax, curr_rad] ...
                            = deal(3, 2);
@@ -3461,43 +3422,38 @@ linkprop(z_max_edit(2:3), 'string');
             delete(p_data(curr_gui, curr_rad))
         end
         axes(ax(curr_ax))
-        set(z_min_slide(curr_ax), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max(curr_ax))
-        set(z_max_slide(curr_ax), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min(curr_ax))
-        set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-        set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+        set(z_min_slide(curr_gui), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max(curr_gui))
+        set(z_max_slide(curr_gui), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min(curr_gui))
+        set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_max(curr_gui)))
+        set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_min(curr_gui)))
         if (data_done(curr_rad) && data_check(curr_gui, curr_rad))
             switch curr_gui
                 case 1
                     set(status_box(1), 'string', 'Displaying radargram in 3D GUI...')
-                    zlim([elev_min(curr_ax) elev_max(curr_ax)])
+                    zlim([elev_min(curr_gui) elev_max(curr_gui)])
                     p_data(curr_gui, curr_rad) ...
                             = surf(repmat(x{curr_rad}(ind_decim{curr_rad}), num_sample(curr_rad), 1), repmat(y{curr_rad}(ind_decim{curr_rad}), num_sample(curr_rad), 1), repmat(elev{curr_rad}, 1, num_decim(curr_rad)), double(amp_elev{curr_rad}), ...
                                    'facecolor', 'flat', 'edgecolor', 'none', 'facelighting', 'none');
                     set(status_box(1), 'string', 'Displayed. Changing view will be slower.')
                     reset_xyz
-                    narrow_cb
-                    show_data
-                    show_core
-                    show_pk
-                    show_int
                 case 2
-                    set(data_check, 'value', 1)
+                    set(data_check(curr_gui, curr_rad), 'value', 1)
                     axes(ax(curr_ax))
-                    set(z_min_slide(curr_ax), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max(curr_ax))
-                    set(z_max_slide(curr_ax), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min(curr_ax))
-                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
+                    set(z_min_slide(curr_gui), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max(curr_gui))
+                    set(z_max_slide(curr_gui), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min(curr_gui))
+                    set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_max(curr_gui)))
+                    set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_min(curr_gui)))
                     axis xy
-                    ylim([elev_min(curr_ax) elev_max(curr_ax)])
+                    ylim([elev_min(curr_gui) elev_max(curr_gui)])
                     p_data(curr_gui, curr_rad) ...
                         = imagesc(dist_lin{curr_rad}(ind_decim{curr_rad}), elev{curr_rad}, amp_elev{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
                     reset_xz
-                    narrow_cb
-                    show_data
-                    show_core
-                    show_pk
-                    show_int
             end
+            narrow_cb
+            show_data
+            show_core
+            show_pk
+            show_int
         end
     end
 
@@ -3518,12 +3474,12 @@ linkprop(z_max_edit(2:3), 'string');
                             = deal(ii, (ii - 1));
             set(data_check(curr_gui, curr_rad), 'value', 1)
             axes(ax(curr_ax)) %#ok<*LAXES>
-            set(z_min_slide(curr_ax), 'min', depth_min_ref, 'max', depth_max_ref, 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
-            set(z_max_slide(curr_ax), 'min', depth_min_ref, 'max', depth_max_ref, 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
-            set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
-            set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
+            set(z_min_slide(curr_gui), 'min', depth_min_ref, 'max', depth_max_ref, 'value', (depth_max_ref - (depth_max - depth_min_ref)))
+            set(z_max_slide(curr_gui), 'min', depth_min_ref, 'max', depth_max_ref, 'value', (depth_max_ref - (depth_min - depth_min_ref)))
+            set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', depth_max))
+            set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', depth_min))
             axis ij
-            ylim([depth_min(curr_rad) depth_max(curr_rad)])
+            ylim([depth_min depth_max])
             p_data(curr_gui, curr_rad) ...
                             = imagesc(dist_lin{curr_rad}(ind_decim{curr_rad}), depth{curr_rad}, amp_depth{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
             reset_xz
@@ -4044,10 +4000,8 @@ linkprop(z_max_edit(2:3), 'string');
         end
         axes(ax(2))
         xlim([dist_min(1) dist_max(1)])
-        narrow_cb2
         axes(ax(3))
         xlim([dist_min(2) dist_max(2)])
-        narrow_cb3
         set(dist_min_slide(1), 'value', dist_min(1))
         set(dist_min_slide(2), 'value', dist_min(2))
         set(dist_max_slide(1), 'value', dist_max(1))
@@ -4058,6 +4012,17 @@ linkprop(z_max_edit(2:3), 'string');
         set(dist_max_edit(2), 'string', sprintf('%3.0f', dist_max(2)))
         [curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(tmp3(1), tmp3(2), tmp3(3));
+        if any(~isnan([elev_surf{1}(curr_ind_int(curr_int, 1)) elev_surf{2}(curr_ind_int(curr_int, 2))]))
+            elev_max(2)     = nanmean([elev_surf{1}(curr_ind_int(curr_int, 1)) elev_surf{2}(curr_ind_int(curr_int, 2))]);
+            set(z_max_slide(2), 'value', elev_max(2))
+            set(z_max_edit(2), 'string', sprintf('%4.0f', elev_max(2)))
+        end
+        if any(~isnan([elev_bed{1}(curr_ind_int(curr_int, 1)) elev_bed{2}(curr_ind_int(curr_int, 2))]))
+            elev_min(2)     = nanmean([elev_bed{1}(curr_ind_int(curr_int, 1)) elev_bed{2}(curr_ind_int(curr_int, 2))]);
+            set(z_min_slide(2), 'value', elev_min(2))
+            set(z_min_edit(2), 'string', sprintf('%4.0f', elev_min(2)))
+        end
+        update_z_range
     end
 
 %% Toggle gridlines
@@ -4118,12 +4083,12 @@ linkprop(z_max_edit(2:3), 'string');
         tmp1(1, :)          = interp1(dist_lin{curr_rad}(ind_decim{curr_rad}), 1:num_decim(curr_rad), [dist_min(curr_rad) dist_max(curr_rad)], 'nearest', 'extrap');
         switch disp_type
             case 'elev.'
-                tmp1(2, :)  = interp1(elev{curr_rad}, 1:num_sample(curr_rad), [elev_min(curr_ax) elev_max(curr_ax)], 'nearest', 'extrap');
+                tmp1(2, :)  = interp1(elev{curr_rad}, 1:num_sample(curr_rad), [elev_min(curr_gui) elev_max(curr_gui)], 'nearest', 'extrap');
                 tmp1(2, :)  = flipud(tmp1(2, :));
-                tmp1        = amp_elev{curr_rad}(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
+                tmp1        = amp_elev{curr_rad}(tmp1(2, 1):10:tmp1(2, 2), tmp1(1, 1):10:tmp1(1, 2));
             case 'depth'
-                tmp1(2, :)  = interp1(depth{curr_rad}, 1:num_sample(curr_rad), [depth_min(curr_rad) depth_max(curr_rad)], 'nearest', 'extrap');
-                tmp1        = amp_depth{curr_rad}(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
+                tmp1(2, :)  = interp1(depth{curr_rad}, 1:num_sample(curr_rad), [depth_min depth_max], 'nearest', 'extrap');
+                tmp1        = amp_depth{curr_rad}(tmp1(2, 1):10:tmp1(2, 2), tmp1(1, 1):10:tmp1(1, 2));
         end
         tmp2                = NaN(1, 2);
         [tmp2(1), tmp2(2)]  = deal(nanmean(tmp1(~isinf(tmp1))), nanstd(tmp1(~isinf(tmp1))));
@@ -4415,6 +4380,18 @@ linkprop(z_max_edit(2:3), 'string');
                     set(core_check(curr_ax), 'value', 1)
                 end
                 show_core
+            case '0'
+                [curr_ax, curr_rad, curr_rad_alt] ...
+                            = deal(2, 1, 2);
+                if get(pk_check(curr_gui, curr_rad), 'value')
+                    set(pk_check(curr_gui, :), 'value', 0)
+                else
+                    set(pk_check(curr_gui, :), 'value', 1)
+                end
+                show_pk
+                [curr_ax, curr_rad, curr_rad_alt] ...
+                            = deal(3, 2, 1);
+                show_pk
             case 'a'
                 pk_last
             case 'b'
@@ -4484,56 +4461,56 @@ linkprop(z_max_edit(2:3), 'string');
                 pk_select_gui1
             case 'downarrow'
                 if strcmp(disp_type, 'elev.')
-                    tmp1 = elev_max(curr_ax) - elev_min(curr_ax);
-                    tmp2 = elev_min(curr_ax) - (0.25 * tmp1);
+                    tmp1 = elev_max(curr_gui) - elev_min(curr_gui);
+                    tmp2 = elev_min(curr_gui) - (0.25 * tmp1);
                     if (tmp2 < elev_min_ref)
-                        elev_min(curr_ax) = elev_min_ref;
+                        elev_min(curr_gui) = elev_min_ref;
                     else
-                        elev_min(curr_ax) = tmp2;
+                        elev_min(curr_gui) = tmp2;
                     end
-                    elev_max(curr_ax)    = elev_min(curr_ax) + tmp1;
-                    if (elev_max(curr_ax) > elev_max_ref)
-                        elev_max(curr_ax) = elev_max_ref;
+                    elev_max(curr_gui)    = elev_min(curr_gui) + tmp1;
+                    if (elev_max(curr_gui) > elev_max_ref)
+                        elev_max(curr_gui) = elev_max_ref;
                     end
-                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-                    if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                    set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_min(curr_gui)))
+                    set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_max(curr_gui)))
+                    if (elev_min(curr_gui) < get(z_min_slide(curr_gui), 'min'))
+                        set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
                     else
-                        set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                        set(z_min_slide(curr_gui), 'value', elev_min(curr_gui))
                     end
-                    if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                    if (elev_max(curr_gui) > get(z_max_slide(curr_gui), 'max'))
+                        set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                     else
-                        set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                        set(z_max_slide(curr_gui), 'value', elev_max(curr_gui))
                     end
                 else
-                    tmp1 = depth_max(curr_rad) - depth_min(curr_rad);
-                    tmp2 = depth_max(curr_rad) + (0.25 * tmp1);
+                    tmp1 = depth_max - depth_min;
+                    tmp2 = depth_max + (0.25 * tmp1);
                     if (tmp2 > depth_max_ref)
-                        depth_max(curr_rad) = depth_max_ref;
+                        depth_max = depth_max_ref;
                     else
-                        depth_max(curr_rad) = tmp2;
+                        depth_max = tmp2;
                     end
-                    depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
-                    if (depth_min(curr_rad) < depth_min_ref)
-                        depth_min(curr_rad) = depth_min_ref;
+                    depth_min = depth_max - tmp1;
+                    if (depth_min < depth_min_ref)
+                        depth_min = depth_min_ref;
                     end
-                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
-                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
-                    if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
-                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                    elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
-                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                    set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', depth_max))
+                    set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', depth_min))
+                    if ((depth_max_ref - (depth_max - depth_min_ref)) < get(z_min_slide(curr_gui), 'min'))
+                        set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
+                    elseif ((depth_max_ref - (depth_max - depth_min_ref)) > get(z_min_slide(curr_gui), 'max'))
+                        set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'max'))
                     else
-                        set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                        set(z_min_slide(curr_gui), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
                     end
-                    if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
-                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
-                    elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
-                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                    if ((depth_max_ref - (depth_min - depth_min_ref)) < get(z_max_slide(curr_gui), 'min'))
+                        set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'min'))
+                    elseif ((depth_max_ref - (depth_min - depth_min_ref)) > get(z_max_slide(curr_gui), 'max'))
+                        set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                     else
-                        set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                        set(z_max_slide(curr_gui), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
                     end
                 end
                 switch curr_ax
@@ -4541,56 +4518,56 @@ linkprop(z_max_edit(2:3), 'string');
                         [curr_ax, curr_rad] = deal(3, 2);
                         switch disp_type
                             case 'elev.'
-                                tmp1 = elev_max(curr_ax) - elev_min(curr_ax);
-                                tmp2 = elev_min(curr_ax) - (0.25 * tmp1);
+                                tmp1 = elev_max(curr_gui) - elev_min(curr_gui);
+                                tmp2 = elev_min(curr_gui) - (0.25 * tmp1);
                                 if (tmp2 < elev_min_ref)
-                                    elev_min(curr_ax) = elev_min_ref;
+                                    elev_min(curr_gui) = elev_min_ref;
                                 else
-                                    elev_min(curr_ax) = tmp2;
+                                    elev_min(curr_gui) = tmp2;
                                 end
-                                elev_max(curr_ax)    = elev_min(curr_ax) + tmp1;
-                                if (elev_max(curr_ax) > elev_max_ref)
-                                    elev_max(curr_ax) = elev_max_ref;
+                                elev_max(curr_gui)    = elev_min(curr_gui) + tmp1;
+                                if (elev_max(curr_gui) > elev_max_ref)
+                                    elev_max(curr_gui) = elev_max_ref;
                                 end
-                                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-                                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-                                if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_min(curr_gui)))
+                                set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_max(curr_gui)))
+                                if (elev_min(curr_gui) < get(z_min_slide(curr_gui), 'min'))
+                                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
                                 else
-                                    set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                                    set(z_min_slide(curr_gui), 'value', elev_min(curr_gui))
                                 end
-                                if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                if (elev_max(curr_gui) > get(z_max_slide(curr_gui), 'max'))
+                                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                                 else
-                                    set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                                    set(z_max_slide(curr_gui), 'value', elev_max(curr_gui))
                                 end
                             case 'depth'
-                                tmp1 = depth_max(curr_rad) - depth_min(curr_rad);
-                                tmp2 = depth_max(curr_rad) + (0.25 * tmp1);
+                                tmp1 = depth_max - depth_min;
+                                tmp2 = depth_max + (0.25 * tmp1);
                                 if (tmp2 > depth_max_ref)
-                                    depth_max(curr_rad) = depth_max_ref;
+                                    depth_max = depth_max_ref;
                                 else
-                                    depth_max(curr_rad) = tmp2;
+                                    depth_max = tmp2;
                                 end
-                                depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
-                                if (depth_min(curr_rad) < depth_min_ref)
-                                    depth_min(curr_rad) = depth_min_ref;
+                                depth_min = depth_max - tmp1;
+                                if (depth_min < depth_min_ref)
+                                    depth_min = depth_min_ref;
                                 end
-                                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
-                                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
-                                if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
-                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                                elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
-                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                                set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', depth_max))
+                                set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', depth_min))
+                                if ((depth_max_ref - (depth_max - depth_min_ref)) < get(z_min_slide(curr_gui), 'min'))
+                                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
+                                elseif ((depth_max_ref - (depth_max - depth_min_ref)) > get(z_min_slide(curr_gui), 'max'))
+                                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'max'))
                                 else
-                                    set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                                    set(z_min_slide(curr_gui), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
                                 end
-                                if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
-                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
-                                elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
-                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                if ((depth_max_ref - (depth_min - depth_min_ref)) < get(z_max_slide(curr_gui), 'min'))
+                                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'min'))
+                                elseif ((depth_max_ref - (depth_min - depth_min_ref)) > get(z_max_slide(curr_gui), 'max'))
+                                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                                 else
-                                    set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                                    set(z_max_slide(curr_gui), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
                                 end
                         end
                         [curr_ax, curr_rad] = deal(2, 1);
@@ -4598,57 +4575,57 @@ linkprop(z_max_edit(2:3), 'string');
                         [curr_ax, curr_rad] = deal(2, 1);
                         switch disp_type
                             case 'elev.'
-                                tmp1 = elev_max(curr_ax) - elev_min(curr_ax);
-                                tmp2 = elev_min(curr_ax) - (0.25 * tmp1);
+                                tmp1 = elev_max(curr_gui) - elev_min(curr_gui);
+                                tmp2 = elev_min(curr_gui) - (0.25 * tmp1);
                                 if (tmp2 < elev_min_ref)
-                                    elev_min(curr_ax) = elev_min_ref;
+                                    elev_min(curr_gui) = elev_min_ref;
                                 else
-                                    elev_min(curr_ax) = tmp2;
+                                    elev_min(curr_gui) = tmp2;
                                 end
-                                elev_max(curr_ax)    = elev_min(curr_ax) + tmp1;
-                                if (elev_max(curr_ax) > elev_max_ref)
-                                    elev_max(curr_ax) = elev_max_ref;
+                                elev_max(curr_gui)    = elev_min(curr_gui) + tmp1;
+                                if (elev_max(curr_gui) > elev_max_ref)
+                                    elev_max(curr_gui) = elev_max_ref;
                                 end
-                                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-                                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-                                if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_min(curr_gui)))
+                                set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_max(curr_gui)))
+                                if (elev_min(curr_gui) < get(z_min_slide(curr_gui), 'min'))
+                                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
                                 else
-                                    set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                                    set(z_min_slide(curr_gui), 'value', elev_min(curr_gui))
                                 end
-                                if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                if (elev_max(curr_gui) > get(z_max_slide(curr_gui), 'max'))
+                                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                                 else
-                                    set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                                    set(z_max_slide(curr_gui), 'value', elev_max(curr_gui))
                                 end
                             case 'depth'
 
-                                tmp1 = depth_max(curr_rad) - depth_min(curr_rad);
-                                tmp2 = depth_max(curr_rad) + (0.25 * tmp1);
+                                tmp1 = depth_max - depth_min;
+                                tmp2 = depth_max + (0.25 * tmp1);
                                 if (tmp2 > depth_max_ref)
-                                    depth_max(curr_rad) = depth_max_ref;
+                                    depth_max = depth_max_ref;
                                 else
-                                    depth_max(curr_rad) = tmp2;
+                                    depth_max = tmp2;
                                 end
-                                depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
-                                if (depth_min(curr_rad) < depth_min_ref)
-                                    depth_min(curr_rad) = depth_min_ref;
+                                depth_min = depth_max - tmp1;
+                                if (depth_min < depth_min_ref)
+                                    depth_min = depth_min_ref;
                                 end
-                                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
-                                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
-                                if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
-                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                                elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
-                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                                set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', depth_max))
+                                set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', depth_min))
+                                if ((depth_max_ref - (depth_max - depth_min_ref)) < get(z_min_slide(curr_gui), 'min'))
+                                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
+                                elseif ((depth_max_ref - (depth_max - depth_min_ref)) > get(z_min_slide(curr_gui), 'max'))
+                                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'max'))
                                 else
-                                    set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                                    set(z_min_slide(curr_gui), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
                                 end
-                                if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
-                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
-                                elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
-                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                if ((depth_max_ref - (depth_min - depth_min_ref)) < get(z_max_slide(curr_gui), 'min'))
+                                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'min'))
+                                elseif ((depth_max_ref - (depth_min - depth_min_ref)) > get(z_max_slide(curr_gui), 'max'))
+                                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                                 else
-                                    set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                                    set(z_max_slide(curr_gui), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
                                 end                                
                         end
                         [curr_ax, curr_rad] = deal(3, 2);
@@ -4706,54 +4683,54 @@ linkprop(z_max_edit(2:3), 'string');
                 update_dist_range
             case 'uparrow'
                 if strcmp(disp_type, 'elev.')
-                    tmp1 = elev_max(curr_ax) - elev_min(curr_ax);
-                    tmp2 = elev_max(curr_ax) + (0.25 * tmp1);
+                    tmp1 = elev_max(curr_gui) - elev_min(curr_gui);
+                    tmp2 = elev_max(curr_gui) + (0.25 * tmp1);
                     if (tmp2 > elev_max_ref)
-                        elev_max(curr_ax) = elev_max_ref;
+                        elev_max(curr_gui) = elev_max_ref;
                     else
-                        elev_max(curr_ax) = tmp2;
+                        elev_max(curr_gui) = tmp2;
                     end
-                    elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
-                    if (elev_min(curr_ax) < elev_min_ref)
-                        elev_min(curr_ax) = elev_min_ref;
+                    elev_min(curr_gui) = elev_max(curr_gui) - tmp1;
+                    if (elev_min(curr_gui) < elev_min_ref)
+                        elev_min(curr_gui) = elev_min_ref;
                     end
-                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-                    if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                    set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_min(curr_gui)))
+                    set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_max(curr_gui)))
+                    if (elev_min(curr_gui) < get(z_min_slide(curr_gui), 'min'))
+                        set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
                     else
-                        set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                        set(z_min_slide(curr_gui), 'value', elev_min(curr_gui))
                     end
-                    if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                    if (elev_max(curr_gui) > get(z_max_slide(curr_gui), 'max'))
+                        set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                     else
-                        set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                        set(z_max_slide(curr_gui), 'value', elev_max(curr_gui))
                     end
                 else
-                    tmp1 = depth_max(curr_rad) - depth_min(curr_rad);
-                    tmp2 = depth_min(curr_rad) - (0.25 * tmp1);
+                    tmp1 = depth_max - depth_min;
+                    tmp2 = depth_min - (0.25 * tmp1);
                     if (tmp2 < depth_min_ref)
-                        depth_min(curr_rad) = depth_min_ref;
+                        depth_min = depth_min_ref;
                     else
-                        depth_min(curr_rad) = tmp2;
+                        depth_min = tmp2;
                     end
-                    depth_max(curr_rad) = depth_min(curr_rad) + tmp1;
-                    depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
-                    set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
-                    set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
-                    if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
-                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                    elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
-                        set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                    depth_max = depth_min + tmp1;
+                    depth_min = depth_max - tmp1;
+                    set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', depth_max))
+                    set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', depth_min))
+                    if ((depth_max_ref - (depth_max - depth_min_ref)) < get(z_min_slide(curr_gui), 'min'))
+                        set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
+                    elseif ((depth_max_ref - (depth_max - depth_min_ref)) > get(z_min_slide(curr_gui), 'max'))
+                        set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'max'))
                     else
-                        set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                        set(z_min_slide(curr_gui), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
                     end
-                    if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
-                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
-                    elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
-                        set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                    if ((depth_max_ref - (depth_min - depth_min_ref)) < get(z_max_slide(curr_gui), 'min'))
+                        set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'min'))
+                    elseif ((depth_max_ref - (depth_min - depth_min_ref)) > get(z_max_slide(curr_gui), 'max'))
+                        set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                     else
-                        set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                        set(z_max_slide(curr_gui), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
                     end
                 end
                 switch curr_ax
@@ -4761,54 +4738,54 @@ linkprop(z_max_edit(2:3), 'string');
                         [curr_ax, curr_rad] = deal(3, 2);
                         switch disp_type
                             case 'elev.'
-                                tmp1 = elev_max(curr_ax) - elev_min(curr_ax);
-                                tmp2 = elev_max(curr_ax) + (0.25 * tmp1);
+                                tmp1 = elev_max(curr_gui) - elev_min(curr_gui);
+                                tmp2 = elev_max(curr_gui) + (0.25 * tmp1);
                                 if (tmp2 > elev_max_ref)
-                                    elev_max(curr_ax) = elev_max_ref;
+                                    elev_max(curr_gui) = elev_max_ref;
                                 else
-                                    elev_max(curr_ax) = tmp2;
+                                    elev_max(curr_gui) = tmp2;
                                 end
-                                elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
-                                if (elev_min(curr_ax) < elev_min_ref)
-                                    elev_min(curr_ax) = elev_min_ref;
+                                elev_min(curr_gui) = elev_max(curr_gui) - tmp1;
+                                if (elev_min(curr_gui) < elev_min_ref)
+                                    elev_min(curr_gui) = elev_min_ref;
                                 end
-                                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-                                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-                                if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_min(curr_gui)))
+                                set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_max(curr_gui)))
+                                if (elev_min(curr_gui) < get(z_min_slide(curr_gui), 'min'))
+                                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
                                 else
-                                    set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                                    set(z_min_slide(curr_gui), 'value', elev_min(curr_gui))
                                 end
-                                if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                if (elev_max(curr_gui) > get(z_max_slide(curr_gui), 'max'))
+                                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                                 else
-                                    set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                                    set(z_max_slide(curr_gui), 'value', elev_max(curr_gui))
                                 end
                             case 'depth'
-                                tmp1 = depth_max(curr_rad) - depth_min(curr_rad);
-                                tmp2 = depth_min(curr_rad) - (0.25 * tmp1);
+                                tmp1 = depth_max - depth_min;
+                                tmp2 = depth_min - (0.25 * tmp1);
                                 if (tmp2 < depth_min_ref)
-                                    depth_min(curr_rad) = depth_min_ref;
+                                    depth_min = depth_min_ref;
                                 else
-                                    depth_min(curr_rad) = tmp2;
+                                    depth_min = tmp2;
                                 end
-                                depth_max(curr_rad) = depth_min(curr_rad) + tmp1;
-                                depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
-                                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
-                                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
-                                if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
-                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                                elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
-                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                                depth_max = depth_min + tmp1;
+                                depth_min = depth_max - tmp1;
+                                set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', depth_max))
+                                set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', depth_min))
+                                if ((depth_max_ref - (depth_max - depth_min_ref)) < get(z_min_slide(curr_gui), 'min'))
+                                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
+                                elseif ((depth_max_ref - (depth_max - depth_min_ref)) > get(z_min_slide(curr_gui), 'max'))
+                                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'max'))
                                 else
-                                    set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                                    set(z_min_slide(curr_gui), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
                                 end
-                                if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
-                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
-                                elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
-                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                if ((depth_max_ref - (depth_min - depth_min_ref)) < get(z_max_slide(curr_gui), 'min'))
+                                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'min'))
+                                elseif ((depth_max_ref - (depth_min - depth_min_ref)) > get(z_max_slide(curr_gui), 'max'))
+                                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                                 else
-                                    set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                                    set(z_max_slide(curr_gui), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
                                 end
                         end
                         [curr_ax, curr_rad] = deal(2, 1);
@@ -4816,54 +4793,54 @@ linkprop(z_max_edit(2:3), 'string');
                         [curr_ax, curr_rad] = deal(2, 1);
                         switch disp_type
                             case 'elev.'
-                                tmp1 = elev_max(curr_ax) - elev_min(curr_ax);
-                                tmp2 = elev_max(curr_ax) + (0.25 * tmp1);
+                                tmp1 = elev_max(curr_gui) - elev_min(curr_gui);
+                                tmp2 = elev_max(curr_gui) + (0.25 * tmp1);
                                 if (tmp2 > elev_max_ref)
-                                    elev_max(curr_ax) = elev_max_ref;
+                                    elev_max(curr_gui) = elev_max_ref;
                                 else
-                                    elev_max(curr_ax) = tmp2;
+                                    elev_max(curr_gui) = tmp2;
                                 end
-                                elev_min(curr_ax) = elev_max(curr_ax) - tmp1;
-                                if (elev_min(curr_ax) < elev_min_ref)
-                                    elev_min(curr_ax) = elev_min_ref;
+                                elev_min(curr_gui) = elev_max(curr_gui) - tmp1;
+                                if (elev_min(curr_gui) < elev_min_ref)
+                                    elev_min(curr_gui) = elev_min_ref;
                                 end
-                                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', elev_min(curr_ax)))
-                                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', elev_max(curr_ax)))
-                                if (elev_min(curr_ax) < get(z_min_slide(curr_ax), 'min'))
-                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
+                                set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_min(curr_gui)))
+                                set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_max(curr_gui)))
+                                if (elev_min(curr_gui) < get(z_min_slide(curr_gui), 'min'))
+                                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
                                 else
-                                    set(z_min_slide(curr_ax), 'value', elev_min(curr_ax))
+                                    set(z_min_slide(curr_gui), 'value', elev_min(curr_gui))
                                 end
-                                if (elev_max(curr_ax) > get(z_max_slide(curr_ax), 'max'))
-                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                if (elev_max(curr_gui) > get(z_max_slide(curr_gui), 'max'))
+                                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                                 else
-                                    set(z_max_slide(curr_ax), 'value', elev_max(curr_ax))
+                                    set(z_max_slide(curr_gui), 'value', elev_max(curr_gui))
                                 end
                             case 'depth'
-                                tmp1 = depth_max(curr_rad) - depth_min(curr_rad);
-                                tmp2 = depth_min(curr_rad) - (0.25 * tmp1);
+                                tmp1 = depth_max - depth_min;
+                                tmp2 = depth_min - (0.25 * tmp1);
                                 if (tmp2 < depth_min_ref)
-                                    depth_min(curr_rad) = depth_min_ref;
+                                    depth_min = depth_min_ref;
                                 else
-                                    depth_min(curr_rad) = tmp2;
+                                    depth_min = tmp2;
                                 end
-                                depth_max(curr_rad) = depth_min(curr_rad) + tmp1;
-                                depth_min(curr_rad) = depth_max(curr_rad) - tmp1;
-                                set(z_min_edit(curr_ax), 'string', sprintf('%4.0f', depth_max(curr_rad)))
-                                set(z_max_edit(curr_ax), 'string', sprintf('%4.0f', depth_min(curr_rad)))
-                                if ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) < get(z_min_slide(curr_ax), 'min'))
-                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'min'))
-                                elseif ((depth_max_ref - (depth_max(curr_rad) - depth_min_ref)) > get(z_min_slide(curr_ax), 'max'))
-                                    set(z_min_slide(curr_ax), 'value', get(z_min_slide(curr_ax), 'max'))
+                                depth_max = depth_min + tmp1;
+                                depth_min = depth_max - tmp1;
+                                set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', depth_max))
+                                set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', depth_min))
+                                if ((depth_max_ref - (depth_max - depth_min_ref)) < get(z_min_slide(curr_gui), 'min'))
+                                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'min'))
+                                elseif ((depth_max_ref - (depth_max - depth_min_ref)) > get(z_min_slide(curr_gui), 'max'))
+                                    set(z_min_slide(curr_gui), 'value', get(z_min_slide(curr_gui), 'max'))
                                 else
-                                    set(z_min_slide(curr_ax), 'value', (depth_max_ref - (depth_max(curr_rad) - depth_min_ref)))
+                                    set(z_min_slide(curr_gui), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
                                 end
-                                if ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) < get(z_max_slide(curr_ax), 'min'))
-                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'min'))
-                                elseif ((depth_max_ref - (depth_min(curr_rad) - depth_min_ref)) > get(z_max_slide(curr_ax), 'max'))
-                                    set(z_max_slide(curr_ax), 'value', get(z_max_slide(curr_ax), 'max'))
+                                if ((depth_max_ref - (depth_min - depth_min_ref)) < get(z_max_slide(curr_gui), 'min'))
+                                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'min'))
+                                elseif ((depth_max_ref - (depth_min - depth_min_ref)) > get(z_max_slide(curr_gui), 'max'))
+                                    set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                                 else
-                                    set(z_max_slide(curr_ax), 'value', (depth_max_ref - (depth_min(curr_rad) - depth_min_ref)))
+                                    set(z_max_slide(curr_gui), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
                                 end
                         end
                         [curr_ax, curr_rad] = deal(3, 2);
@@ -4875,22 +4852,22 @@ linkprop(z_max_edit(2:3), 'string');
 %% Mouse wheel shortcut
 
     function wheel_zoom(~, eventdata)
-        switch eventdata.VerticalScrollCount
-            case -1
-                tmp1        = dist_max(curr_rad) - dist_min(curr_rad);
-                tmp2        = [(dist_min(curr_rad) + (0.25 * tmp1)) (dist_max(curr_rad) - (0.25 * tmp1))];
-                tmp3        = elev_max(curr_ax) - elev_min(curr_ax);
-                tmp4        = [(elev_min(curr_ax) + (0.25 * tmp3)) (elev_max(curr_ax) - (0.25 * tmp3))];
-                set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
-                panzoom
-            case 1
-                tmp1        = dist_max(curr_rad) - dist_min(curr_rad);
-                tmp2        = [(dist_min(curr_rad) - (0.25 * tmp1)) (dist_max(curr_rad) + (0.25 * tmp1))];
-                tmp3        = elev_max(curr_ax) - elev_min(curr_ax);
-                tmp4        = [(elev_min(curr_ax) - (0.25 * tmp3)) (elev_max(curr_ax) + (0.25 * tmp3))];
-                set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
-                panzoom
-        end
+%         switch eventdata.VerticalScrollCount
+%             case -1
+%                 tmp1        = dist_max(curr_rad) - dist_min(curr_rad);
+%                 tmp2        = [(dist_min(curr_rad) + (0.25 * tmp1)) (dist_max(curr_rad) - (0.25 * tmp1))];
+%                 tmp3        = elev_max(curr_gui) - elev_min(curr_gui);
+%                 tmp4        = [(elev_min(curr_gui) + (0.25 * tmp3)) (elev_max(curr_gui) - (0.25 * tmp3))];
+%                 set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
+%                 panzoom
+%             case 1
+%                 tmp1        = dist_max(curr_rad) - dist_min(curr_rad);
+%                 tmp2        = [(dist_min(curr_rad) - (0.25 * tmp1)) (dist_max(curr_rad) + (0.25 * tmp1))];
+%                 tmp3        = elev_max(curr_gui) - elev_min(curr_gui);
+%                 tmp4        = [(elev_min(curr_gui) - (0.25 * tmp3)) (elev_max(curr_gui) + (0.25 * tmp3))];
+%                 set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
+%                 panzoom
+%         end
     end
 
 %% Mouse click
