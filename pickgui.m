@@ -6591,13 +6591,14 @@ set(disp_group, 'selectedobject', disp_check(1))
             [p_phase, p_phasedepth] ...
                             = deal(zeros(1, pk.num_phase));
             for ii = 1:pk.num_phase
-                p_phase(ii) = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(ind_y_phase(ii, ind_decim)))), 'b', 'linewidth', 1);
+                p_phase(ii) = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(ind_y_phase(ii, ind_decim)))), 'b', 'linewidth', 1, 'visible', 'off');
                 p_phasedepth(ii) ...
-                            = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(ind_y_phase(ii, ind_decim) - ind_surf(ind_decim) + 1))), 'b', 'linewidth', 1);
+                            = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(ind_y_phase(ii, ind_decim) - ind_surf(ind_decim) + 1))), 'b', 'linewidth', 1, 'visible', 'off');
             end
             if keep_phase_done
-                set([p_phase(pk.ind_keep_phase) p_phasedepth(pk.ind_keep_phase)], 'color', 'w', 'linewidth', 2)
+                set([p_phase(pk.ind_keep_phase) p_phasedepth(pk.ind_keep_phase)], 'color', 'w', 'linewidth', 2, 'visible', 'off')
             end
+            show_phase
             set(status_box, 'string', ['Adjusted phase-tracked layers to ' num2str(1e-6 * pk.freq) ' MHz'])
         end
     end

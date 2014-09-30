@@ -1,25 +1,27 @@
-function pickinterp(dir_merge, file_merge, dir_data, file_data_all, dir_pk_orig)
-% PICKINTERP Interpolates merged picked layers back onto the original CReSIS data files.
+function pickinterp(dir_merge, file_merge, dir_data, file_data_all, frame_or_pk, dir_pk_orig)
+% PICKINTERP Interpolates merged picked layers back into the same format as the original CReSIS data frames.
 %
-%   PICKINTERP(DIR_MERGE, FILE_MERGE, DIR_DATA, FILE_DATA, DIR_PK_ORIG)
+%   PICKINTERP(DIR_MERGE, FILE_MERGE, DIR_DATA, FILE_DATA_ALL, FRAME_OR_PK, DIR_PK_ORIG)
 %   loads the merged pick file FILE_MERGE from the directory DIR_MERGE and
 %   interpolates them back onto the positions of the original CReSIS data
 %   files for that transect stored in DIR_DATA that follow the naming
-%   sequence FILE_DATA. The interpolated picks are saved in DIR_PK_ORIG
-%   using the naming sequence of the merged pick files.
+%   sequence FILE_DATA_ALL. If FRAME_OR_PK is set to 'frame', then the
+%   picks are saved to the frame. If set to 'pk', the interpolated picks
+%   are saved in DIR_PK_ORIG using the naming sequence of the merged pick
+%   files.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 11/26/12
+% Last updated: 09/30/14
 
 % clear
 % nargin                      = 5;
-% dir_merge                   = '~/Desktop/test2/merge/';
-% file_merge                  = '20110502_02_pk_merge';
-% dir_data                    = '~/Desktop/test2/data/';
+% dir_merge                   = '/Volumes/icebridge/data/2011_p3/merge/';
+% file_merge                  = '20110506_01_pk_merge';
+% dir_data                    = '/Volumes/icebridge/data/2011_p3/data/20110506_01/';
 % file_data_all               = '*';
-% dir_pk_orig                 = '~/Desktop/test2/pk_orig/';
+% dir_pk_orig                 = '/Volumes/icebridge/data/2011_p3/pk_orig/';
 
-if (nargin ~= 5)
+if ~any(nargin == [5 6])
     error('pickinterp:nargin', 'Incorrect number of input arguments.')
 end
 if ~ischar(dir_merge)
@@ -38,23 +40,35 @@ if (~isempty(dir_data) && ~exist(dir_data, 'dir'))
     error('pickinterp:nodirdata', 'Data directory (DIR_DATA) does not exist.')
 end
 if ~ischar(file_data_all)
-    error('pickinterp:namefiledatastr', 'Data filename (FILE_DATA) is not a string.')
+    error('pickinterp:namefiledataallstr', 'Data filename (FILE_DATA_ALL) is not a string.')
 end
-if ~ischar(dir_pk_orig)
-    error('pickinterp:dirpkorigstr', 'Picks output directory (DIR_PK_ORIG) is not a string.')
+if ~ischar(frame_or_pk)
+    error('pickinterp:frameorpkstr', 'FRAME_OR_PK is not a string.')
 end
-if (~isempty(dir_pk_orig) && ~exist(dir_pk_orig, 'dir'))
-    error('pickinterp:nodirpkorig', 'Picks output directory (DIR_PK_ORIG) does not exist.')
+if ~any(strcmp(frame_or_pk, {'frame' 'pk'}))
+    error('pickinterp:frameorpk', 'FRAME_OR_PK is not a ''frame'' or ''pk''.')    
+end
+if (strcmp(frame_or_pk, 'frame') && (nargin ~= 6))
+    error('pickinterp:frameorpkdir', 'FRAME_OR_PK=''frame'' but DIR_PK_ORIG is not provided.')
+end
+if strcmp(frame_or_pk, 'frame')
+    if ~ischar(dir_pk_orig)
+        error('pickinterp:dirpkorigstr', 'Picks output directory (DIR_PK_ORIG) is not a string.')
+    end
+    if (~isempty(dir_pk_orig) && ~exist(dir_pk_orig, 'dir'))
+        error('pickinterp:nodirpkorig', 'Picks output directory (DIR_PK_ORIG) does not exist.')
+    end
 end
 
 pk_merge                    = load([dir_merge file_merge]);
 try
     pk_merge                = pk_merge.pk;
-    disp(['Loaded ' file_merge ' from ' dir_merge '...'])
 catch %#ok<*CTCH>
     disp([file_merge ' does not contain a pk structure. Try again.'])
     return
 end
+
+disp(['Loaded ' file_merge ' from ' dir_merge '...'])
 
 % blocks to get matched up
 file_data                   = dir([dir_data file_data_all '.mat']);
@@ -62,46 +76,50 @@ file_data                   = {file_data.name};
 num_data                    = length(file_data);
 
 if ~num_data
-    error('pickinterp:nodata', ['No original data blocks matching ' file_data_all ' found in ' dir_data ' to interpolate picks onto.'])
+    error('pickinterp:nodata', ['No original data frames matching ' file_data_all ' found in ' dir_data ' to interpolate picks onto.'])
 end
 
-var_layer                   = {'ind_y' 'twtt' 'twtt_ice' 'int' 'ind_y_smooth' 'ind_y_flat_smooth' 'twtt_smooth' 'twtt_ice_smooth' 'int_smooth' 'depth' 'depth_smooth' 'elev' 'elev_smooth'}; % layer variables
-var_pos                     = {'dist' 'lat' 'lon' 'x' 'y' 'elev_air' 'twtt_surf' 'elev_surf' 'twtt_bed' 'elev_bed'}; % position variables
-var_pos_orig                = {'' 'Latitude' 'Longitude' '' '' 'Elevation' 'Surface' '' 'Bottom' ''};
+var_layer                   = {'depth' 'depth_smooth' 'elev' 'elev_gimp' 'elev_smooth' 'elev_smooth_gimp' 'ind_y' 'ind_y_smooth' 'int' 'int_smooth' 'twtt' 'twtt_ice' 'twtt_ice_smooth' 'twtt_smooth'}; % layer variables
 num_var_layer               = length(var_layer);
 
-% check to see if surface and bed picks are available
-if (~isfield(pk_merge, 'twtt_surf') && ~isfield(pk_merge, 'twtt_bed'))
-    ind_var_pos             = 1:6;
-elseif (isfield(pk_merge, 'twtt_surf') && ~isfield(pk_merge, 'twtt_bed'))
-    ind_var_pos             = 1:8;
-elseif (~isfield(pk_merge, 'twtt_surf') && isfield(pk_merge, 'twtt_bed'))
-    ind_var_pos             = [1:6 9 10];
-else
-    ind_var_pos             = 1:length(var_pos);
-end
+var_pos                     = {'dist' 'elev_air' 'elev_air_gimp' 'elev_bed' 'elev_bed_gimp' 'elev_surf' 'elev_surf_gimp' 'int_bed' 'int_surf' 'lat' 'lon' 'time' 'twtt_bed' 'twtt_surf' 'x' 'y'}; % position variables
 
-disp(['Evaluating ' num2str(num_data) ' block(s) in ' dir_data ' for overlap...'])
-                        
+disp(['Evaluating ' num2str(num_data) ' frame(s) in ' dir_data ' for overlap...'])
+
 for ii = 1:num_data
     
     % load current block
-    data                    = load([dir_data file_data{ii}]);
-    if ~isfield(data, 'Data')
-        disp([file_data{ii}(1:(end - 4)) ' does not contain Data variable. Try again.'])
+    frame                   = load([dir_data file_data{ii}]);
+    if ~isfield(frame, 'Time')
+        disp([file_data{ii}(1:(end - 4)) ' does not contain Time variable. Try again.'])
         return
     end
-    data                    = rmfield(data, 'Data'); % save some memory
-        
-    num_trace_curr          = length(data.Latitude);
     
+    % save some memory briefly
+    if strcmp(frame_or_pk, 'pk')
+        frame                   = rmfield(frame, 'Data');
+    end
+    
+    % number of traces in current frame
+    num_trace_curr          = length(frame.Time);
+    
+    % median time difference
+    time_diff_med           = median(diff(frame.Time));
+    
+    % indices in current merged file that match current data frame
     ind_curr                = NaN(1, num_trace_curr);
     for jj = 1:num_trace_curr
-        if ~isempty(find(((data.Latitude(jj) == pk_merge.lat) & (data.Longitude(jj) == pk_merge.lon)), 1))
-            ind_curr(jj)    = find(((data.Latitude(jj) == pk_merge.lat) & (data.Longitude(jj) == pk_merge.lon)), 1);
+        if ~isempty(find((frame.Time(jj) == pk_merge.time), 1))
+            ind_curr(jj)    = find((frame.Time(jj) == pk_merge.time), 1);
+        else
+            ind_time        = interp1(pk_merge.time, 1:pk_merge.num_trace_tot, frame.Time(jj), 'nearest');
+            if (abs(pk_merge.time(ind_time) - frame.Time(jj)) < time_diff_med)
+                ind_curr(jj)= ind_time;
+            end
         end
     end
     
+    % evaluate matching between merged file and frame
     if all(isnan(ind_curr))
         disp([file_data{ii}(1:(end - 4)) ' (' num2str(ii) ' / ' num2str(num_data) ') has no picks.'])
         continue
@@ -109,34 +127,33 @@ for ii = 1:num_data
         disp([num2str(round((100 * length(find(~isnan(ind_curr)))) / num_trace_curr)) '% of ' file_data{ii}(1:(end - 4)) ' is within range of merged picks file...'])
     end
     
-    pk                      = struct; % initialize pk structure
+    % initialize pk structure
+    pk                      = struct;
     pk.layer                = struct;
     
-    % reassign layer, position and miscellaneous variables to current range
-    curr_block              = find((find(~isnan(ind_curr), 1) >= pk_merge.ind_trace_start), 1, 'last'):find((find(~isnan(ind_curr), 1, 'last') > pk_merge.ind_trace_start), 1, 'last');
-    
-    [pk.ind_layer_keep, pk.ind_x_start, pk.ind_y_man, pk.ind_y_phase_max, pk.num_layer_keep, pk.num_man, pk.num_phase] ...
-                            = deal(0);
-    [pk.file_block, pk.file_in, pk.freq, pk.ind_trim_start, pk.length_smooth, pk.num_ind_mean, pk.num_sample, pk.num_trace, pk.num_win, pk.twtt_min_ref, pk.twtt_match, pk.twtt_max_ref] ...
-                            = deal(file_data{ii}, file_data{ii}, pk_merge.freq(curr_block(1)), min(pk_merge.ind_trim_start(curr_block)), max(pk_merge.length_smooth(curr_block)), 5, length(data.Time), ...
-                                   num_trace_curr, max(pk_merge.num_win(curr_block)), min(pk_merge.twtt_min_ref(curr_block)), max(pk_merge.twtt_match(curr_block)), max(pk_merge.twtt_max_ref(curr_block)));
-    pk.ind_x_mean           = ceil((pk.num_ind_mean / 2) + 1):pk.num_ind_mean:(pk.num_trace - ceil(pk.num_ind_mean / 2));
-    
+    % reassign layer values
     for jj = 1:num_var_layer
         for kk = 1:pk_merge.num_layer
             eval(['pk.layer(kk).' var_layer{jj} ' = NaN(1, num_trace_curr);'])
-            eval(['pk.layer(kk).' var_layer{jj} '(~isnan(ind_curr)) = pk_merge.' var_layer{jj} '(kk, ind_curr(~isnan(ind_curr)));'])
-            eval(['pk.layer(kk).' var_layer{jj} '(pk.layer(kk).' var_layer{jj} ' <= 0) = NaN;']) % fix layer oddities
+            if isfield(pk_merge, var_layer{jj})
+                eval(['pk.layer(kk).' var_layer{jj} '(~isnan(ind_curr)) = pk_merge.' var_layer{jj} '(kk, ind_curr(~isnan(ind_curr)));'])
+            end
+            if ~any(strcmp(var_layer(jj), {'int' 'int_smooth'}))
+                eval(['pk.layer(kk).' var_layer{jj} '(pk.layer(kk).' var_layer{jj} ' <= 0) = NaN;']) % fix occasional layer oddities
+            end
         end
     end
+    
     pk.ind_match            = find(sum(~isnan(pk_merge.twtt(:, ind_curr(~isnan(ind_curr)))), 2)); % layers with any non-NaN values for this chunk of transect
     pk.num_layer            = length(pk.ind_match); % number of layers for current block
-    if ~pk.num_layer % no non-NaN layers for this
+    
+    if ~pk.num_layer % no non-NaN layers for this frame
         disp([file_data{ii}(1:(end - 4)) ' (' num2str(ii) ' / ' num2str(num_data) ') has no non-NaN picks.'])
         continue
     end
     pk.layer                = pk.layer(pk.ind_match); % only keep layers relevant to this chunk
     
+    % remove empty layers
     tmp1                    = [];
     for jj = 1:pk.num_layer
         if all(isnan(pk.layer(jj).ind_y))
@@ -148,19 +165,25 @@ for ii = 1:num_data
         pk.num_layer        = pk.num_layer - length(tmp1);
     end
     
-    for jj = ind_var_pos
-        if ~isempty(var_pos_orig{jj})
-            eval(['pk.' var_pos{jj} ' = data.' var_pos_orig{jj} ';'])
-        else
-            eval(['pk.' var_pos{jj} ' = NaN(1, num_trace_curr);']);
+    % reassign position variables
+    for jj = 1:length(var_pos)
+        eval(['pk.' var_pos{jj} ' = NaN(1, num_trace_curr);']);
+        if isfield(pk_merge, var_pos{jj})
+            eval(['pk.' var_pos{jj} '(~isnan(ind_curr)) = pk_merge.' var_pos{jj} '(ind_curr(~isnan(ind_curr)));'])
         end
     end
     
     pk                      = orderfields(pk);
     pk.layer                = orderfields(pk.layer);
     
-    % save broken-out pk structure for this block
-    save([dir_pk_orig file_data{ii}(1:(end - 4)) '_pk'], 'pk')
-    disp(['Interpolated picks to ' file_data{ii}(1:(end - 4)) ' and saved to ' dir_pk_orig '.'])
+    % save broken-out pk structure for this frame
+    switch frame_or_pk
+        case 'frame'
+            save([dir_data file_data{ii}], '-append', 'pk')
+            disp(['Interpolated picks to ' file_data{ii}(1:(end - 4)) ' and saved to ' dir_data'.'])
+        case 'pk'
+            save([dir_pk_orig file_data{ii}(1:(end - 4)) '_pk'], 'pk')
+            disp(['Interpolated picks to ' file_data{ii}(1:(end - 4)) ' and saved to ' dir_pk_orig '.'])
+    end
     
 end

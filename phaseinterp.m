@@ -1,7 +1,7 @@
-function phaseinterp(phase_type, dir_data_old, lat_std, decim, dir_block_new, file_block_new, param_phase)
+function phaseinterp(phase_type, dir_data_old, decim, dir_block_new, file_block_new, param_phase)
 % PHASEINTERP Horizontal phase gradient from complex data and interpolation onto data blocks.
 %
-%   PHASEINTERP(PHASE_TYPE,DIR_DATA_OLD,LAT_STD,DECIM,DIR_BLOCK_NEW,FILE_BLOCK_NEW,PARAM_PHASE)
+%   PHASEINTERP(PHASE_TYPE,DIR_DATA_OLD,DECIM,DIR_BLOCK_NEW,FILE_BLOCK_NEW,PARAM_PHASE)
 %   calculates the horizontal phase gradient of complex radar data using
 %   the method specified by PHASE_TYPE.
 %   
@@ -9,7 +9,7 @@ function phaseinterp(phase_type, dir_data_old, lat_std, decim, dir_block_new, fi
 %   their horizontal phase gradient, decimates these data to every DECIM
 %   indices and interpolates and saves this phase gradient onto the
 %   horizontal positions of the focused data blocks named FILE_BLOCK_NEW in
-%   DIR_BLOCK_NEW, based on the standard latitude LAT_STD.
+%   DIR_BLOCK_NEW, based on their recording times.
 % 
 %   For PHASE_TYPE='direct', the horizontal gradient of the phase is
 %   directly calculated and filtered. PARAM_PHASE must be a one-element
@@ -26,10 +26,10 @@ function phaseinterp(phase_type, dir_data_old, lat_std, decim, dir_block_new, fi
 %   scalar) and the wavenumber threshold (also a scalar).
 %   
 % Joe MacGregor (UTIG)
-% Last updated: 04/09/14
+% Last updated: 09/24/14
 
-if (nargin ~= 7)
-    error('phaseinterp:nargin', 'Incorrect number of input arguments (must be 7).')
+if (nargin ~= 6)
+    error('phaseinterp:nargin', 'Incorrect number of input arguments (must be 6).')
 end
 if ~ischar(phase_type)
     error('phaseinterp:phasetypechar', 'PHASE_TYPE is not a string.')
@@ -42,12 +42,6 @@ if ~ischar(dir_data_old)
 end
 if (~isempty(dir_data_old) && ~exist(dir_data_old, 'dir'))
     error('phaseinterp:nodirdataold', 'Old data directory (DIR_DATA_OLD) does not exist.')
-end
-if (~isnumeric(lat_std) || ~isscalar(lat_std))
-    error('phaseinterp:latstdscalar', 'Standard parallel (LAT_STD) is not a scalar.')
-end
-if (abs(lat_std) > 90)
-    error('phaseinterp:latstdrange', ['Absolute value of standard parallel (LAT_STD = ' num2str(abs(lat_std)) ') is larger than 90 degrees.'])
 end
 if (~isnumeric(decim) || ~isscalar(decim))
     error('phaseinterp:decimscalar', 'Decimation number (DECIM) is not a scalar.')
@@ -117,14 +111,6 @@ switch phase_type
         end
 end
 
-% use GIMP projection if available
-if (license('test', 'map_toolbox') && exist('mat/gimp_90m.mat' , 'file'))
-    load mat/gimp_90m gimp_info
-    gimp_avail              = true;
-else
-    gimp_avail              = false;
-end
-
 % preparing to load single channel data files
 file_old                    = dir([dir_data_old '*.mat']);
 file_old                    = {file_old.name};
@@ -136,8 +122,7 @@ end
 disp(['Loading ' num2str(num_data) ' original data files in ' dir_data_old ', determining their horizontal phase gradient...'])
 
 % preallocate key variables that will grow
-[x_all, y_all, phase_diff_filt] ...
-                            = deal(single([]));
+[phase_diff_filt, time_all] = deal([]);
 
 if strcmp(phase_type, 'Doppler')
     wavenum_rad             = fftshift((2 * pi) .* (mod(((1 / 2) + ((0:(sz_filt - 1)) / sz_filt)), 1) - (1 / 2))); % dimensionalized wavenumbers in radians for filtering
@@ -156,7 +141,7 @@ for ii = 1:num_data
         disp('Could not open file for unknown reason...')
         continue
     end
-    [lat, lon, time]        = deal(data.hdr.lat, data.hdr.lon, data.hdr.gps_time);
+    time                    = data.hdr.gps_time;
     if ((ii == 1) || ~exist('twtt_old', 'var'))
        twtt_old             = data.hdr.wfs(2).time;
     elseif (data.hdr.wfs(2).time(1) < twtt_old(1))
@@ -183,22 +168,6 @@ for ii = 1:num_data
         disp(['Not enough traces ' num2str(num_trace) ' to be worthwhile...'])
         continue
     end
-    
-    % calculate x/y positions
-    if (license('checkout', 'map_toolbox') && (lat(1) > 0)) % in Greenland and can do better x/y coordinates
-        if gimp_avail
-            [x_curr, y_curr]= projfwd(gimp_info, lat, lon);
-        else            
-            wgs84           = almanac('earth', 'wgs84', 'meters');
-            ps_struct       = defaultm('ups');
-            [ps_struct.geoid, ps_struct.mapparallels, ps_struct.falsenorthing, ps_struct.falseeasting, ps_struct.origin] ...
-                            = deal(wgs84, lat_std, 0, 0, [90 -45 0]);
-            [x_curr, y_curr]= mfwdtran(ps_struct, lat, lon);
-        end
-    else
-        [x_curr, y_curr]    = ll2ps(lat, lon, lat_std); % convert lat/lon to polar stereographic x/y (better for Antarctica then Greenland)
-    end
-    [x_curr, y_curr]        = deal((1e-3 .* (x_curr + ([diff(x_curr) diff(x_curr((end - 1):end))] ./ 2))), (1e-3 .* (y_curr + ([diff(y_curr) diff(y_curr((end - 1):end))] ./ 2)))); % account for x positions being at difference (not on the dot)
     
     % prepare filter and decimation vectors
     if (decim > 1)
@@ -269,12 +238,12 @@ for ii = 1:num_data
             phase_diff_filt_curr(phase_diff_filt_curr < -pi) ...
                             = -pi;
     end
-        
+    
     % decimate x/y and preserve x/y/phase_diff_filt
-    [x_all, y_all]          = deal([x_all; single(x_curr(decim_vec))'], [y_all; single(y_curr(decim_vec))']);
+    time_all                = [time_all time(decim_vec)]; %#ok<AGROW>
     phase_diff_filt         = [phase_diff_filt phase_diff_filt_curr]; %#ok<AGROW>
     
-    clear data phase_diff_filt_curr x_curr y_curr dist data_fft tmp*
+    clear data phase_diff_filt_curr data_fft tmp*
     
     time_old                = time;
 end
@@ -283,8 +252,6 @@ if isempty(phase_diff_filt)
     disp('No phase to interpolate...')
     return
 end
-
-dist_all                    = cumsum([0; sqrt((diff(x_all) .^ 2) + (diff(y_all) .^ 2))]); % distance vector for concatened/decimated single channel data
 
 % prepare to load blocks to get matched up with their phase
 file_new                    = dir([dir_block_new file_block_new '.mat']);
@@ -313,20 +280,8 @@ for ii = 1:num_block
         block               = rmfield(block, 'phase_diff_filt');
     end
     
-    if (all(isfield(block, {'x_gimp', 'y_gimp'})) && gimp_avail)
-        [x_block, y_block]  = deal(single(block.x_gimp), single(block.y_gimp)); % x/y positions of blocks        
-    elseif (~all(isfield(block, 'x_gimp', 'y_gimp')) && gimp_avail)
-        disp('Original data in GIMP projection but block does not have not have GIMP projection so skipping...')
-        continue
-    else
-        [x_block, y_block]  = deal(single(block.x), single(block.y)); % x/y positions of blocks
-    end
-    
-    % range within old single channel data to evaluate differenced phase
-    dist_range              = [(block.dist(1) - (0.5 * diff(block.dist([1 end])))) (block.dist(end) + (0.5 * diff(block.dist([1 end]))))];
-    
     try
-        ind_range           = [find((dist_all > dist_range(1)), 1) find((dist_all < dist_range(2)), 1, 'last')];
+        ind_range           = [find((time_all < block.time(1)), 1, 'last') find((time_all > block.time(end)), 1, 'first')];
     catch
         disp([file_new{ii}(1:(end - 4)) ' (' num2str(ii) ' / ' num2str(num_block) ') is being skipped because its positions would not be matched across the entire block.'])
         continue
@@ -337,14 +292,13 @@ for ii = 1:num_block
     end
     
     % find current indices in the merged file that connect with current block
-    [dist_curr, ind_curr]   = min(sqrt(((x_all(ind_range(1):ind_range(2), ones(1, block.num_trace)) - x_block(ones(1, (diff(ind_range) + 1)), :)) .^ 2) + ((y_all(ind_range(1):ind_range(2), ones(1, block.num_trace)) - y_block(ones(1, (diff(ind_range) + 1)), :)) .^ 2)));
-    ind_curr(dist_curr > (10 * mean(diff(block.dist)))) ...
-                            = NaN;
+    [time_all_good, ind_all_good] ...
+                            = unique(time_all(ind_range(1):ind_range(2)));
+    ind_curr                = interp1(time_all_good, (ind_range(1) - 1 + ind_all_good), block.time, 'nearest');
     if any(isnan(ind_curr)) % need phase across entire transect otherwise using it to predict layers in pickgui becomes too complex
-        disp([file_new{ii}(1:(end - 4)) ' (' num2str(ii) ' / ' num2str(num_block) ') is being skipped because its positions would not be matched across the entire block.'])
+        disp([file_new{ii}(1:(end - 4)) ' (' num2str(ii) ' / ' num2str(num_block) ') is being skipped because its traces would not be matched across the entire block.'])
         continue
     end
-    ind_curr                = ind_curr + ind_range(1) - 1;
     
     % map phase gradient onto current block
     try

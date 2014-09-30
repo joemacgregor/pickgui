@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 09/15/14
+% Last updated: 09/30/14
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -509,10 +509,10 @@ set(cb_group, 'selectedobject', cb_check(1))
             
             % allocate variables for merging
             for ii = 1:num_var_layer
-                eval(['pk.' var_layer{ii} ' = NaN(pk.num_layer, pk.num_trace_tot, ''single'');'])
+                eval(['pk.' var_layer{ii} ' = NaN(pk.num_layer, pk.num_trace_tot);'])
             end
             for ii = 1:num_var_layer_gimp
-                eval(['pk.' var_layer_gimp{ii} ' = NaN(pk.num_layer, pk.num_trace_tot, ''single'');'])
+                eval(['pk.' var_layer_gimp{ii} ' = NaN(pk.num_layer, pk.num_trace_tot);'])
             end
             for ii = 1:num_var_pos
                 eval(['pk.' var_pos{ii} ' = NaN(1, pk.num_trace_tot);'])
@@ -540,22 +540,21 @@ set(cb_group, 'selectedobject', cb_check(1))
                             = true;
                         if (ii == 1)
                             for kk = 1:num_var_layer
-                                eval(['pk.' var_layer{kk} '(jj, tmp1) = single(pk_all{ii}.layer(tmp2).' var_layer{kk} ');'])
+                                eval(['pk.' var_layer{kk} '(jj, tmp1) = pk_all{ii}.layer(tmp2).' var_layer{kk} ';'])
                             end
                             for kk = 1:num_var_layer_gimp
-                                eval(['pk.' var_layer_gimp{kk} '(jj, tmp1) = single(pk_all{ii}.layer(tmp2).' var_layer_gimp{kk} ');'])
+                                eval(['pk.' var_layer_gimp{kk} '(jj, tmp1) = pk_all{ii}.layer(tmp2).' var_layer_gimp{kk} ';'])
                             end
                         else
                             for kk = 1:num_var_layer
-                                eval(['pk.' var_layer{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1))) = single(nanmean([pk_all{ii}.layer(tmp2).' var_layer{kk} '(1:pk.ind_overlap(ii, 1)); pk.' var_layer{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1)))]));'])
+                                eval(['pk.' var_layer{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1))) = nanmean([pk_all{ii}.layer(tmp2).' var_layer{kk} '(1:pk.ind_overlap(ii, 1)); pk.' var_layer{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1)))]);'])
                                 tmp3                = pk_all{ii}.layer(tmp2); % intermediate step because of some variable assignment restriction
-                                eval(['pk.' var_layer{kk} '(jj, tmp1((pk.ind_overlap(ii, 1) + 1):end)) = single(tmp3.' var_layer{kk} '((pk.ind_overlap(ii, 1) + 1):end));'])
+                                eval(['pk.' var_layer{kk} '(jj, tmp1((pk.ind_overlap(ii, 1) + 1):end)) = tmp3.' var_layer{kk} '((pk.ind_overlap(ii, 1) + 1):end);'])
                             end
                             for kk = 1:num_var_layer_gimp
-                                eval(['pk.' var_layer_gimp{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1))) = single(nanmean([pk_all{ii}.layer(tmp2).' var_layer_gimp{kk} '(1:pk.ind_overlap(ii, 1)); pk.' ...
-                                    var_layer_gimp{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1)))]));'])
+                                eval(['pk.' var_layer_gimp{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1))) = nanmean([pk_all{ii}.layer(tmp2).' var_layer_gimp{kk} '(1:pk.ind_overlap(ii, 1)); pk.' var_layer_gimp{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1)))]);'])
                                 tmp3            = pk_all{ii}.layer(tmp2); % intermediate step because of some variable assignment restriction
-                                eval(['pk.' var_layer_gimp{kk} '(jj, tmp1((pk.ind_overlap(ii, 1) + 1):end)) = single(tmp3.' var_layer_gimp{kk} '((pk.ind_overlap(ii, 1) + 1):end));'])
+                                eval(['pk.' var_layer_gimp{kk} '(jj, tmp1((pk.ind_overlap(ii, 1) + 1):end)) = tmp3.' var_layer_gimp{kk} '((pk.ind_overlap(ii, 1) + 1):end);'])
                             end
                         end
                     else
@@ -3898,22 +3897,27 @@ set(cb_group, 'selectedobject', cb_check(1))
             return
         end
         set(0, 'DefaultFigureWindowStyle', 'default')
-        figure('position', [100 100 600 800]);
+        figure('position', [100 100 240 480]);
         hold on
         for ii = 1:num_coast
             plot(x_coast{ii}, y_coast{ii}, 'k', 'linewidth', 1) %#ok<USENS>
         end
-        plot(pk.x, pk.y, 'k.', 'markersize', 10)
+        plot(pk.x, pk.y, 'k.', 'markersize', 6)
         plot(pk.x(1), pk.y(1), 'ko', 'markersize', 12, 'markerfacecolor', 'g')
         plot(pk.x(end), pk.y(end), 'ko', 'markersize', 12, 'markerfacecolor', 'r')
         tmp1            = (100 * ceil(pk.dist_lin(1) / 100)):100:(100 * floor(pk.dist_lin(end) / 100));
         plot(pk.x(interp1(pk.dist_lin, 1:pk.num_trace_tot, tmp1, 'nearest')), pk.y(interp1(pk.dist_lin, 1:pk.num_trace_tot, tmp1, 'nearest')), 'ko', 'markersize', 6, 'markerfacecolor', 'b')
-        set(gca, 'fontsize', 20)
+        set(gca, 'fontsize', 20, 'xtick', [], 'ytick', [])
         xlabel('Polar stereographic X (km)')
         ylabel('Polar stereographic Y (km)')
         axis equal tight
         grid on
         box on
+        fill([325 450 450 325], [-3230 -3230 -3260 -3260], 'k')
+        fill([450 575 575 450], [-3230 -3230 -3260 -3260], 'w', 'edgecolor', 'k')
+%         text(-550, -800, '(c)', 'color', 'k', 'fontsize', 20, 'fontweight', 'bold', 'edgecolor', 'k')
+        text(300, -3180, '0', 'color', 'k', 'fontsize', 18)
+        text(520, -3180, '250 km', 'color', 'k', 'fontsize', 18)
         set(0, 'DefaultFigureWindowStyle', 'docked')
     end
 
