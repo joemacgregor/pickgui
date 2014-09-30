@@ -13,14 +13,6 @@ function pickinterp(dir_merge, file_merge, dir_data, file_data_all, frame_or_pk,
 % Joe MacGregor (UTIG)
 % Last updated: 09/30/14
 
-% clear
-% nargin                      = 5;
-% dir_merge                   = '/Volumes/icebridge/data/2011_p3/merge/';
-% file_merge                  = '20110506_01_pk_merge';
-% dir_data                    = '/Volumes/icebridge/data/2011_p3/data/20110506_01/';
-% file_data_all               = '*';
-% dir_pk_orig                 = '/Volumes/icebridge/data/2011_p3/pk_orig/';
-
 if ~any(nargin == [5 6])
     error('pickinterp:nargin', 'Incorrect number of input arguments.')
 end
@@ -90,7 +82,7 @@ for ii = 1:num_data
     
     % load current block
     frame                   = load([dir_data file_data{ii}]);
-    if ~isfield(frame, 'Time')
+    if ~isfield(frame, 'GPS_time')
         disp([file_data{ii}(1:(end - 4)) ' does not contain Time variable. Try again.'])
         return
     end
@@ -101,19 +93,22 @@ for ii = 1:num_data
     end
     
     % number of traces in current frame
-    num_trace_curr          = length(frame.Time);
+    num_trace_curr          = length(frame.GPS_time);
     
     % median time difference
-    time_diff_med           = median(diff(frame.Time));
+    time_diff_med           = median(diff(frame.GPS_time));
     
     % indices in current merged file that match current data frame
     ind_curr                = NaN(1, num_trace_curr);
     for jj = 1:num_trace_curr
-        if ~isempty(find((frame.Time(jj) == pk_merge.time), 1))
-            ind_curr(jj)    = find((frame.Time(jj) == pk_merge.time), 1);
+        if ~isempty(find((frame.GPS_time(jj) == pk_merge.time), 1))
+            ind_curr(jj)    = find((frame.GPS_time(jj) == pk_merge.time), 1);
         else
-            ind_time        = interp1(pk_merge.time, 1:pk_merge.num_trace_tot, frame.Time(jj), 'nearest');
-            if (abs(pk_merge.time(ind_time) - frame.Time(jj)) < time_diff_med)
+            ind_time        = interp1(pk_merge.time, 1:pk_merge.num_trace_tot, frame.GPS_time(jj), 'nearest');
+            if isnan(ind_time)
+                continue
+            end
+            if (abs(pk_merge.time(ind_time) - frame.GPS_time(jj)) < time_diff_med)
                 ind_curr(jj)= ind_time;
             end
         end
