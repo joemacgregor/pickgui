@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 08/24/14
+% Last updated: 10/01/14
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -817,16 +817,6 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         clear_plots
         
-        if depth_avail
-            set(disp_check(2), 'visible', 'on')
-        end
-        if phase_avail
-            set(disp_check(3), 'visible', 'on')
-        end
-        if aresp_avail
-            set(disp_check(4), 'visible', 'on')
-        end
-        
         [aresp_done, flat_done, keep_aresp_done, keep_phase_done, load_flat, match_done, phase_done, pk_done] ...
                             = deal(false);
         
@@ -887,7 +877,6 @@ set(disp_group, 'selectedobject', disp_check(1))
         set(twtt_max_edit, 'string', sprintf('%3.1f', (1e6 * twtt_max_ref)))
         pk_done             = true;
         smooth_done         = true(1, pk.num_layer);
-        trim_y
         pause(0.1)
         set(status_box, 'string', 'Continuing pick loading...')
         
@@ -1017,6 +1006,8 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
             end
         end
+        
+        trim_y
         
         % remove old fields
         if isfield(pk.layer, 'ind_y_flat_mean')
@@ -1241,6 +1232,15 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         
         set([pk_check smooth_check], 'value', 1)
+        if depth_avail
+            set(disp_check(2), 'visible', 'on')
+        end
+        if phase_avail
+            set(disp_check(3), 'visible', 'on')
+        end
+        if aresp_avail
+            set(disp_check(4), 'visible', 'on')
+        end
         show_phase
         show_aresp
         show_ref
@@ -6677,13 +6677,15 @@ set(disp_group, 'selectedobject', disp_check(1))
             case 'twtt'
                 imagesc(block.dist_lin(ind_decim), (1e6 .* block.twtt), amp_mean, [db_min db_max])
                 caxis([db_min db_max])
-                if surf_avail
-                    tmp1    = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_surf(ind_decim)), 'm.', 'markersize', 12);
-                end
-                if bed_avail
-                    tmp1    = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_bed(ind_decim)), 'm.', 'markersize', 12);
-                    if any(isnan(ind_bed))
-                        set(tmp1, 'marker', '.', 'linestyle', 'none', 'markersize', 12)
+                if get(surfbed_check, 'value')
+                    if surf_avail
+                        tmp1= plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_surf(ind_decim)), 'm.', 'markersize', 12);
+                    end
+                    if bed_avail
+                        tmp1= plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_bed(ind_decim)), 'm.', 'markersize', 12);
+                        if any(isnan(ind_bed))
+                            set(tmp1, 'marker', '.', 'linestyle', 'none', 'markersize', 12)
+                        end
                     end
                 end
                 if get(ref_check, 'value')
@@ -6746,9 +6748,11 @@ set(disp_group, 'selectedobject', disp_check(1))
             case '~depth'
                 imagesc(block.dist_lin(ind_decim), (1e6 .* block.twtt), amp_depth, [db_min db_max])
                 caxis([db_min db_max])
-                if bed_avail
-                    tmp1    = ind_decim(~isnan(ind_bed) & ~isnan(ind_surf));
-                    tmp2    = plot(block.dist_lin(tmp1), (1e6 .* (block.twtt_bed(tmp1) - block.twtt_surf(tmp1))), 'm.', 'markersize', 12);
+                if get(surfbed_check, 'value')
+                    if bed_avail
+                        tmp1= ind_decim(~isnan(ind_bed) & ~isnan(ind_surf));
+                        tmp2= plot(block.dist_lin(tmp1), (1e6 .* (block.twtt_bed(tmp1) - block.twtt_surf(tmp1))), 'm.', 'markersize', 12);
+                    end
                 end
                 if get(ref_check, 'value')
                     switch ref_start_or_end
@@ -6810,29 +6814,38 @@ set(disp_group, 'selectedobject', disp_check(1))
                 text((dist_max + (0.015 * (dist_max - dist_min))), (1e6 * (twtt_min - (0.04 * (twtt_max - twtt_min)))), '(dB)', 'color', 'k', 'fontsize', 20)
             case 'phase'
                 imagesc(block.dist_lin(1:decim:size(block.phase_diff_filt, 2)), (1e6 .* block.twtt), block.phase_diff_filt(:, 1:decim:end), [phase_diff_min phase_diff_max])
-                if surf_avail
-                    plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_surf(ind_decim)), 'm.', 'markersize', 12)
-                end
-                if bed_avail
-                    plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_bed(ind_decim)), 'm.', 'markersize', 12)
+                if get(surfbed_check, 'value')
+                    if surf_avail
+                        plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_surf(ind_decim)), 'm.', 'markersize', 12)
+                    end
+                    if bed_avail
+                        plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_bed(ind_decim)), 'm.', 'markersize', 12)
+                    end
                 end
                 text((dist_max + (0.015 * (dist_max - dist_min))), (1e6 * (twtt_min - (0.04 * (twtt_max - twtt_min)))), '(rad)', 'color', 'k', 'fontsize', 20)
             case 'ARESP'
                 imagesc(block.dist_lin(1:decim:size(block.slope_aresp, 2)), (1e6 .* block.twtt), block.slope_aresp(:, 1:decim:end), [aresp_min aresp_max])
-                plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_surf(ind_decim)), 'm.', 'markersize', 12)
-                if bed_avail
-                    plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_bed(ind_decim)), 'm.', 'markersize', 12)
+                if get(surfbed_check, 'value')
+                    if surf_avail
+                        plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_surf(ind_decim)), 'm.', 'markersize', 12)
+                    end
+                    if bed_avail
+                        plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_bed(ind_decim)), 'm.', 'markersize', 12)
+                    end
                 end
                 text((dist_max + (0.015 * (dist_max - dist_min))), (1e6 * (twtt_min - (0.04 * (twtt_max - twtt_min)))), '(tan \theta)', 'color', 'k', 'fontsize', 20)
+
             case 'flat'
                 imagesc(block.dist_lin(ind_decim_flat), (1e6 .* block.twtt), amp_flat_mean, [db_min db_max])
-                if surf_avail
-                    tmp1        = ind_surf_flat(ind_decim_flat);
-                    plot(block.dist_lin(ind_decim_flat(~isnan(tmp1))), (1e6 .* block.twtt(tmp1(~isnan(tmp1)))), 'g.', 'markersize', 12)
-                end
-                if bed_avail
-                    tmp1        = ind_bed_flat(ind_decim_flat);
-                    plot(block.dist_lin(ind_decim_flat(~isnan(tmp1))), (1e6 .* block.twtt(tmp1(~isnan(tmp1)))), 'g.', 'markersize', 12)
+                if get(surfbed_check, 'value')
+                    if surf_avail
+                        tmp1        = ind_surf_flat(ind_decim_flat);
+                        plot(block.dist_lin(ind_decim_flat(~isnan(tmp1))), (1e6 .* block.twtt(tmp1(~isnan(tmp1)))), 'g.', 'markersize', 12)
+                    end
+                    if bed_avail
+                        tmp1        = ind_bed_flat(ind_decim_flat);
+                        plot(block.dist_lin(ind_decim_flat(~isnan(tmp1))), (1e6 .* block.twtt(tmp1(~isnan(tmp1)))), 'g.', 'markersize', 12)
+                    end
                 end
                 if get(pk_check, 'value')
                     for ii = 1:pk.num_layer
