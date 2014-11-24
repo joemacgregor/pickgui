@@ -11,7 +11,7 @@ function fencegui
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 09/08/14
+% Last updated: 11/24/14
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -81,9 +81,8 @@ p_int1                      = cell(2, 3);
 [curr_layer, curr_trans, curr_subtrans, curr_year, disp_check, dt, num_data, num_decim, num_int_core, num_sample, p_beddepth] ...
                             = deal(zeros(1, 2));
 [decim_edit, layer_list, p_bed, p_data, pk_check, p_surf] ...
-                            = deal(zeros(2));
-[curr_az2, curr_el2, curr_ind_int, id_layer_master_mat, id_layer_master_cell, ii, ind_x_pk, ind_y_pk, int_all, int_core, int_year, jj, kk, name_core, name_trans, name_year, num_int, num_trans, num_year, ...
- rad_threshold, tmp1, tmp2, tmp3, tmp4, tmp5, x_core, y_core] ...
+                            = deal(NaN(2));
+[curr_az2, curr_el2, curr_ind_int, id_layer_master_mat, id_layer_master_cell, ii, ind_x_pk, ind_y_pk, int_all, int_core, int_year, jj, kk, name_core, name_trans, name_year, num_int, num_trans, num_year, rad_threshold, tmp1, tmp2, tmp3, tmp4, tmp5, x_core, y_core] ...
                             = deal(0);
 [curr_ax, curr_gui, curr_int, curr_rad] ...
                             = deal(1);
@@ -413,47 +412,47 @@ linkaxes(ax(2:3), 'y')
 %% Clear plots
 
     function clear_plots(source, eventdata)
-        if (any(p_bed(:, curr_rad)) && any(ishandle(p_bed(:, curr_rad))))
-            delete(p_bed((logical(p_bed(:, curr_rad)) & ishandle(p_bed(:, curr_rad))), curr_rad))
+        if any(ishandle(p_bed(:, curr_rad)))
+            delete(p_bed(ishandle(p_bed(:, curr_rad)), curr_rad))
         end
-        if (logical(p_beddepth(curr_rad)) && ishandle(p_beddepth(curr_rad)))
+        if ishandle(p_beddepth(curr_rad))
             delete(p_beddepth(curr_rad))
         end
-        if (any(p_coredepth{curr_rad}) && any(ishandle(p_coredepth{curr_rad})))
-            delete(p_coredepth{curr_rad}(logical(p_coredepth{curr_rad}) & ishandle(p_coredepth{curr_rad})))
+        if any(ishandle(p_coredepth{curr_rad}))
+            delete(p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})))
         end
-        if (any(p_corenamedepth{curr_rad}) && any(ishandle(p_corenamedepth{curr_rad})))
-            delete(p_corenamedepth{curr_rad}(logical(p_corenamedepth{curr_rad}) & ishandle(p_corenamedepth{curr_rad})))
+        if any(ishandle(p_corenamedepth{curr_rad}))
+            delete(p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad})))
         end
-        if (any(p_data(:, curr_rad)) && any(ishandle(p_data(:, curr_rad))))
-            delete(p_data((logical(p_data(:, curr_rad)) & ishandle(p_data(:, curr_rad))), curr_rad))
+        if any(ishandle(p_data(:, curr_rad)))
+            delete(p_data(ishandle(p_data(:, curr_rad)), curr_rad))
         end
-        if (any(p_pkdepth{curr_rad}) && any(ishandle(p_pkdepth{curr_rad})))
-            delete(p_pkdepth{curr_rad}(logical(p_pkdepth{curr_rad}) & ishandle(p_pkdepth{curr_rad})))
+        if any(ishandle(p_pkdepth{curr_rad}))
+            delete(p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})))
         end
         for ii = 1:2
             for jj = 1:3
-                if (any(p_int1{ii, jj}) && any(ishandle(p_int1{ii, jj})))
-                    delete(p_int1{ii, jj}(logical(p_int1{ii, jj}) & ishandle(p_int1{ii, jj})))
+                if any(ishandle(p_int1{ii, jj}))
+                    delete(p_int1{ii, jj}(ishandle(p_int1{ii, jj})))
                 end
             end
             for jj = 1:2
-                if (any(p_int2{ii, jj}) && any(ishandle(p_int2{ii, jj})))
-                    delete(p_int2{ii, jj}(logical(p_int2{ii, jj}) & ishandle(p_int2{ii, jj})))
+                if any(ishandle(p_int2{ii, jj}))
+                    delete(p_int2{ii, jj}(ishandle(p_int2{ii, jj})))
                 end
             end
-            if (any(p_core{ii, curr_rad}) && any(ishandle(p_core{ii, curr_rad})))
-                delete(p_core{ii, curr_rad}(logical(p_core{ii, curr_rad}) & ishandle(p_core{ii, curr_rad})))
+            if any(ishandle(p_core{ii, curr_rad}))
+                delete(p_core{ii, curr_rad}(ishandle(p_core{ii, curr_rad})))
             end
-            if (any(p_corename{ii, curr_rad}) && any(ishandle(p_corename{ii, curr_rad})))
-                delete(p_corename{ii, curr_rad}(logical(p_corename{ii, curr_rad}) & ishandle(p_corename{ii, curr_rad})))
+            if any(ishandle(p_corename{ii, curr_rad}))
+                delete(p_corename{ii, curr_rad}(ishandle(p_corename{ii, curr_rad})))
             end
-            if (any(p_pk{ii, curr_rad}) && any(ishandle(p_pk{ii, curr_rad})))
-                delete(p_pk{ii, curr_rad}(logical(p_pk{ii, curr_rad}) & ishandle(p_pk{ii, curr_rad})))
+            if any(ishandle(p_pk{ii, curr_rad}))
+                delete(p_pk{ii, curr_rad}(ishandle(p_pk{ii, curr_rad})))
             end
         end
-        if (any(p_surf(:, curr_rad)) && any(ishandle(p_surf(:, curr_rad))))
-            delete(p_surf((logical(p_surf(:, curr_rad)) & ishandle(p_surf(:, curr_rad))), curr_rad))
+        if any(ishandle(p_surf(:, curr_rad)))
+            delete(p_surf(ishandle(p_surf(:, curr_rad)), curr_rad))
         end
         set(file_box(1 + curr_rad), 'string', '')
         if (curr_rad == 1)
@@ -471,14 +470,13 @@ linkaxes(ax(2:3), 'y')
         [bed_avail(curr_rad), data_done(curr_rad), pk_done(curr_rad), surf_avail(curr_rad)] ...
                             = deal(false);
         [amp_elev{curr_rad}, colors{curr_rad}, depth{curr_rad}, dist_lin{curr_rad}, elev{curr_rad}, elev_bed{curr_rad}, elev_smooth{curr_rad}, elev_surf{curr_rad}, file_pk_short{curr_rad}, ind_decim{curr_rad}, ind_corr{curr_rad}, ind_int_core{curr_rad}, layer_str{curr_rad}, pk{curr_rad}, ...
-         p_core{1, curr_rad}, p_core{2, curr_rad}, p_coredepth{curr_rad}, p_corename{1, curr_rad}, p_corename{2, curr_rad}, p_corenamedepth{curr_rad}, p_int1{1, 1}, p_int1{1, 2}, p_int1{1, 3}, p_int1{2, 1}, p_int1{2, 2}, p_int1{2, 3}, p_int2{1, 1}, p_int2{1, 2}, p_int2{2, 1}, p_int2{2, 2}, ...
-         p_pk{1, curr_rad}, p_pk{2, curr_rad}, p_pkdepth{curr_rad}, twtt{curr_rad}, x{curr_rad}, y{curr_rad}] ...
+         twtt{curr_rad}, x{curr_rad}, y{curr_rad}] ...
                             = deal([]);
-        [curr_layer(curr_rad), curr_trans(curr_rad), curr_subtrans(curr_rad), curr_year(curr_rad), dt(curr_rad), num_data(curr_rad), num_decim(curr_rad), num_sample(curr_rad), p_bed(1, curr_rad), ...
-         p_bed(2, curr_rad), p_beddepth(curr_rad), p_data(1, curr_rad), p_data(2, curr_rad), p_surf(1, curr_rad), p_surf(2, curr_rad)] ...
+        [curr_layer(curr_rad), curr_trans(curr_rad), curr_subtrans(curr_rad), curr_year(curr_rad), dt(curr_rad), num_data(curr_rad), num_decim(curr_rad), num_sample(curr_rad), curr_ind_int, ii, ind_x_pk, ind_y_pk, jj, num_int, tmp1, tmp2, tmp3, tmp4, tmp5] ...
                             = deal(0);
-        [curr_ind_int, ii, ind_x_pk, ind_y_pk, jj, num_int, tmp1, tmp2, tmp3, tmp4, tmp5] ...
-                            = deal(0);
+        [p_bed(1, curr_rad), p_bed(2, curr_rad), p_beddepth(curr_rad), p_core{1, curr_rad}, p_core{2, curr_rad}, p_coredepth{curr_rad}, p_corename{1, curr_rad}, p_corename{2, curr_rad}, p_corenamedepth{curr_rad}, p_data(1, curr_rad), p_data(2, curr_rad), p_int1{1, 1}, p_int1{1, 2}, ...
+         p_int1{1, 3}, p_int1{2, 1}, p_int1{2, 2}, p_int1{2, 3}, p_int2{1, 1}, p_int2{1, 2}, p_int2{2, 1}, p_int2{2, 2}, p_pk{1, curr_rad}, p_pk{2, curr_rad}, p_pkdepth{curr_rad}, p_surf(1, curr_rad), p_surf(2, curr_rad)]...
+                            = deal(NaN);
     end
 
 %% Load intersection data
@@ -620,21 +618,21 @@ linkaxes(ax(2:3), 'y')
         
         for ii = 1:2
             for jj = 1:2
-                if (any(p_core{jj, ii}) && any(ishandle(p_core{jj, ii})))
-                    delete(p_core{jj, ii}(logical(p_core{jj, ii}) & ishandle(p_core{jj, ii})))
+                if any(ishandle(p_core{jj, ii}))
+                    delete(p_core{jj, ii}(ishandle(p_core{jj, ii})))
                 end
-                if (any(p_corename{jj, ii}) && any(ishandle(p_corename{jj, ii})))
-                    delete(p_corename{jj, ii}(logical(p_corename{jj, ii}) & ishandle(p_corename{jj, ii})))
+                if any(ishandle(p_corename{jj, ii}))
+                    delete(p_corename{jj, ii}(ishandle(p_corename{jj, ii})))
                 end
             end
-            if (any(p_coredepth{ii}) && any(ishandle(p_coredepth{ii})))
-                delete(p_coredepth{ii}(logical(p_coredepth{ii}) & ishandle(p_coredepth{ii})))
+            if any(ishandle(p_coredepth{ii}))
+                delete(p_coredepth{ii}(ishandle(p_coredepth{ii})))
             end
-            if (any(p_corenamedepth{ii}) && any(ishandle(p_corenamedepth{ii})))
-                delete(p_corenamedepth{ii}(logical(p_corenamedepth{ii}) & ishandle(p_corenamedepth{ii})))
+            if any(ishandle(p_corenamedepth{ii}))
+                delete(p_corenamedepth{ii}(ishandle(p_corenamedepth{ii})))
             end
         end
-         
+        
         for ii = 1:2
             
             if isempty(int_core{curr_year(ii)}{curr_trans(ii)})
@@ -1595,42 +1593,42 @@ amp_depth{curr_rad}=0;
         
         if all(pk_done)
             for ii = 1:3
-                if (any(p_int1{1, ii}) && any(ishandle(p_int1{1, ii})))
+                if any(ishandle(p_int1{1, ii}))
                     if (ii == 1)
-                        set(p_int1{1, ii}(logical(p_int1{1, ii}) & ishandle(p_int1{1, ii})), 'zdata', [elev_min_ref elev_max_ref])
+                        set(p_int1{1, ii}(ishandle(p_int1{1, ii})), 'zdata', [elev_min_ref elev_max_ref])
                     else
-                        set(p_int1{1, ii}(logical(p_int1{1, ii}) & ishandle(p_int1{1, ii})), 'ydata', [elev_min_ref elev_max_ref])
+                        set(p_int1{1, ii}(ishandle(p_int1{1, ii})), 'ydata', [elev_min_ref elev_max_ref])
                     end
                 end
             end
             for ii = 2:3
-                if (any(p_int1{2, ii}) && any(ishandle(p_int1{2, ii})))
-                    set(p_int1{2, ii}(logical(p_int1{2, ii}) & ishandle(p_int1{2, ii})), 'ydata', [depth_min_ref depth_max_ref])
+                if any(ishandle(p_int1{2, ii}))
+                    set(p_int1{2, ii}(ishandle(p_int1{2, ii})), 'ydata', [depth_min_ref depth_max_ref])
                 end
             end
         end
         
         if core_done
             for ii = 1:2
-                if (any(p_core{ii, curr_rad}) && any(ishandle(p_core{ii, curr_rad})))
+                if any(ishandle(p_core{ii, curr_rad}))
                     if (ii == 1)
-                        set(p_core{ii, curr_rad}(logical(p_core{ii, curr_rad}) & ishandle(p_core{ii, curr_rad})), 'zdata', [elev_min_ref elev_max_ref])
+                        set(p_core{ii, curr_rad}(ishandle(p_core{ii, curr_rad})), 'zdata', [elev_min_ref elev_max_ref])
                     else
-                        set(p_core{ii, curr_rad}(logical(p_core{ii, curr_rad}) & ishandle(p_core{ii, curr_rad})), 'ydata', [elev_min_ref elev_max_ref])
+                        set(p_core{ii, curr_rad}(ishandle(p_core{ii, curr_rad})), 'ydata', [elev_min_ref elev_max_ref])
                     end
                 end
                 for jj = 1:length(p_corename{ii, curr_rad})
-                    if (logical(p_corename{ii, curr_rad}(jj)) && ishandle(p_corename{ii, curr_rad}(jj)))
+                    if ishandle(p_corename{ii, curr_rad}(jj))
                         tmp1 = get(p_corename{ii, curr_rad}(jj), 'position');
                         set(p_corename{ii, curr_rad}(jj), 'position', [tmp1(1:2) (elev_max_ref - 50)])
                     end
                 end
             end
-            if (any(p_coredepth{curr_rad}) && any(ishandle(p_coredepth{curr_rad})))
-                set(p_coredepth{curr_rad}(logical(p_coredepth{curr_rad}) & ishandle(p_coredepth{curr_rad})), 'ydata', [depth_min_ref depth_max_ref])
+            if any(ishandle(p_coredepth{curr_rad}))
+                set(p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})), 'ydata', [depth_min_ref depth_max_ref])
             end
             for ii = 1:length(p_corenamedepth{curr_rad})
-                if (logical(p_corenamedepth{curr_rad}(ii)) && ishandle(p_corenamedepth{curr_rad}(ii)))
+                if ishandle(p_corenamedepth{curr_rad}(ii))
                     tmp1    = get(p_corenamedepth{curr_rad}(ii), 'position');
                     set(p_corenamedepth{curr_rad}(ii), 'position', [tmp1(1:2) (depth_max_ref + 50)])
                 end
@@ -1685,25 +1683,25 @@ amp_depth{curr_rad}=0;
         if pk_done(curr_rad)
             set(layer_list(:, curr_rad), 'value', curr_layer(curr_rad))
             for ii = 1:2
-                if (any(p_pk{ii, curr_rad}) && any(ishandle(p_pk{ii, curr_rad})))
-                    set(p_pk{ii, curr_rad}(logical(p_pk{ii, curr_rad}) & ishandle(p_pk{ii, curr_rad})), 'markersize', 12)
+                if any(ishandle(p_pk{ii, curr_rad}))
+                    set(p_pk{ii, curr_rad}(ishandle(p_pk{ii, curr_rad})), 'markersize', 12)
                 end
-                if (any(p_int2{ii, curr_rad_alt}) && any(ishandle(p_int2{ii, curr_rad_alt})))
-                    set(p_int2{ii, curr_rad_alt}(logical(p_int2{ii, curr_rad_alt}) & ishandle(p_int2{ii, curr_rad_alt})), 'markersize', 8)
+                if any(ishandle(p_int2{ii, curr_rad_alt}))
+                    set(p_int2{ii, curr_rad_alt}(ishandle(p_int2{ii, curr_rad_alt})), 'markersize', 8)
                 end
-                if (logical(p_pk{ii, curr_rad}(curr_layer(curr_rad))) && ishandle(p_pk{ii, curr_rad}(curr_layer(curr_rad))))
+                if ishandle(p_pk{ii, curr_rad}(curr_layer(curr_rad)))
                     set(p_pk{ii, curr_rad}(curr_layer(curr_rad)), 'markersize', 24)
                 end
                 if all(pk_done)
-                    if (logical(p_int2{ii, curr_rad_alt}(curr_layer(curr_rad))) && ishandle(p_int2{ii, curr_rad_alt}(curr_layer(curr_rad))))
+                    if ishandle(p_int2{ii, curr_rad_alt}(curr_layer(curr_rad)))
                         set(p_int2{ii, curr_rad_alt}(curr_layer(curr_rad)), 'markersize', 16)
                     end
                 end
             end
-            if (any(p_pkdepth{curr_rad}) && any(ishandle(p_pkdepth{curr_rad})))
-                set(p_pkdepth{curr_rad}(logical(p_pkdepth{curr_rad}) & ishandle(p_pk{ii, curr_rad})), 'markersize', 12)
+            if any(ishandle(p_pkdepth{curr_rad}))
+                set(p_pkdepth{curr_rad}(ishandle(p_pk{ii, curr_rad})), 'markersize', 12)
             end
-            if (logical(p_pkdepth{curr_rad}(curr_layer(curr_rad))) && ishandle(p_pkdepth{curr_rad}(curr_layer(curr_rad))))
+            if ishandle(p_pkdepth{curr_rad}(curr_layer(curr_rad)))
                 set(p_pkdepth{curr_rad}(curr_layer(curr_rad)), 'markersize', 24)
             end
         end
@@ -1719,28 +1717,28 @@ amp_depth{curr_rad}=0;
                     if ~isempty(find(((pk{2}.ind_layer(:, 5) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1))
                         curr_layer(2) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 5) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1), 1);
                         for ii = 1:2
-                            if (any(p_pk{ii, 2}) && any(ishandle(p_pk{ii, 2})))
-                                set(p_pk{ii, 2}(logical(p_pk{ii, 2}) & ishandle(p_pk{ii, 2})), 'markersize', 12)
+                            if any(ishandle(p_pk{ii, 2}))
+                                set(p_pk{ii, 2}(ishandle(p_pk{ii, 2})), 'markersize', 12)
                             end
-                            if (logical(p_pk{ii, 2}(curr_layer(2))) && ishandle(p_pk{ii, 2}(curr_layer(2))))
+                            if ishandle(p_pk{ii, 2}(curr_layer(2)))
                                 set(p_pk{ii, 2}(curr_layer(2)), 'markersize', 24)
                             end
                             for jj = 1:2
-                                if (any(p_int2{ii, jj}) && any(ishandle(p_int2{ii, jj})))
-                                    set(p_int2{ii, jj}(logical(p_int2{ii, jj}) & ishandle(p_int2{ii, jj})), 'markersize', 8)
+                                if any(ishandle(p_int2{ii, jj}))
+                                    set(p_int2{ii, jj}(ishandle(p_int2{ii, jj})), 'markersize', 8)
                                 end
                             end
-                            if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                            if ishandle(p_int2{ii, 1}(curr_layer(2)))
                                 set(p_int2{ii, 1}(curr_layer(2)), 'markersize', 16)
                             end
-                            if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                            if ishandle(p_int2{ii, 2}(curr_layer(1)))
                                 set(p_int2{ii, 2}(curr_layer(1)), 'markersize', 16)
                             end
                         end
-                        if (any(p_pkdepth{2}) && any(ishandle(p_pkdepth{2})))
-                            set(p_pkdepth{2}(logical(p_pkdepth{2}) & ishandle(p_pkdepth{2})), 'markersize', 12)
+                        if any(ishandle(p_pkdepth{2}))
+                            set(p_pkdepth{2}(ishandle(p_pkdepth{2})), 'markersize', 12)
                         end
-                        if (logical(p_pkdepth{2}(curr_layer(2))) && ishandle(p_pkdepth{2}(curr_layer(2))))
+                        if ishandle(p_pkdepth{2}(curr_layer(2)))
                             set(p_pkdepth{2}(curr_layer(2)), 'markersize', 24)
                         end
                         tmp1 = 'matched';
@@ -1750,28 +1748,28 @@ amp_depth{curr_rad}=0;
                     if ~isempty(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1))
                         curr_layer(1) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1), 5);
                         for ii = 1:2
-                            if (any(p_pk{ii, 1}) && any(ishandle(p_pk{ii, 1})))
-                                set(p_pk{ii, 1}(logical(p_pk{ii, 1}) & ishandle(p_pk{ii, 1})), 'markersize', 12)
+                            if any(ishandle(p_pk{ii, 1}))
+                                set(p_pk{ii, 1}(ishandle(p_pk{ii, 1})), 'markersize', 12)
                             end
-                            if (logical(p_pk{ii, 1}(curr_layer(1))) && ishandle(p_pk{ii, 1}(curr_layer(1))))
+                            if ishandle(p_pk{ii, 1}(curr_layer(1)))
                                 set(p_pk{ii, 1}(curr_layer(1)), 'markersize', 24)
                             end
                             for jj = 1:2
-                                if (any(p_int2{ii, jj}) && any(ishandle(p_int2{ii, jj})))
-                                    set(p_int2{ii, jj}(logical(p_int2{ii, jj}) & ishandle(p_int2{ii, jj})), 'markersize', 8)
+                                if any(ishandle(p_int2{ii, jj}))
+                                    set(p_int2{ii, jj}(ishandle(p_int2{ii, jj})), 'markersize', 8)
                                 end
                             end
-                            if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                            if ishandle(p_int2{ii, 1}(curr_layer(2)))
                                 set(p_int2{ii, 1}(curr_layer(2)), 'markersize', 16)
                             end
-                            if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                            if ishandle(p_int2{ii, 2}(curr_layer(1)))
                                 set(p_int2{ii, 2}(curr_layer(1)), 'markersize', 16)
                             end
                         end
-                        if (any(p_pkdepth{1}) && any(ishandle(p_pkdepth{1})))
-                            set(p_pkdepth{1}(logical(p_pkdepth{1}) & ishandle(p_pkdepth{1})), 'markersize', 12)
+                        if any(ishandle(p_pkdepth{1}))
+                            set(p_pkdepth{1}(ishandle(p_pkdepth{1})), 'markersize', 12)
                         end
-                        if (logical(p_pkdepth{1}(curr_layer(1))) && ishandle(p_pkdepth{1}(curr_layer(1))))
+                        if ishandle(p_pkdepth{1}(curr_layer(1)))
                             set(p_pkdepth{1}(curr_layer(1)), 'markersize', 24)
                         end
                         tmp1 = 'matched';
@@ -2064,16 +2062,16 @@ amp_depth{curr_rad}=0;
         
         % colorize then verify
         for ii = 1:2
-            if (logical(p_pk{ii, 2}(curr_layer(2))) && ishandle(p_pk{ii, 2}(curr_layer(2))))
+            if ishandle(p_pk{ii, 2}(curr_layer(2)))
                 set(p_pk{ii, 2}(curr_layer(2)), 'color', tmp2)
             end
-            if (logical(p_pkdepth{2}(curr_layer(2))) && ishandle(p_pkdepth{2}(curr_layer(2))))
+            if ishandle(p_pkdepth{2}(curr_layer(2)))
                 set(p_pkdepth{2}(curr_layer(2)), 'color', tmp2)
             end
-            if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+            if ishandle(p_int2{ii, 1}(curr_layer(2)))
                 set(p_int2{ii, 1}(curr_layer(2)), 'markerfacecolor', tmp2)
             end
-            if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+            if ishandle(p_int2{ii, 2}(curr_layer(1)))
                 set(p_int2{ii, 2}(curr_layer(1)), 'markerfacecolor', tmp2)
             end
         end
@@ -2086,13 +2084,13 @@ amp_depth{curr_rad}=0;
                 colors{1}(pk{1}.ind_layer(tmp1, 1), :) ...
                             = repmat(tmp2, length(tmp1), 1);
                 for ii = 1:2
-                    if (any(p_pk{ii, 1}(pk{1}.ind_layer(tmp1, 1))) && any(ishandle(p_pk{ii, 1}(pk{1}.ind_layer(tmp1, 1)))))
+                    if any(ishandle(p_pk{ii, 1}(pk{1}.ind_layer(tmp1, 1))))
                         set(p_pk{ii, 1}(pk{1}.ind_layer(tmp1, 1)), 'color', tmp2)
                     end
-                    if (any(p_pkdepth{1}(pk{1}.ind_layer(tmp1, 1))) && any(ishandle(p_pkdepth{1}(pk{1}.ind_layer(tmp1, 1)))))
+                    if any(ishandle(p_pkdepth{1}(pk{1}.ind_layer(tmp1, 1))))
                         set(p_pkdepth{1}(pk{1}.ind_layer(tmp1, 1)), 'color', tmp2)
                     end
-                    if (any(p_int2{ii, 2}(pk{1}.ind_layer(tmp1, 1))) && any(ishandle(p_int2{ii, 2}(pk{1}.ind_layer(tmp1, 1)))))
+                    if any(ishandle(p_int2{ii, 2}(pk{1}.ind_layer(tmp1, 1))))
                         set(p_int2{ii, 2}(pk{1}.ind_layer(tmp1, 1)), 'markerfacecolor', tmp2)
                     end
                 end
@@ -2103,10 +2101,10 @@ amp_depth{curr_rad}=0;
         pk{2}.ind_layer     = [pk{2}.ind_layer; [curr_layer(2) curr_year(1) curr_trans(1) curr_subtrans(1) curr_layer(1)]];
         
         for ii = 1:2
-            if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+            if ishandle(p_int2{ii, 1}(curr_layer(2)))
                 set(p_int2{ii, 1}(curr_layer(2)), 'marker', '^')
             end
-            if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+            if ishandle(p_int2{ii, 2}(curr_layer(1)))
                 set(p_int2{ii, 2}(curr_layer(1)), 'marker', '^')
             end
         end
@@ -2146,56 +2144,56 @@ amp_depth{curr_rad}=0;
         end
         
         for ii = 1:2
-            if (logical(p_pk{ii, 2}(curr_layer(2))) && ishandle(p_pk{ii, 2}(curr_layer(2))))
+            if ishandle(p_pk{ii, 2}(curr_layer(2)))
                 set(p_pk{ii, 2}(curr_layer(2)), 'color', colors{2}(curr_layer(2), :))
             end
-            if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+            if ishandle(p_int2{ii, 1}(curr_layer(2)))
                 set(p_int2{ii, 1}(curr_layer(2)), 'markerfacecolor', colors{2}(curr_layer(2), :))
             end
-            if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+            if ishandle(p_int2{ii, 2}(curr_layer(1)))
                 set(p_int2{ii, 2}(curr_layer(1)), 'markerfacecolor', colors{1}(curr_layer(1), :))
             end
         end
-        if (logical(p_pkdepth{2}(curr_layer(2))) && ishandle(p_pkdepth{2}(curr_layer(2))))
+        if ishandle(p_pkdepth{2}(curr_layer(2)))
             set(p_pkdepth{2}(curr_layer(2)), 'color', colors{2}(curr_layer(2), :))
         end
         
         if ~isempty(find((pk{1}.ind_layer(:, 1) == curr_layer(1)), 1))
             for ii = 1:2
-                if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                if ishandle(p_int2{ii, 2}(curr_layer(1)))
                     set(p_int2{ii, 2}(curr_layer(1)), 'marker', 's')
                 end
             end
         else
             for ii = 1:2
-                if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                if ishandle(p_int2{ii, 2}(curr_layer(1)))
                     set(p_int2{ii, 2}(curr_layer(1)), 'marker', 'o')
                 end
             end
         end
         if isempty(find((pk{1}.ind_layer(:, 5) == curr_layer(2)), 1))
             for ii = 1:2
-                if (logical(p_int2{ii, 2}(curr_layer(1))) && ishandle(p_int2{ii, 2}(curr_layer(1))))
+                if ishandle(p_int2{ii, 2}(curr_layer(1)))
                     set(p_int2{ii, 2}(curr_layer(1)), 'marker', 'o')
                 end
             end
         end
         if ~isempty(find((pk{2}.ind_layer(:, 1) == curr_layer(2)), 1))
             for ii = 1:2
-                if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                if ishandle(p_int2{ii, 1}(curr_layer(2)))
                     set(p_int2{ii, 1}(curr_layer(2)), 'marker', 's')
                 end
             end
         else
             for ii = 1:2
-                if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                if ishandle(p_int2{ii, 1}(curr_layer(2)))
                     set(p_int2{ii, 1}(curr_layer(2)), 'marker', 'o')
                 end
             end
         end
         if isempty(find((pk{2}.ind_layer(:, 5) == curr_layer(1)), 1))
             for ii = 1:2
-                if (logical(p_int2{ii, 1}(curr_layer(2))) && ishandle(p_int2{ii, 1}(curr_layer(2))))
+                if ishandle(p_int2{ii, 1}(curr_layer(2)))
                     set(p_int2{ii, 1}(curr_layer(2)), 'marker', 'o')
                 end
             end
@@ -3418,7 +3416,7 @@ amp_depth{curr_rad}=0;
             return
         end
         set(status_box(curr_gui), 'string', 'Plotting data in terms of elevation...')
-        if (logical(p_data(curr_gui, curr_rad)) && ishandle(p_data(curr_gui, curr_rad)))
+        if ishandle(p_data(curr_gui, curr_rad))
             delete(p_data(curr_gui, curr_rad))
         end
         axes(ax(curr_ax))
@@ -3466,8 +3464,8 @@ amp_depth{curr_rad}=0;
             return
         end
         set(status_box(curr_gui), 'string', 'Plotting data in terms of depth...')
-        if (any(p_data(curr_gui, :)) && any(ishandle(p_data(curr_gui, :))))
-            delete(p_data(curr_gui, (logical(p_data(curr_gui, :)) & ishandle(p_data(curr_gui, :)))))
+        if any(ishandle(p_data(curr_gui, :)))
+            delete(p_data(curr_gui, ishandle(p_data(curr_gui, :))))
         end
         for ii = 2:3
             [curr_ax, curr_rad] ...
@@ -3522,9 +3520,9 @@ amp_depth{curr_rad}=0;
     function show_data(source, eventdata)
         set(rad_group, 'selectedobject', rad_check(curr_rad))
         if data_done(curr_rad)
-            if (get(data_check(curr_gui, curr_rad), 'value') && logical(p_data(curr_gui, curr_rad)) && ishandle(p_data(curr_gui, curr_rad)))
+            if (get(data_check(curr_gui, curr_rad), 'value') && ishandle(p_data(curr_gui, curr_rad)))
                 set(p_data(curr_gui, curr_rad), 'visible', 'on')
-            elseif (logical(p_data(curr_gui, curr_rad)) && ishandle(p_data(curr_gui, curr_rad)))
+            elseif ishandle(p_data(curr_gui, curr_rad))
                 set(p_data(curr_gui, curr_rad), 'visible', 'off')
             end
         elseif get(data_check(curr_gui, curr_rad), 'value')
@@ -3563,57 +3561,57 @@ amp_depth{curr_rad}=0;
         if pk_done(curr_rad)
             if get(pk_check(curr_gui, curr_rad), 'value')
                 if ((curr_gui == 1) || strcmp(disp_type, 'elev.'))
-                    if (any(p_pk{curr_gui, curr_rad}) && any(ishandle(p_pk{curr_gui, curr_rad})))
-                        set(p_pk{curr_gui, curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'on')
-                        uistack(p_pk{curr_gui, curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pk{curr_gui, curr_rad})), 'top')
+                    if any(ishandle(p_pk{curr_gui, curr_rad}))
+                        set(p_pk{curr_gui, curr_rad}(ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'on')
+                        uistack(p_pk{curr_gui, curr_rad}(ishandle(p_pk{curr_gui, curr_rad})), 'top')
                     end
-                    if (logical(p_surf(curr_gui, curr_rad)) && ishandle(p_surf(curr_gui, curr_rad)))
+                    if ishandle(p_surf(curr_gui, curr_rad))
                         set(p_surf(curr_gui, curr_rad), 'visible', 'on')
                         uistack(p_surf(curr_gui, curr_rad), 'top')
                     end
-                    if (logical(p_bed(curr_gui, curr_rad)) && ishandle(p_bed(curr_gui, curr_rad)))
+                    if ishandle(p_bed(curr_gui, curr_rad))
                         set(p_bed(curr_gui, curr_rad), 'visible', 'on')
                         uistack(p_bed(curr_gui, curr_rad), 'top')
                     end
-                    if (any(p_pkdepth{curr_rad}) && any(ishandle(p_pkdepth{curr_rad})))
-                        set(p_pkdepth{curr_rad}(logical(p_pkdepth{curr_rad}) & ishandle(p_pkdepth{curr_rad})), 'visible', 'off')
+                    if any(ishandle(p_pkdepth{curr_rad}))
+                        set(p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})), 'visible', 'off')
                     end
-                    if (logical(p_beddepth(curr_rad)) && ishandle(p_beddepth(curr_rad)))
+                    if ishandle(p_beddepth(curr_rad))
                         set(p_beddepth(curr_rad), 'visible', 'off')
                     end
                 else
-                    if (any(p_pkdepth{curr_rad}) && any(ishandle(p_pkdepth{curr_rad})))
-                        set(p_pkdepth{curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pkdepth{curr_rad})), 'visible', 'on')
-                        uistack(p_pkdepth{curr_rad}(logical(p_pkdepth{curr_rad}) & ishandle(p_pkdepth{curr_rad})), 'top')
+                    if any(ishandle(p_pkdepth{curr_rad}))
+                        set(p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})), 'visible', 'on')
+                        uistack(p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})), 'top')
                     end
-                    if (logical(p_beddepth(curr_rad)) && ishandle(p_beddepth(curr_rad)))
+                    if ishandle(p_beddepth(curr_rad))
                         set(p_beddepth(curr_rad), 'visible', 'on')
                     end
-                    if (any(p_pk{curr_gui, curr_rad}) && any(ishandle(p_pk{curr_gui, curr_rad})))
-                        set(p_pk{curr_gui, curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'off')
+                    if any(ishandle(p_pk{curr_gui, curr_rad}))
+                        set(p_pk{curr_gui, curr_rad}(ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'off')
                     end
-                    if (logical(p_surf(curr_gui, curr_rad)) && ishandle(p_surf(curr_gui, curr_rad)))
+                    if ishandle(p_surf(curr_gui, curr_rad))
                         set(p_surf(curr_gui, curr_rad), 'visible', 'off')
                     end
-                    if (logical(p_bed(curr_gui, curr_rad)) && ishandle(p_bed(curr_gui, curr_rad)))
+                    if ishandle(p_bed(curr_gui, curr_rad))
                         set(p_bed(curr_gui, curr_rad), 'visible', 'off')
                     end
                 end
                 show_int
             else
-                if (any(p_pk{curr_gui, curr_rad}) && any(ishandle(p_pk{curr_gui, curr_rad})))
-                    set(p_pk{curr_gui, curr_rad}(logical(p_pk{curr_gui, curr_rad}) & ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'off')
+                if any(ishandle(p_pk{curr_gui, curr_rad}))
+                    set(p_pk{curr_gui, curr_rad}(ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'off')
                 end
-                if (logical(p_surf(curr_gui, curr_rad)) && ishandle(p_surf(curr_gui, curr_rad)))
+                if ishandle(p_surf(curr_gui, curr_rad))
                     set(p_surf(curr_gui, curr_rad), 'visible', 'off')
                 end
-                if (logical(p_bed(curr_gui, curr_rad)) && ishandle(p_bed(curr_gui, curr_rad)))
+                if ishandle(p_bed(curr_gui, curr_rad))
                     set(p_bed(curr_gui, curr_rad), 'visible', 'off')
                 end
-                if (any(p_pkdepth{curr_rad}) && any(ishandle(p_pkdepth{curr_rad})))
-                    set(p_pkdepth{curr_rad}(logical(p_pkdepth{curr_rad}) & ishandle(p_pkdepth{curr_rad})), 'visible', 'off')
+                if any(ishandle(p_pkdepth{curr_rad}))
+                    set(p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})), 'visible', 'off')
                 end
-                if (logical(p_beddepth(curr_rad)) && ishandle(p_beddepth(curr_rad)))
+                if ishandle(p_beddepth(curr_rad))
                     set(p_beddepth(curr_rad), 'visible', 'off')
                 end
             end
@@ -3647,45 +3645,45 @@ amp_depth{curr_rad}=0;
         if all(pk_done)
             if get(int_check(curr_ax), 'value')
                 if ((curr_gui == 1) || strcmp(disp_type, 'elev.'))
-                    if (any(p_int1{1, curr_ax}) && any(ishandle(p_int1{1, curr_ax})))
-                        set(p_int1{1, curr_ax}(logical(p_int1{1, curr_ax}) & ishandle(p_int1{1, curr_ax})), 'visible', 'on')
-                        uistack(p_int1{1, curr_ax}(logical(p_int1{1, curr_ax}) & ishandle(p_int1{1, curr_ax})), 'top')
+                    if any(ishandle(p_int1{1, curr_ax}))
+                        set(p_int1{1, curr_ax}(ishandle(p_int1{1, curr_ax})), 'visible', 'on')
+                        uistack(p_int1{1, curr_ax}(ishandle(p_int1{1, curr_ax})), 'top')
                     end
                     if (curr_gui == 2)
-                        if any(p_int2{1, curr_rad}) && any(ishandle(p_int2{1, curr_rad}))
-                            set(p_int2{1, curr_rad}(logical(p_int2{1, curr_rad}) & ishandle(p_int2{1, curr_rad})), 'visible', 'on')
-                            uistack(p_int2{1, curr_rad}(logical(p_int2{1, curr_rad}) & ishandle(p_int2{1, curr_rad})), 'top')
+                        if any(ishandle(p_int2{1, curr_rad}))
+                            set(p_int2{1, curr_rad}(ishandle(p_int2{1, curr_rad})), 'visible', 'on')
+                            uistack(p_int2{1, curr_rad}(ishandle(p_int2{1, curr_rad})), 'top')
                         end
-                        if (any(p_int1{2, curr_ax}) && any(ishandle(p_int1{2, curr_ax})))
-                            set(p_int1{2, curr_ax}(logical(p_int1{2, curr_ax}) & ishandle(p_int1{2, curr_ax})), 'visible', 'off')
+                        if any(ishandle(p_int1{2, curr_ax}))
+                            set(p_int1{2, curr_ax}(ishandle(p_int1{2, curr_ax})), 'visible', 'off')
                         end
-                        if any(p_int2{2, curr_rad}) && any(ishandle(p_int2{2, curr_rad}))
-                            set(p_int2{2, curr_rad}(logical(p_int2{2, curr_rad}) & ishandle(p_int2{2, curr_rad})), 'visible', 'off')
+                        if any(ishandle(p_int2{2, curr_rad}))
+                            set(p_int2{2, curr_rad}(ishandle(p_int2{2, curr_rad})), 'visible', 'off')
                         end
                     end
                 else
-                    if (any(p_int1{2, curr_ax}) && any(ishandle(p_int1{2, curr_ax})))
-                        set(p_int1{2, curr_ax}(logical(p_int1{2, curr_ax}) & ishandle(p_int1{2, curr_ax})), 'visible', 'on')
-                        uistack(p_int1{2, curr_ax}(logical(p_int1{2, curr_ax}) & ishandle(p_int1{2, curr_ax})), 'top')
+                    if any(ishandle(p_int1{2, curr_ax}))
+                        set(p_int1{2, curr_ax}(ishandle(p_int1{2, curr_ax})), 'visible', 'on')
+                        uistack(p_int1{2, curr_ax}(ishandle(p_int1{2, curr_ax})), 'top')
                     end
-                    if any(p_int2{2, curr_rad}) && any(ishandle(p_int2{2, curr_rad}))
-                        set(p_int2{2, curr_rad}(logical(p_int2{2, curr_rad}) & ishandle(p_int2{2, curr_rad})), 'visible', 'on')
-                        uistack(p_int2{2, curr_rad}(logical(p_int2{2, curr_rad}) & ishandle(p_int2{2, curr_rad})), 'top')
+                    if any(ishandle(p_int2{2, curr_rad}))
+                        set(p_int2{2, curr_rad}(ishandle(p_int2{2, curr_rad})), 'visible', 'on')
+                        uistack(p_int2{2, curr_rad}(ishandle(p_int2{2, curr_rad})), 'top')
                     end
-                    if (any(p_int1{1, curr_ax}) && any(ishandle(p_int1{1, curr_ax})))
-                        set(p_int1{1, curr_ax}(logical(p_int1{1, curr_ax}) & ishandle(p_int1{1, curr_ax})), 'visible', 'off')
+                    if any(ishandle(p_int1{1, curr_ax}))
+                        set(p_int1{1, curr_ax}(ishandle(p_int1{1, curr_ax})), 'visible', 'off')
                     end
-                    if any(p_int2{1, curr_rad}) && any(ishandle(p_int2{1, curr_rad}))
-                        set(p_int2{1, curr_rad}(logical(p_int2{1, curr_rad}) & ishandle(p_int2{1, curr_rad})), 'visible', 'off')
+                    if any(ishandle(p_int2{1, curr_rad}))
+                        set(p_int2{1, curr_rad}(ishandle(p_int2{1, curr_rad})), 'visible', 'off')
                     end
                 end
             else
                 for ii = 1:2
-                    if (any(p_int1{ii, curr_ax}) && any(ishandle(p_int1{ii, curr_ax})))
-                        set(p_int1{ii, curr_ax}(logical(p_int1{ii, curr_ax}) & ishandle(p_int1{ii, curr_ax})), 'visible', 'off')
+                    if any(ishandle(p_int1{ii, curr_ax}))
+                        set(p_int1{ii, curr_ax}(ishandle(p_int1{ii, curr_ax})), 'visible', 'off')
                     end
-                    if (any(p_int2{ii, curr_rad}) && any(ishandle(p_int2{ii, curr_rad})))
-                        set(p_int2{ii, curr_rad}(logical(p_int2{ii, curr_rad}) & ishandle(p_int2{ii, curr_rad})), 'visible', 'off')
+                    if any(ishandle(p_int2{ii, curr_rad}))
+                        set(p_int2{ii, curr_rad}(ishandle(p_int2{ii, curr_rad})), 'visible', 'off')
                     end
                 end
             end
@@ -3720,61 +3718,61 @@ amp_depth{curr_rad}=0;
             if get(core_check(curr_ax), 'value')
                 switch curr_gui
                     case 1
-                        if (any(p_core{curr_gui, curr_rad}) && any(ishandle(p_core{curr_gui, curr_rad})))
-                            set(p_core{curr_gui, curr_rad}(logical(p_core{curr_gui, curr_rad}) & ishandle(p_core{curr_gui, curr_rad})), 'visible', 'on')
-                            uistack(p_core{curr_gui, curr_rad}(logical(p_core{curr_gui, curr_rad}) & ishandle(p_core{curr_gui, curr_rad})), 'top')
+                        if any(ishandle(p_core{curr_gui, curr_rad}))
+                            set(p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})), 'visible', 'on')
+                            uistack(p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})), 'top')
                         end
-                        if (any(p_corename{curr_gui, curr_rad}) && any(ishandle(p_corename{curr_gui, curr_rad})))
-                            set(p_corename{curr_gui, curr_rad}(logical(p_corename{curr_gui, curr_rad}) & ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'on')
-                            uistack(p_corename{curr_gui, curr_rad}(logical(p_corename{curr_gui, curr_rad}) & ishandle(p_corename{curr_gui, curr_rad})), 'top')
+                        if any(ishandle(p_corename{curr_gui, curr_rad}))
+                            set(p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'on')
+                            uistack(p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad})), 'top')
                         end
                     case 2
                         switch disp_type
                             case 'elev.'
-                                if (any(p_core{curr_gui, curr_rad}) && any(ishandle(p_core{curr_gui, curr_rad})))
-                                    set(p_core{curr_gui, curr_rad}(logical(p_core{curr_gui, curr_rad}) & ishandle(p_core{curr_gui, curr_rad})), 'visible', 'on')
-                                    uistack(p_core{curr_gui, curr_rad}(logical(p_core{curr_gui, curr_rad}) & ishandle(p_core{curr_gui, curr_rad})), 'top')
+                                if any(ishandle(p_core{curr_gui, curr_rad}))
+                                    set(p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})), 'visible', 'on')
+                                    uistack(p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})), 'top')
                                 end
-                                if (any(p_corename{curr_gui, curr_rad}) && any(ishandle(p_corename{curr_gui, curr_rad})))
-                                    set(p_corename{curr_gui, curr_rad}(logical(p_corename{curr_gui, curr_rad}) & ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'on')
-                                    uistack(p_corename{curr_gui, curr_rad}(logical(p_corename{curr_gui, curr_rad}) & ishandle(p_corename{curr_gui, curr_rad})), 'top')
+                                if any(ishandle(p_corename{curr_gui, curr_rad}))
+                                    set(p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'on')
+                                    uistack(p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad})), 'top')
                                 end
-                                if (any(p_coredepth{curr_rad}) && any(ishandle(p_coredepth{curr_rad})))
-                                    set(p_coredepth{curr_rad}(logical(p_coredepth{curr_rad}) & ishandle(p_coredepth{curr_rad})), 'visible', 'off')
+                                if any(ishandle(p_coredepth{curr_rad}))
+                                    set(p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})), 'visible', 'off')
                                 end
-                                if (any(p_corenamedepth{curr_rad}) && any(ishandle(p_corenamedepth{curr_rad})))
-                                    set(p_corenamedepth{curr_rad}(logical(p_corenamedepth{curr_rad}) & ishandle(p_corenamedepth{curr_rad})), 'visible', 'off')
+                                if any(ishandle(p_corenamedepth{curr_rad}))
+                                    set(p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad})), 'visible', 'off')
                                 end
                             case 'depth'
-                                if (any(p_coredepth{curr_rad}) && any(ishandle(p_coredepth{curr_rad})))
-                                    set(p_coredepth{curr_rad}(logical(p_coredepth{curr_rad}) & ishandle(p_coredepth{curr_rad})), 'visible', 'off')
-                                    uistack(p_coredepth{curr_rad}(logical(p_coredepth{curr_rad}) & ishandle(p_coredepth{curr_rad})), 'top')
+                                if any(ishandle(p_coredepth{curr_rad}))
+                                    set(p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})), 'visible', 'off')
+                                    uistack(p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})), 'top')
                                 end
-                                if (any(p_corenamedepth{curr_rad}) && any(ishandle(p_corenamedepth{curr_rad})))
-                                    set(p_corenamedepth{curr_rad}(logical(p_corenamedepth{curr_rad}) & ishandle(p_corenamedepth{curr_rad})), 'visible', 'off')
-                                    uistack(p_corenamedepth{curr_rad}(logical(p_corenamedepth{curr_rad}) & ishandle(p_corenamedepth{curr_rad})), 'top')
+                                if any(ishandle(p_corenamedepth{curr_rad}))
+                                    set(p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad})), 'visible', 'off')
+                                    uistack(p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad})), 'top')
                                 end
-                                if (any(p_core{curr_gui, curr_rad}) && any(ishandle(p_core{curr_gui, curr_rad})))
-                                    set(p_core{curr_gui, curr_rad}(logical(p_core{curr_gui, curr_rad}) & ishandle(p_core{curr_gui, curr_rad})), 'visible', 'off')
+                                if any(ishandle(p_core{curr_gui, curr_rad}))
+                                    set(p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})), 'visible', 'off')
                                 end
-                                if (any(p_corename{curr_gui, curr_rad}) && any(ishandle(p_corename{curr_gui, curr_rad})))
-                                    set(p_corename{curr_gui, curr_rad}(logical(p_corename{curr_gui, curr_rad}) & ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'off')
+                                if any(ishandle(p_corename{curr_gui, curr_rad}))
+                                    set(p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'off')
                                 end
                         end
                 end
             else
-                if (any(p_core{curr_gui, curr_rad}) && any(ishandle(p_core{curr_gui, curr_rad})))
-                    set(p_core{curr_gui, curr_rad}(logical(p_core{curr_gui, curr_rad}) & ishandle(p_core{curr_gui, curr_rad})), 'visible', 'off')
+                if any(ishandle(p_core{curr_gui, curr_rad}))
+                    set(p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})), 'visible', 'off')
                 end
-                if (any(p_corename{curr_gui, curr_rad}) && any(ishandle(p_corename{curr_gui, curr_rad})))
-                    set(p_corename{curr_gui, curr_rad}(logical(p_corename{curr_gui, curr_rad}) & ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'off')
+                if any(ishandle(p_corename{curr_gui, curr_rad}))
+                    set(p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'off')
                 end
                 if (curr_gui == 2)
-                    if (any(p_coredepth{curr_rad}) && any(ishandle(p_coredepth{curr_rad})))
-                        set(p_coredepth{curr_rad}(logical(p_coredepth{curr_rad}) & ishandle(p_coredepth{curr_rad})), 'visible', 'off')
+                    if any(ishandle(p_coredepth{curr_rad}))
+                        set(p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})), 'visible', 'off')
                     end
-                    if (any(p_corenamedepth{curr_rad}) && any(ishandle(p_corenamedepth{curr_rad})))
-                        set(p_corenamedepth{curr_rad}(logical(p_corenamedepth{curr_rad}) & ishandle(p_corenamedepth{curr_rad})), 'visible', 'off')
+                    if any(ishandle(p_corenamedepth{curr_rad}))
+                        set(p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad})), 'visible', 'off')
                     end
                 end
             end
@@ -3824,22 +3822,22 @@ amp_depth{curr_rad}=0;
             end
                 num_decim(curr_rad) ...
                             = length(ind_decim{curr_rad});
-            if (any(p_bed(:, curr_rad)) && any(ishandle(p_bed(:, curr_rad))))
-                delete(p_bed((logical(p_bed(:, curr_rad)) & ishandle(p_bed(:, curr_rad))), curr_rad))
+            if any(ishandle(p_bed(:, curr_rad)))
+                delete(p_bed(ishandle(p_bed(:, curr_rad)), curr_rad))
             end
-            if (any(p_beddepth) && any(ishandle(p_beddepth)))
-                delete(p_beddepth((logical(p_beddepth) & ishandle(p_beddepth))))
+            if any(ishandle(p_beddepth))
+                delete(p_beddepth(ishandle(p_beddepth)))
             end
             for ii = 1:2
-                if (any(p_pk{ii, curr_rad}) && any(ishandle(p_pk{ii, curr_rad})))
-                    delete(p_pk{ii, curr_rad}(logical(p_pk{ii, curr_rad}) & ishandle(p_pk{ii, curr_rad})))
+                if any(ishandle(p_pk{ii, curr_rad}))
+                    delete(p_pk{ii, curr_rad}(ishandle(p_pk{ii, curr_rad})))
                 end
-                if (any(p_pkdepth{curr_rad}) && any(ishandle(p_pkdepth{curr_rad})))
-                    delete(p_pkdepth{curr_rad}(logical(p_pkdepth{curr_rad}) & ishandle(p_pkdepth{curr_rad})))
+                if any(ishandle(p_pkdepth{curr_rad}))
+                    delete(p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})))
                 end
             end
-            if (any(p_surf(:, curr_rad)) && any(ishandle(p_surf(:, curr_rad))))
-                delete(p_surf((logical(p_surf(:, curr_rad)) & ishandle(p_surf(:, curr_rad))), curr_rad))
+            if any(ishandle(p_surf(:, curr_rad)))
+                delete(p_surf(ishandle(p_surf(:, curr_rad)), curr_rad))
             end
             layer_str{curr_rad} ...
                             = num2cell(1:pk{curr_rad}.num_layer);
@@ -3976,10 +3974,10 @@ amp_depth{curr_rad}=0;
         tmp3                = [curr_ax curr_rad curr_rad_alt];
         for ii = 1:2
             for jj = 1:3
-                if (any(p_int1{ii, jj}) && any(ishandle(p_int1{ii, jj})))
-                    set(p_int1{ii, jj}(logical(p_int1{ii, jj}) & ishandle(p_int1{ii, jj})), 'linewidth', 2)
+                if any(ishandle(p_int1{ii, jj}))
+                    set(p_int1{ii, jj}(ishandle(p_int1{ii, jj})), 'linewidth', 2)
                 end
-                if (logical(p_int1{ii, jj}(curr_int)) && ishandle(p_int1{ii, jj}(curr_int)))
+                if ishandle(p_int1{ii, jj}(curr_int))
                     set(p_int1{ii, jj}(curr_int), 'linewidth', 4)
                 end
             end

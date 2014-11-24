@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 09/30/14
+% Last updated: 11/24/14
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -81,7 +81,7 @@ letters                     = 'a':'z';
 [age, age_curr, amp_depth, amp_elev, amp_flat, button, colors, colors_age, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ...
  ind_x_pk, ind_x_ref, ind_y_pk, int_core, jj, kk, name_core, name_trans, num_chunk, num_core, num_data, num_decim, num_int, num_pk, num_sample, num_trans, num_year, p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, ...
  p_data, pk_all, p_pk, p_pkdepth, p_pkflat, p_snr, p_surf, pkfig, p_refflat, rad_threshold, snr_all, snrgui, snrlist, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
-                            = deal(0);
+                            = deal(NaN);
 [file_age, file_data, file_core, file_pk, file_pk_short, file_save, file_snr, path_age, path_core, path_data, path_pk, path_save, path_snr, radar_type] ...
                             = deal('');
 layer_str                   = {};
@@ -251,55 +251,55 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Clear plots
 
     function clear_plots(source, eventdata) %#ok<*INUSD>
-        if (logical(p_bed) && ishandle(p_bed))
+        if ishandle(p_bed)
             delete(p_bed)
         end
-        if (logical(p_beddepth) && ishandle(p_beddepth))
+        if ishandle(p_beddepth)
             delete(p_beddepth)
         end
-        if (logical(p_bedflat) && ishandle(p_bedflat))
+        if ishandle(p_bedflat)
             delete(p_bedflat)
         end
-        if (logical(p_refflat) && ishandle(p_refflat))
+        if ishandle(p_refflat)
             delete(p_refflat)
-        end        
-        if (any(p_block) && any(ishandle(p_block)))
-            delete(p_block(logical(p_block) & ishandle(p_block)))
         end
-        if (any(p_blockflat) && any(ishandle(p_blockflat)))
-            delete(p_blockflat(logical(p_blockflat) & ishandle(p_blockflat)))
+        if any(ishandle(p_block))
+            delete(p_block(ishandle(p_block)))
         end
-        if (any(p_blocknum) && any(ishandle(p_blocknum)))
-            delete(p_blocknum(logical(p_blocknum) & ishandle(p_blocknum)))
+        if any(ishandle(p_blockflat))
+            delete(p_blockflat(ishandle(p_blockflat)))
         end
-        if (any(p_blocknumflat) && any(ishandle(p_blocknumflat)))
-            delete(p_blocknumflat(logical(p_blocknumflat) & ishandle(p_blocknumflat)))
+        if any(ishandle(p_blocknum))
+            delete(p_blocknum(ishandle(p_blocknum)))
         end
-        if (any(p_core) && any(ishandle(p_core)))
-            delete(p_core(logical(p_core) & ishandle(p_core)))
+        if any(ishandle(p_blocknumflat))
+            delete(p_blocknumflat(ishandle(p_blocknumflat)))
         end
-        if (any(p_coreflat) && any(ishandle(p_coreflat)))
-            delete(p_coreflat(logical(p_coreflat) & ishandle(p_coreflat)))
+        if any(ishandle(p_core))
+            delete(p_core(ishandle(p_core)))
         end
-        if (any(p_corename) && any(ishandle(p_corename)))
-            delete(p_corename(logical(p_corename) & ishandle(p_corename)))
+        if any(ishandle(p_coreflat))
+            delete(p_coreflat(ishandle(p_coreflat)))
         end
-        if (any(p_corenameflat) && any(ishandle(p_corenameflat)))
-            delete(p_corenameflat(logical(p_corenameflat) & ishandle(p_corenameflat)))
+        if any(ishandle(p_corename))
+            delete(p_corename(ishandle(p_corename)))
         end
-        if (logical(p_data) && ishandle(p_data))
+        if any(ishandle(p_corenameflat))
+            delete(p_corenameflat(ishandle(p_corenameflat)))
+        end
+        if ishandle(p_data)
             delete(p_data)
         end
-        if (any(p_pk) && any(ishandle(p_pk)))
-            delete(p_pk(logical(p_pk) & ishandle(p_pk)))
+        if any(ishandle(p_pk))
+            delete(p_pk(ishandle(p_pk)))
         end
-        if (any(p_pkdepth) && any(ishandle(p_pkdepth)))
-            delete(p_pkdepth(logical(p_pkdepth) & ishandle(p_pkdepth)))
+        if any(ishandle(p_pkdepth))
+            delete(p_pkdepth(ishandle(p_pkdepth)))
         end
-        if (any(p_pkflat) && any(ishandle(p_pkflat)))
-            delete(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)))
+        if any(ishandle(p_pkflat))
+            delete(p_pkflat(ishandle(p_pkflat)))
         end
-        if (logical(p_surf) && ishandle(p_surf))
+        if ishandle(p_surf)
             delete(p_surf)
         end
         set([layer_list block_list], 'string', 'N/A', 'value', 1)
@@ -321,10 +321,11 @@ set(cb_group, 'selectedobject', cb_check(1))
         pk                  = struct;
         [bed_avail, data_done, edit_flag, flat_done, merge_done, merge_file, surf_avail, time_avail] ...
                             = deal(false);
-        [age_curr, amp_depth, amp_elev, amp_flat, colors, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ind_x_pk, ind_x_ref, ind_y_pk, ...
-         jj, kk, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, p_pk, p_pkdepth, p_pkflat, p_refflat, p_snr, p_surf, pk_all, pkfig, snrgui, snrlist, ...
-         tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
+        [age_curr, amp_depth, amp_elev, amp_flat, colors, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ind_x_pk, ind_x_ref, ...
+         ind_y_pk, jj, kk, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, pk_all, pkfig, snrgui, snrlist, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
                             = deal(0);
+        [p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, p_pk, p_pkdepth, p_pkflat, p_refflat, p_snr, p_surf] ...
+                            = deal(NaN);
         [file_data, file_pk, file_pk_short, file_save, radar_type] ...
                             = deal('');
         set(file_box, 'string', '')
@@ -905,23 +906,23 @@ set(cb_group, 'selectedobject', cb_check(1))
 
     function load_data_breakout(source, eventdata)
         
-        if (logical(p_data) && ishandle(p_data))
+        if ishandle(p_data)
             delete(p_data)
         end
-        if (logical(p_bedflat) && ishandle(p_bedflat))
+        if ishandle(p_bedflat)
             delete(p_bedflat)
         end
-        if (any(p_blockflat) && any(ishandle(p_blockflat)))
-            delete(p_blockflat(logical(p_blockflat) & ishandle(p_blockflat)))
+        if any(ishandle(p_blockflat))
+            delete(p_blockflat(ishandle(p_blockflat)))
         end
-        if (any(p_blocknumflat) && any(ishandle(p_blocknumflat)))
-            delete(p_blocknumflat(logical(p_blocknumflat) & ishandle(p_blocknumflat)))
+        if any(ishandle(p_blocknumflat))
+            delete(p_blocknumflat(ishandle(p_blocknumflat)))
         end
-        if (any(p_coreflat) && any(ishandle(p_coreflat)))
-            delete(p_coreflat(logical(p_coreflat) & ishandle(p_coreflat)))
+        if any(ishandle(p_coreflat))
+            delete(p_coreflat(ishandle(p_coreflat)))
         end
-        if (any(p_corenameflat) && any(ishandle(p_corenameflat)))
-            delete(p_corenameflat(logical(p_corenameflat) & ishandle(p_corenameflat)))
+        if any(ishandle(p_corenameflat))
+            delete(p_corenameflat(ishandle(p_corenameflat)))
         end
         
         % attempt to load data
@@ -1103,17 +1104,17 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         flat_done           = false;
         
-        if (logical(p_bedflat) && ishandle(p_bedflat))
+        if ishandle(p_bedflat)
             delete(p_bedflat)
         end
-        if (any(p_pkflat) && any(ishandle(p_pkflat)))
-            delete(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)))
+        if any(ishandle(p_pkflat))
+            delete(p_pkflat(ishandle(p_pkflat)))
         end
-        if (any(p_coreflat) && any(ishandle(p_coreflat)))
-            delete(p_coreflat(logical(p_coreflat) & ishandle(p_coreflat)))
+        if any(ishandle(p_coreflat))
+            delete(p_coreflat(ishandle(p_coreflat)))
         end
-        if (any(p_corenameflat) && any(ishandle(p_corenameflat)))
-            delete(p_corenameflat(logical(p_corenameflat) & ishandle(p_corenameflat)))
+        if any(ishandle(p_corenameflat))
+            delete(p_corenameflat(ishandle(p_corenameflat)))
         end
         
         % compile layer depths to use in flattening
@@ -1319,13 +1320,13 @@ set(cb_group, 'selectedobject', cb_check(1))
 
     function flatten_breakout(source, eventdata)
         
-        if (logical(p_bedflat) && ishandle(p_bedflat))
+        if ishandle(p_bedflat)
             delete(p_bedflat)
         end
-        if (any(p_pkflat) && any(ishandle(p_pkflat)))
-            delete(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)))
+        if any(ishandle(p_pkflat))
+            delete(p_pkflat(ishandle(p_pkflat)))
         end
-        if (logical(p_refflat) && ishandle(p_refflat)) % get rid of old plotted data
+        if ishandle(p_refflat) % get rid of old plotted data
             delete(p_refflat)
         end
         
@@ -1452,23 +1453,23 @@ set(cb_group, 'selectedobject', cb_check(1))
 
     function pk_curr(source, eventdata)
         set(layer_list, 'value', curr_layer)
-        if (any(p_pk) && any(ishandle(p_pk)))
-            set(p_pk(logical(p_pk) & ishandle(p_pk)), 'markersize', 12)
+        if any(ishandle(p_pk))
+            set(p_pk(ishandle(p_pk)), 'markersize', 12)
         end
-        if (any(p_pkdepth) && any(ishandle(p_pkdepth)))
-            set(p_pkdepth(logical(p_pkdepth) & ishandle(p_pkdepth)), 'markersize', 12)
+        if any(ishandle(p_pkdepth))
+            set(p_pkdepth(ishandle(p_pkdepth)), 'markersize', 12)
         end
-        if (logical(p_pk(curr_layer)) && ishandle(p_pk(curr_layer)))
+        if ishandle(p_pk(curr_layer))
             set(p_pk(curr_layer), 'markersize', 24)
         end
-        if (logical(p_pkdepth(curr_layer)) && ishandle(p_pkdepth(curr_layer)))
+        if ishandle(p_pkdepth(curr_layer))
             set(p_pkdepth(curr_layer), 'markersize', 24)
         end
         if (flat_done && data_done)
-            if (any(p_pkflat) && any(ishandle(p_pkflat)))
-                set(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)), 'markersize', 12)
+            if any(ishandle(p_pkflat))
+                set(p_pkflat(ishandle(p_pkflat)), 'markersize', 12)
             end
-            if (logical(p_pkflat(curr_layer)) && ishandle(p_pkflat(curr_layer)))
+            if ishandle(p_pkflat(curr_layer))
                 set(p_pkflat(curr_layer), 'markersize', 24)
             end
         end
@@ -1646,10 +1647,10 @@ set(cb_group, 'selectedobject', cb_check(1))
             return
         end
         tmp1                = setdiff(1:pk.num_layer, curr_layer);
-        if (logical(p_pk(curr_layer)) && ishandle(p_pk(curr_layer)))
+        if ishandle(p_pk(curr_layer))
             delete(p_pk(curr_layer))
         end
-        if (logical(p_pkdepth(curr_layer)) && ishandle(p_pkdepth(curr_layer)))
+        if ishandle(p_pkdepth(curr_layer))
             delete(p_pkdepth(curr_layer))
         end
         for ii = 1:num_var_layer
@@ -1668,7 +1669,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
         end
         if (flat_done && data_done)
-            if (logical(p_pkflat(curr_layer)) && ishandle(p_pkflat(curr_layer)))
+            if ishandle(p_pkflat(curr_layer))
                 delete(p_pkflat(curr_layer))
             end
             p_pkflat        = p_pkflat(tmp1);
@@ -1753,13 +1754,13 @@ set(cb_group, 'selectedobject', cb_check(1))
             return
         end
         
-        if (logical(p_pk(tmp1)) && ishandle(p_pk(tmp1)))
+        if ishandle(p_pk(tmp1))
             set(p_pk(tmp1), 'color', colors(curr_layer, :))
         end
-        if (logical(p_pkdepth(tmp1)) && ishandle(p_pkdepth(tmp1)))
+        if ishandle(p_pkdepth(tmp1))
             set(p_pkdepth(tmp1), 'color', colors(curr_layer, :))
         end
-        if (flat_done && logical(p_pkflat(tmp1)) && ishandle(p_pkflat(tmp1)))
+        if (flat_done && ishandle(p_pkflat(tmp1)))
             set(p_pkflat(tmp1), 'color', colors(curr_layer, :))
         end
         pause(0.1)
@@ -1768,13 +1769,13 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         waitforbuttonpress
         if ~strcmpi(get(mgui, 'currentcharacter'), 'Y')
-            if (logical(p_pk(tmp1)) && ishandle(p_pk(tmp1)))
+            if ishandle(p_pk(tmp1))
                 set(p_pk(tmp1), 'color', colors(tmp1, :))
             end
-            if (logical(p_pkdepth(tmp1)) && ishandle(p_pkdepth(tmp1)))
+            if ishandle(p_pkdepth(tmp1))
                 set(p_pkdepth(tmp1), 'color', colors(tmp1, :))
             end
-            if (flat_done && logical(p_pkflat(tmp1)) && ishandle(p_pkflat(tmp1)))
+            if (flat_done && ishandle(p_pkflat(tmp1)))
                 set(p_pkflat(tmp1), 'color', colors(tmp1, :))
             end
             set(status_box, 'string', 'Layer merging cancelled.')
@@ -1794,17 +1795,17 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         
         % redo plots
-        if (any(p_pk([curr_layer tmp1])) && any(ishandle(p_pk([curr_layer tmp1]))))
+        if any(ishandle(p_pk([curr_layer tmp1])))
             delete(p_pk([curr_layer tmp1]))
             p_pk(curr_layer)= plot(pk.dist_lin(~isnan(pk.elev_smooth_gimp(curr_layer, :))), pk.elev_smooth_gimp(curr_layer, ~isnan(pk.elev_smooth_gimp(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
         end
-        if (any(p_pkdepth([curr_layer tmp1])) && any(ishandle(p_pkdepth([curr_layer tmp1]))))
+        if any(ishandle(p_pkdepth([curr_layer tmp1])))
             delete(p_pkdepth([curr_layer tmp1]))
             p_pkdepth(curr_layer) ...
                             = plot(pk.dist_lin(~isnan(pk.depth_smooth(curr_layer, :))), pk.depth_smooth(curr_layer, ~isnan(pk.depth_smooth(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
         end
         if flat_done
-            if (any(p_pkflat([curr_layer tmp1])) && any(ishandle(p_pkflat([curr_layer tmp1]))))
+            if any(ishandle(p_pkflat([curr_layer tmp1])))
                 delete(p_pkflat([curr_layer tmp1]))
             end
             if any(~isnan(depth_layer_flat(curr_layer, :)))
@@ -1922,12 +1923,12 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         
         % redo plots
-        if (logical(p_pk(curr_layer)) && ishandle(p_pk(curr_layer)))
+        if ishandle(p_pk(curr_layer))
             delete(p_pk(curr_layer))
             p_pk(curr_layer)= plot(pk.dist_lin(~isnan(pk.elev_smooth_gimp(curr_layer, :))), pk.elev_smooth_gimp(curr_layer, ~isnan(pk.elev_smooth_gimp(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
         end
         p_pk(pk.num_layer)  = plot(pk.dist_lin(~isnan(pk.elev_smooth_gimp(end, :))), pk.elev_smooth_gimp(end, ~isnan(pk.elev_smooth_gimp(end, :))), '.', 'color', colors(end, :), 'markersize', 24, 'visible', 'off');
-        if (logical(p_pkdepth(curr_layer)) && ishandle(p_pkdepth(curr_layer)))
+        if ishandle(p_pkdepth(curr_layer))
             delete(p_pkdepth(curr_layer))
             p_pkdepth(curr_layer) ...
                             = plot(pk.dist_lin(~isnan(pk.depth_smooth(curr_layer, :))), pk.depth_smooth(curr_layer, ~isnan(pk.depth_smooth(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
@@ -1935,7 +1936,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         p_pkdepth(pk.num_layer) ...
                             = plot(pk.dist_lin(~isnan(pk.depth_smooth(end, :))), pk.depth_smooth(end, ~isnan(pk.depth_smooth(end, :))), '.', 'color', colors(end, :), 'markersize', 24, 'visible', 'off');
         if flat_done
-            if (logical(p_pkflat(curr_layer)) && ishandle(p_pkflat(curr_layer)))
+            if ishandle(p_pkflat(curr_layer))
                 delete(p_pkflat(curr_layer))
             end
             if any(~isnan(depth_layer_flat(curr_layer, :)))
@@ -2173,17 +2174,17 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         if merge_done
             
-            if (any(p_core) && any(ishandle(p_core)))
-                delete(p_core(logical(p_core) & ishandle(p_core)))
+            if any(ishandle(p_core))
+                delete(p_core(ishandle(p_core)))
             end
-            if (any(p_corename) && any(ishandle(p_corename)))
-                delete(p_corename(logical(p_corename) & ishandle(p_corename)))
+            if any(ishandle(p_corename))
+                delete(p_corename(ishandle(p_corename)))
             end
-            if (any(p_coreflat) && any(ishandle(p_coreflat)))
-                delete(p_coreflat(logical(p_coreflat) & ishandle(p_coreflat)))
+            if any(ishandle(p_coreflat))
+                delete(p_coreflat(ishandle(p_coreflat)))
             end
-            if (any(p_corenameflat) && any(ishandle(p_corenameflat)))
-                delete(p_corenameflat(logical(p_corenameflat) & ishandle(p_corenameflat)))
+            if any(ishandle(p_corenameflat))
+                delete(p_corenameflat(ishandle(p_corenameflat)))
             end
             
             % determine current year/transect
@@ -2535,7 +2536,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             p_snr{ii}       = zeros(length(tmp3{ii}), 2);
             
             snrgui(ii)      = figure('position', [(50 + ((ii - 1) * 50)) (50 + ((ii - 1) * 50)) 800 1000]);
-            axes('position', [0.12 0.1 0.7 0.8]) %#ok<LAXES>
+            axes('position', [0.12 0.1 0.7 0.8])
             hold on
             plot(amp_elev(:, tmp1), elev, 'k', 'linewidth', 2)
             for jj = 1:length(tmp3{ii})
@@ -2597,7 +2598,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         [~, tmp4]           = ginput(1);
         tmp4                = interp1(elev, 1:length(elev), tmp4, 'nearest', 'extrap');
         set(p_snr{ii}(get(snrlist(ii), 'value'), 1), 'markersize', 8, 'markerfacecolor', 'g')
-        if (logical(p_snr{ii}(get(snrlist(ii), 'value'), 2)) && ishandle(p_snr{ii}(get(snrlist(ii), 'value'), 2)))
+        if ishandle(p_snr{ii}(get(snrlist(ii), 'value'), 2))
             delete(p_snr{ii}(get(snrlist(ii), 'value'), 2))
         end
         p_snr{ii}(get(snrlist(ii), 'value'), 2) ...
@@ -3036,14 +3037,14 @@ set(cb_group, 'selectedobject', cb_check(1))
                         colors_age(ii, :) ...
                             = tmp1(interp1(linspace(age_min, age_max, 64), 1:64, (1e-3 * age_curr(ii)), 'nearest', 'extrap'), :);
                     end
-                    if (logical(p_pk(ii)) && ishandle(p_pk(ii))) 
+                    if ishandle(p_pk(ii))
                         set(p_pk(ii), 'color', colors_age(ii, :))
                     end
-                    if (logical(p_pkdepth(ii)) && ishandle(p_pkdepth(ii))) 
+                    if ishandle(p_pkdepth(ii))
                         set(p_pkdepth(ii), 'color', colors_age(ii, :))
                     end
                     if (data_done && flat_done)
-                        if (logical(p_pkflat(ii)) && ishandle(p_pkflat(ii)))
+                        if ishandle(p_pkflat(ii))
                             set(p_pkflat(ii), 'color', colors_age(ii, :))
                         end
                     end
@@ -3302,7 +3303,7 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Plot radargram in terms of elevation
 
     function plot_elev(source, eventdata)
-        if (logical(p_data) && ishandle(p_data))
+        if ishandle(p_data)
             delete(p_data)
         end
         axes(ax_radar)
@@ -3331,7 +3332,7 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Plot radargram in terms of depth
 
     function plot_depth(source, eventdata)
-        if (logical(p_data) && ishandle(p_data))
+        if ishandle(p_data)
             delete(p_data)
         end
         axes(ax_radar)
@@ -3362,7 +3363,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             plot_elev
             return
         end
-        if (logical(p_data) && ishandle(p_data)) % get rid of old plotted data
+        if ishandle(p_data) % get rid of old plotted data
             delete(p_data)
         end
         axes(ax_radar)
@@ -3386,9 +3387,9 @@ set(cb_group, 'selectedobject', cb_check(1))
 
     function show_data(source, eventdata)
         if data_done
-            if (get(data_check, 'value') && logical(p_data) && ishandle(p_data))
+            if (get(data_check, 'value') && ishandle(p_data))
                 set(p_data, 'visible', 'on');
-            elseif (logical(p_data) && ishandle(p_data))
+            elseif ishandle(p_data)
                 set(p_data, 'visible', 'off')
             end
         elseif get(data_check, 'value')
@@ -3403,76 +3404,76 @@ set(cb_group, 'selectedobject', cb_check(1))
             if get(surfbed_check, 'value')
                 switch disp_type
                     case 'elev.'
-                        if (logical(p_bed) && ishandle(p_bed))
+                        if ishandle(p_bed)
                             set(p_bed, 'visible', 'on')
                             uistack(p_bed, 'top')
                         end
-                        if (logical(p_surf) && ishandle(p_surf))
+                        if ishandle(p_surf)
                             set(p_surf, 'visible', 'on')
                             uistack(p_surf, 'top')
                         end
-                        if (logical(p_beddepth) && ishandle(p_beddepth))
+                        if ishandle(p_beddepth)
                             set(p_beddepth, 'visible', 'off')
                         end
-                        if (logical(p_bedflat) && ishandle(p_bedflat))
+                        if ishandle(p_bedflat)
                             set(p_bedflat, 'visible', 'off')
                         end
-                        if (logical(p_refflat) && ishandle(p_refflat))
+                        if ishandle(p_refflat)
                             set(p_refflat, 'visible', 'off')
                         end
                     case 'depth'
-                        if (logical(p_beddepth) && ishandle(p_beddepth))
+                        if ishandle(p_beddepth)
                             set(p_beddepth, 'visible', 'on')
                             uistack(p_beddepth, 'top')
                         end
-                        if (logical(p_bed) && ishandle(p_bed))
+                        if ishandle(p_bed)
                             set(p_bed, 'visible', 'off')
                         end
-                        if (logical(p_surf) && ishandle(p_surf))
+                        if ishandle(p_surf)
                             set(p_surf, 'visible', 'off')
                         end
-                        if (logical(p_bedflat) && ishandle(p_bedflat))
+                        if ishandle(p_bedflat)
                             set(p_bedflat, 'visible', 'off')
                         end
-                        if (logical(p_refflat) && ishandle(p_refflat))
+                        if ishandle(p_refflat)
                             set(p_refflat, 'visible', 'off')
                         end
                     case 'flat'
-                        if (logical(p_refflat) && ishandle(p_refflat))
+                        if ishandle(p_refflat)
                             set(p_refflat, 'visible', 'on')
                             uistack(p_refflat, 'top')
                         end
-                        if (logical(p_bedflat) && ishandle(p_bedflat))
+                        if ishandle(p_bedflat)
                             set(p_bedflat, 'visible', 'on')
                             uistack(p_bedflat, 'top')
                         end
-                        if (logical(p_bed) && ishandle(p_bed))
+                        if ishandle(p_bed)
                             set(p_bed, 'visible', 'off')
                         end
-                        if (logical(p_surf) && ishandle(p_surf))
+                        if ishandle(p_surf)
                             set(p_surf, 'visible', 'off')
                         end
-                        if (logical(p_beddepth) && ishandle(p_beddepth))
+                        if ishandle(p_beddepth)
                             set(p_beddepth, 'visible', 'off')
                         end
-                        if (logical(p_refflat) && ishandle(p_refflat))
+                        if ishandle(p_refflat)
                             set(p_refflat, 'visible', 'off')
                         end
                 end
             else
-                if (logical(p_bed) && ishandle(p_bed))
+                if ishandle(p_bed)
                     set(p_bed, 'visible', 'off')
                 end
-                if (logical(p_surf) && ishandle(p_surf))
+                if ishandle(p_surf)
                     set(p_surf, 'visible', 'off')
                 end
-                if (logical(p_beddepth) && ishandle(p_beddepth))
+                if ishandle(p_beddepth)
                     set(p_beddepth, 'visible', 'off')
                 end
-                if (logical(p_bedflat) && ishandle(p_bedflat))
+                if ishandle(p_bedflat)
                     set(p_bedflat, 'visible', 'off')
                 end
-                if (logical(p_refflat) && ishandle(p_refflat))
+                if ishandle(p_refflat)
                     set(p_refflat, 'visible', 'off')
                 end
             end
@@ -3488,48 +3489,48 @@ set(cb_group, 'selectedobject', cb_check(1))
             if get(pk_check, 'value')
                 switch disp_type
                     case 'elev.'
-                        if (any(p_pk) && any(ishandle(p_pk)))
-                            set(p_pk(logical(p_pk) & ishandle(p_pk)), 'visible', 'on')
-                            uistack(p_pk(logical(p_pk) & ishandle(p_pk)), 'top')
+                        if any(ishandle(p_pk))
+                            set(p_pk(ishandle(p_pk)), 'visible', 'on')
+                            uistack(p_pk(ishandle(p_pk)), 'top')
                         end
-                        if (any(p_pkdepth) && any(ishandle(p_pkdepth)))
-                            set(p_pkdepth(logical(p_pkdepth) & ishandle(p_pkdepth)), 'visible', 'off')
+                        if any(ishandle(p_pkdepth))
+                            set(p_pkdepth(ishandle(p_pkdepth)), 'visible', 'off')
                         end
-                        if (any(p_pkflat) && any(ishandle(p_pkflat)))
-                            set(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)), 'visible', 'off')
+                        if any(ishandle(p_pkflat))
+                            set(p_pkflat(ishandle(p_pkflat)), 'visible', 'off')
                         end
                     case 'depth'
-                        if (any(p_pkdepth) && any(ishandle(p_pkdepth)))
-                            set(p_pkdepth(logical(p_pkdepth) & ishandle(p_pkdepth)), 'visible', 'on')
-                            uistack(p_pkdepth(logical(p_pkdepth) & ishandle(p_pkdepth)), 'top')
+                        if any(ishandle(p_pkdepth))
+                            set(p_pkdepth(ishandle(p_pkdepth)), 'visible', 'on')
+                            uistack(p_pkdepth(ishandle(p_pkdepth)), 'top')
                         end
-                        if (any(p_pk) && any(ishandle(p_pk)))
-                            set(p_pk(logical(p_pk) & ishandle(p_pk)), 'visible', 'off')
+                        if any(ishandle(p_pk))
+                            set(p_pk(ishandle(p_pk)), 'visible', 'off')
                         end
-                        if (any(p_pkflat) && any(ishandle(p_pkflat)))
-                            set(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)), 'visible', 'off')
+                        if any(ishandle(p_pkflat))
+                            set(p_pkflat(ishandle(p_pkflat)), 'visible', 'off')
                         end
                     case 'flat'
-                        if (any(p_pkflat) && any(ishandle(p_pkflat)))
-                            set(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)), 'visible', 'on')
-                            uistack(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)), 'top')
+                        if any(ishandle(p_pkflat))
+                            set(p_pkflat(ishandle(p_pkflat)), 'visible', 'on')
+                            uistack(p_pkflat(ishandle(p_pkflat)), 'top')
                         end
-                        if (any(p_pk) && any(ishandle(p_pk)))
-                            set(p_pk(logical(p_pk) & ishandle(p_pk)), 'visible', 'off')
+                        if any(ishandle(p_pk))
+                            set(p_pk(ishandle(p_pk)), 'visible', 'off')
                         end
-                        if (any(p_pkdepth) && any(ishandle(p_pkdepth)))
-                            set(p_pkdepth(logical(p_pkdepth) & ishandle(p_pkdepth)), 'visible', 'off')
+                        if any(ishandle(p_pkdepth))
+                            set(p_pkdepth(ishandle(p_pkdepth)), 'visible', 'off')
                         end
                 end
             else
-                if (any(p_pk) && any(ishandle(p_pk)))
-                    set(p_pk(logical(p_pk) & ishandle(p_pk)), 'visible', 'off')
+                if any(ishandle(p_pk))
+                    set(p_pk(ishandle(p_pk)), 'visible', 'off')
                 end
-                if (any(p_pkdepth) && any(ishandle(p_pkdepth)))
-                    set(p_pkdepth(logical(p_pkdepth) & ishandle(p_pkdepth)), 'visible', 'off')
+                if any(ishandle(p_pkdepth))
+                    set(p_pkdepth(ishandle(p_pkdepth)), 'visible', 'off')
                 end
-                if (any(p_pkflat) && any(ishandle(p_pkflat)))
-                    set(p_pkflat(logical(p_pkflat) & ishandle(p_pkflat)), 'visible', 'off')
+                if any(ishandle(p_pkflat))
+                    set(p_pkflat(ishandle(p_pkflat)), 'visible', 'off')
                 end
             end
         elseif get(pk_check, 'value')
@@ -3544,48 +3545,48 @@ set(cb_group, 'selectedobject', cb_check(1))
             if get(block_check, 'value')
                 switch disp_type
                     case 'elev.'
-                        if (any(p_block) && any(ishandle(p_block)))
-                            set(p_block(logical(p_block) & ishandle(p_block)), 'visible', 'on')
-                            uistack(p_block(logical(p_block) & ishandle(p_block)), 'top')
+                        if any(ishandle(p_block))
+                            set(p_block(ishandle(p_block)), 'visible', 'on')
+                            uistack(p_block(ishandle(p_block)), 'top')
                         end
-                        if (any(p_blocknum) && any(ishandle(p_blocknum)))
-                            set(p_blocknum(logical(p_blocknum) & ishandle(p_blocknum)), 'visible', 'on')
-                            uistack(p_blocknum(logical(p_blocknum) & ishandle(p_blocknum)), 'top')
+                        if any(ishandle(p_blocknum))
+                            set(p_blocknum(ishandle(p_blocknum)), 'visible', 'on')
+                            uistack(p_blocknum(ishandle(p_blocknum)), 'top')
                         end
-                        if (any(p_blockflat) && any(ishandle(p_blockflat)))
-                            set(p_blockflat(logical(p_blockflat) & ishandle(p_blockflat)), 'visible', 'off')
+                        if any(ishandle(p_blockflat))
+                            set(p_blockflat(ishandle(p_blockflat)), 'visible', 'off')
                         end
-                        if (any(p_blocknumflat) && any(ishandle(p_blocknumflat)))
-                            set(p_blocknumflat(logical(p_blocknumflat) & ishandle(p_blocknumflat)), 'visible', 'off')
+                        if any(ishandle(p_blocknumflat))
+                            set(p_blocknumflat(ishandle(p_blocknumflat)), 'visible', 'off')
                         end
                     case {'depth' 'flat'}
-                        if (any(p_blockflat) && any(ishandle(p_blockflat)))
-                            set(p_blockflat(logical(p_blockflat) & ishandle(p_blockflat)), 'visible', 'on')
-                            uistack(p_blockflat(logical(p_blockflat) & ishandle(p_blockflat)), 'top')
+                        if any(ishandle(p_blockflat))
+                            set(p_blockflat(ishandle(p_blockflat)), 'visible', 'on')
+                            uistack(p_blockflat(ishandle(p_blockflat)), 'top')
                         end
-                        if (any(p_blocknumflat) && any(ishandle(p_blocknumflat)))
-                            set(p_blocknumflat(logical(p_blocknumflat) & ishandle(p_blocknumflat)), 'visible', 'on')
-                            uistack(p_blocknumflat(logical(p_blocknumflat) & ishandle(p_blocknumflat)), 'top')
+                        if any(ishandle(p_blocknumflat))
+                            set(p_blocknumflat(ishandle(p_blocknumflat)), 'visible', 'on')
+                            uistack(p_blocknumflat(ishandle(p_blocknumflat)), 'top')
                         end
-                        if (any(p_block) && any(ishandle(p_block)))
-                            set(p_block(logical(p_block) & ishandle(p_block)), 'visible', 'off')
+                        if any(ishandle(p_block))
+                            set(p_block(ishandle(p_block)), 'visible', 'off')
                         end
-                        if (any(p_blocknum) && any(ishandle(p_blocknum)))
-                            set(p_blocknum(logical(p_blocknum) & ishandle(p_blocknum)), 'visible', 'off')
+                        if any(ishandle(p_blocknum))
+                            set(p_blocknum(ishandle(p_blocknum)), 'visible', 'off')
                         end
                 end
             else
-                if (any(p_block) && any(ishandle(p_block)))
-                    set(p_block(logical(p_block) & ishandle(p_block)), 'visible', 'off')
+                if any(ishandle(p_block))
+                    set(p_block(ishandle(p_block)), 'visible', 'off')
                 end
-                if (any(p_blocknum) && any(ishandle(p_blocknum)))
-                    set(p_blocknum(logical(p_blocknum) & ishandle(p_blocknum)), 'visible', 'off')
+                if any(ishandle(p_blocknum))
+                    set(p_blocknum(ishandle(p_blocknum)), 'visible', 'off')
                 end
-                if (any(p_blockflat) && any(ishandle(p_blockflat)))
-                    set(p_blockflat(logical(p_blockflat) & ishandle(p_blockflat)), 'visible', 'off')
+                if any(ishandle(p_blockflat))
+                    set(p_blockflat(ishandle(p_blockflat)), 'visible', 'off')
                 end
-                if (any(p_blocknumflat) && any(ishandle(p_blocknumflat)))
-                    set(p_blocknumflat(logical(p_blocknumflat) & ishandle(p_blocknumflat)), 'visible', 'off')
+                if any(ishandle(p_blocknumflat))
+                    set(p_blocknumflat(ishandle(p_blocknumflat)), 'visible', 'off')
                 end
             end
         elseif get(block_check, 'value')
@@ -3600,48 +3601,48 @@ set(cb_group, 'selectedobject', cb_check(1))
             if get(core_check, 'value')
                 switch disp_type
                     case 'elev.'
-                        if (any(p_core) && any(ishandle(p_core)))
-                            set(p_core(logical(p_core) & ishandle(p_core)), 'visible', 'on')
-                            uistack(p_core(logical(p_core) & ishandle(p_core)), 'top')
+                        if any(ishandle(p_core))
+                            set(p_core(ishandle(p_core)), 'visible', 'on')
+                            uistack(p_core(ishandle(p_core)), 'top')
                         end
-                        if (any(p_corename) && any(ishandle(p_corename)))
-                            set(p_corename(logical(p_corename) & ishandle(p_corename)), 'visible', 'on')
-                            uistack(p_corename(logical(p_corename) & ishandle(p_corename)), 'top')
+                        if any(ishandle(p_corename))
+                            set(p_corename(ishandle(p_corename)), 'visible', 'on')
+                            uistack(p_corename(ishandle(p_corename)), 'top')
                         end
-                        if (any(p_coreflat) && any(ishandle(p_coreflat)))
-                            set(p_coreflat(logical(p_coreflat) & ishandle(p_coreflat)), 'visible', 'off')
+                        if any(ishandle(p_coreflat))
+                            set(p_coreflat(ishandle(p_coreflat)), 'visible', 'off')
                         end
-                        if (any(p_corenameflat) && any(ishandle(p_corenameflat)))
-                            set(p_corenameflat(logical(p_corenameflat) & ishandle(p_corenameflat)), 'visible', 'off')
+                        if any(ishandle(p_corenameflat))
+                            set(p_corenameflat(ishandle(p_corenameflat)), 'visible', 'off')
                         end
                     case {'depth' 'flat'}
-                        if (any(p_coreflat) && any(ishandle(p_coreflat)))
-                            set(p_coreflat(logical(p_coreflat) & ishandle(p_coreflat)), 'visible', 'on')
-                            uistack(p_coreflat(logical(p_coreflat) & ishandle(p_coreflat)), 'top')
+                        if any(ishandle(p_coreflat))
+                            set(p_coreflat(ishandle(p_coreflat)), 'visible', 'on')
+                            uistack(p_coreflat(ishandle(p_coreflat)), 'top')
                         end
-                        if (any(p_corenameflat) && any(ishandle(p_corenameflat)))
-                            set(p_corenameflat(logical(p_corenameflat) & ishandle(p_corenameflat)), 'visible', 'on')
-                            uistack(p_corenameflat(logical(p_corenameflat) & ishandle(p_corenameflat)), 'top')
+                        if any(ishandle(p_corenameflat))
+                            set(p_corenameflat(ishandle(p_corenameflat)), 'visible', 'on')
+                            uistack(p_corenameflat(ishandle(p_corenameflat)), 'top')
                         end
-                        if (any(p_core) && any(ishandle(p_core)))
-                            set(p_core(logical(p_core) & ishandle(p_core)), 'visible', 'off')
+                        if any(ishandle(p_core))
+                            set(p_core(ishandle(p_core)), 'visible', 'off')
                         end
-                        if (any(p_corename) && any(ishandle(p_corename)))
-                            set(p_corename(logical(p_corename) & ishandle(p_corename)), 'visible', 'off')
+                        if any(ishandle(p_corename))
+                            set(p_corename(ishandle(p_corename)), 'visible', 'off')
                         end
                 end
             else
-                if (any(p_core) && any(ishandle(p_core)))
-                    set(p_core(logical(p_core) & ishandle(p_core)), 'visible', 'off')
+                if any(ishandle(p_core))
+                    set(p_core(ishandle(p_core)), 'visible', 'off')
                 end
-                if (any(p_corename) && any(ishandle(p_corename)))
-                    set(p_corename(logical(p_corename) & ishandle(p_corename)), 'visible', 'off')
+                if any(ishandle(p_corename))
+                    set(p_corename(ishandle(p_corename)), 'visible', 'off')
                 end
-                if (any(p_coreflat) && any(ishandle(p_coreflat)))
-                    set(p_coreflat(logical(p_coreflat) & ishandle(p_coreflat)), 'visible', 'off')
+                if any(ishandle(p_coreflat))
+                    set(p_coreflat(ishandle(p_coreflat)), 'visible', 'off')
                 end
-                if (any(p_corenameflat) && any(ishandle(p_corenameflat)))
-                    set(p_corenameflat(logical(p_corenameflat) & ishandle(p_corenameflat)), 'visible', 'off')
+                if any(ishandle(p_corenameflat))
+                    set(p_corenameflat(ishandle(p_corenameflat)), 'visible', 'off')
                 end
             end
         elseif get(core_check, 'value')
@@ -3678,19 +3679,19 @@ set(cb_group, 'selectedobject', cb_check(1))
                 ind_decim   = 1:pk.num_trace_tot;
             end
             num_decim       = length(ind_decim);
-            if (logical(p_bed) && ishandle(p_bed))
+            if ishandle(p_bed)
                 delete(p_bed)
             end
-            if (logical(p_beddepth) && ishandle(p_beddepth))
+            if ishandle(p_beddepth)
                 delete(p_beddepth)
             end
-            if (any(p_pk) && any(ishandle(p_pk)))
-                delete(p_pk(logical(p_pk) & ishandle(p_pk)))
+            if any(ishandle(p_pk))
+                delete(p_pk(ishandle(p_pk)))
             end
-            if (any(p_pkdepth) && any(ishandle(p_pkdepth)))
-                delete(p_pkdepth(logical(p_pkdepth) & ishandle(p_pkdepth)))
+            if any(ishandle(p_pkdepth))
+                delete(p_pkdepth(ishandle(p_pkdepth)))
             end
-            if (logical(p_surf) && ishandle(p_surf))
+            if ishandle(p_surf)
                 delete(p_surf)
             end
             if (any(surf_avail) && any(~isnan(pk.elev_surf)))
@@ -3790,16 +3791,16 @@ set(cb_group, 'selectedobject', cb_check(1))
                 set(cb_min_slide, 'min', db_min_ref, 'max', db_max_ref, 'value', db_min)
                 set(cb_max_slide, 'min', db_min_ref, 'max', db_max_ref, 'value', db_max)
                 for ii = 1:pk.num_layer
-                    if (logical(p_pk(ii)) && ishandle(p_pk(ii)))
+                    if ishandle(p_pk(ii))
                         set(p_pk(ii), 'color', colors(ii, :))
                     end
-                    if (logical(p_pkdepth(ii)) && ishandle(p_pkdepth(ii)))
+                    if ishandle(p_pkdepth(ii))
                         set(p_pkdepth(ii), 'color', colors(ii, :))
                     end
                 end
                 if (flat_done && data_done)
                     for ii = 1:pk.num_layer
-                        if (logical(p_pkflat(ii)) && ishandle(p_pkflat(ii)))
+                        if ishandle(p_pkflat(ii))
                             set(p_pkflat(ii), 'color', colors(ii, :))
                         end
                     end
