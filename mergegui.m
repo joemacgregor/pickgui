@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 11/24/14
+% Last updated: 12/11/14
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -322,9 +322,9 @@ set(cb_group, 'selectedobject', cb_check(1))
         [bed_avail, data_done, edit_flag, flat_done, merge_done, merge_file, surf_avail, time_avail] ...
                             = deal(false);
         [age_curr, amp_depth, amp_elev, amp_flat, colors, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ind_x_pk, ind_x_ref, ...
-         ind_y_pk, jj, kk, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, pk_all, pkfig, snrgui, snrlist, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
+         ind_y_pk, jj, kk, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, pk_all, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
                             = deal(0);
-        [p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, p_pk, p_pkdepth, p_pkflat, p_refflat, p_snr, p_surf] ...
+        [p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, p_pk, p_pkdepth, p_pkflat, p_refflat, p_snr, p_surf, pkfig, snrgui, snrlist] ...
                             = deal(NaN);
         [file_data, file_pk, file_pk_short, file_save, radar_type] ...
                             = deal('');
@@ -667,7 +667,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         % display merged picks
         colors              = repmat(colors_def, ceil(pk.num_layer / size(colors_def, 1)), 1); % extend predefined color pattern
         colors              = colors(1:pk.num_layer, :);
-        [p_pk, p_pkdepth]   = deal(zeros(1, pk.num_layer));
+        [p_pk, p_pkdepth]   = deal(NaN(1, pk.num_layer));
         layer_str           = num2cell(1:pk.num_layer);
         for ii = 1:pk.num_layer
             if all(isnan(pk.elev_smooth(ii, ind_decim)))
@@ -730,7 +730,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         
         [p_block, p_blockflat] ...
-                            = deal(zeros(1, length(pk.ind_trace_start)));
+                            = deal(NaN(1, length(pk.ind_trace_start)));
         tmp1                = double(pk.dist_lin);
         for ii = 1:length(pk.ind_trace_start)
             p_block(ii)     = plot(repmat(tmp1(pk.ind_trace_start(ii)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 1, 'visible', 'off');
@@ -1043,7 +1043,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         % plot block divisions
         [p_block, p_blockflat, p_blocknum, p_blocknumflat] ...
-                            = deal(zeros(1, length(pk.ind_trace_start)));
+                            = deal(NaN(1, length(pk.ind_trace_start)));
         tmp1                = pk.dist_lin;
         for ii = 1:length(pk.ind_trace_start)
             p_block(ii)     = plot(repmat(tmp1(pk.ind_trace_start(ii)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 1, 'visible', 'off');
@@ -1417,7 +1417,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         % plot flat layers
         axes(ax_radar)
         tmp1                = pk.dist_lin;
-        p_pkflat            = zeros(1, pk.num_layer);
+        p_pkflat            = NaN(1, pk.num_layer);
         for ii = 1:pk.num_layer
             if ~isempty(find(~isnan(depth_layer_flat(ii, :)), 1))
                 p_pkflat(ii)= plot(tmp1(ind_decim(~isnan(depth_layer_flat(ii, :)))), depth_layer_flat(ii, ~isnan(depth_layer_flat(ii, :))), '.', 'markersize', 12, 'color', colors(ii, :), 'visible', 'off');
@@ -2271,7 +2271,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 end
                 
                 [p_core, p_corename] ...
-                            = deal(zeros(1, num_int));
+                            = deal(NaN(1, num_int));
                 tmp2        = find(~isnan(ind_int));
                 
                 for ii = 1:num_int
@@ -2533,7 +2533,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             tmp1            = interp1(ind_decim, 1:num_decim, ind_int(tmp2(ii)), 'nearest', 'extrap');
             tmp3{ii}        = find(~isnan(pk.elev_gimp(:, ind_int(tmp2(ii)))));
             
-            p_snr{ii}       = zeros(length(tmp3{ii}), 2);
+            p_snr{ii}       = NaN(length(tmp3{ii}), 2);
             
             snrgui(ii)      = figure('position', [(50 + ((ii - 1) * 50)) (50 + ((ii - 1) * 50)) 800 1000]);
             axes('position', [0.12 0.1 0.7 0.8])

@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 11/24/14
+% Last updated: 12/11/14
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -917,13 +917,13 @@ set(disp_group, 'selectedobject', disp_check(1))
         % load and plot phase tracking
         if (phase_avail && pk.num_keep_phase)
             prop_phase
-            p_phase         = zeros(1, pk.num_phase);
+            p_phase         = NaN(1, pk.num_phase);
             for ii = 1:pk.num_phase
                 p_phase(ii) = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(ind_y_phase(ii, ind_decim)))), 'b', 'linewidth', 1, 'visible', 'off'); % plot phase-tracked layers
             end
             p_startphase    = plot((ones(1, pk.num_phase) .* block.dist_lin(pk.ind_x_start_phase)), (1e6 .* block.twtt(pk.ind_y_start_phase)), 'm.', 'markersize', 12, 'visible', 'off');
             if depth_avail
-                p_phasedepth= zeros(1, pk.num_phase);
+                p_phasedepth= NaN(1, pk.num_phase);
                 for ii = 1:pk.num_phase
                         tmp1= ind_decim(~isnan(ind_y_phase(ii, ind_decim)) & ~isnan(ind_surf(ind_decim)));
                         tmp2= round(ind_y_phase(ii, tmp1) - ind_surf(tmp1) + 1);
@@ -958,7 +958,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         if (aresp_avail && isfield(pk, 'num_keep_aresp'))
             if pk.num_keep_aresp
                 prop_aresp
-                p_aresp     = zeros(1, pk.num_aresp);
+                p_aresp     = NaN(1, pk.num_aresp);
                 for ii = 1:pk.num_aresp
                     p_aresp(ii) ...
                             = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(ind_y_aresp(ii, ind_decim)))), 'c', 'linewidth', 1, 'visible', 'off'); % plot ARESP-tracked layers
@@ -966,7 +966,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 p_startaresp= plot((ones(1, pk.num_aresp) .* block.dist_lin(pk.ind_x_start_aresp)), (1e6 .* block.twtt(pk.ind_y_start_aresp)), 'm.', 'markersize', 12, 'visible', 'off'); % plot the starting y indices
                 if depth_avail
                     p_arespdepth ...
-                            = zeros(1, pk.num_aresp);
+                            = NaN(1, pk.num_aresp);
                     for ii = 1:pk.num_aresp
                         tmp1= ind_decim(~isnan(ind_y_aresp(ii, ind_decim)) & ~isnan(ind_surf(ind_decim)));
                         tmp2= round(ind_y_aresp(ii, tmp1) - ind_surf(tmp1) + 1);
@@ -1000,10 +1000,10 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = deal(0);
                 pause(0.1)
             else
-                p_man       = zeros(pk.num_man, 2);
+                p_man       = NaN(pk.num_man, 2);
                 if depth_avail
                     p_mandepth ...
-                            = zeros(pk.num_man, 2);
+                            = NaN(pk.num_man, 2);
                 end
                 for ii = 1:pk.num_man
                     p_man(ii, 1) ...
@@ -1045,7 +1045,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         % plot layers in twtt/~depth
         [p_pk, p_pkdepth, p_pkflat, p_pksmooth, p_pksmoothdepth, p_pksmoothflat] ...
-                            = deal(zeros(1, pk.num_layer));
+                            = deal(NaN(1, pk.num_layer));
         [ind_y_flat_mean, ind_y_flat_smooth] ...
                             = deal(NaN(pk.num_layer, num_decim_flat));
         tmp3                = [];
@@ -1412,7 +1412,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         set(status_box, 'string', 'Loading reference picks...')
         
         % plot reference picks
-        p_ref               = zeros(1, pk_ref.num_layer);
+        p_ref               = NaN(1, pk_ref.num_layer);
         
         if ~isempty(ref_start_or_end)
             switch ref_start_or_end
@@ -1448,7 +1448,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         
         if depth_avail % plot reference picks in ~depth
-            p_refdepth      = zeros(1, pk_ref.num_layer);
+            p_refdepth      = NaN(1, pk_ref.num_layer);
             switch ref_start_or_end
                 case 'start'
                     for ii = 1:pk_ref.num_layer
@@ -1549,14 +1549,14 @@ set(disp_group, 'selectedobject', disp_check(1))
                 prop_phase % propagate phase in a separate sub-function
                 
                 axes(ax_radar) %#ok<*LAXES>
-                p_phase     = zeros(1, pk.num_phase);
+                p_phase     = NaN(1, pk.num_phase);
                 for ii = 1:pk.num_phase
                     p_phase(ii) = plot(block.dist_lin(ind_decim(~isnan(ind_y_phase(ii, ind_decim)))), (1e6 .* block.twtt(round(ind_y_phase(ii, ind_decim(~isnan(ind_y_phase(ii, ind_decim))))))), 'b', 'linewidth', 1, 'visible', 'off'); % plot the phase-tracked layers
                 end
                 p_startphase= plot((ones(1, pk.num_phase) .* block.dist_lin(pk.ind_x_start_phase)), (1e6 .* block.twtt(pk.ind_y_start_phase)), 'm.', 'markersize', 12, 'visible', 'off'); % plot the starting y indices
                 if depth_avail
                     p_phasedepth ...
-                            = zeros(1, pk.num_phase);
+                            = NaN(1, pk.num_phase);
                     for ii = 1:pk.num_phase
                         tmp1= ind_decim(~isnan(ind_y_phase(ii, ind_decim)) & ~isnan(ind_surf(ind_decim)));
                         tmp2= round(ind_y_phase(ii, tmp1) - ind_surf(tmp1) + 1);
@@ -1839,7 +1839,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 
                 prop_aresp % propagate ARESP in a separate sub-function
                 
-                p_aresp     = zeros(1, pk.num_aresp);
+                p_aresp     = NaN(1, pk.num_aresp);
                 for ii = 1:pk.num_aresp
                     p_aresp(ii) ...
                             = plot(block.dist_lin(ind_decim(~isnan(ind_y_aresp(ii, ind_decim)))), (1e6 .* block.twtt(round(ind_y_aresp(ii, ind_decim(~isnan(ind_y_aresp(ii, ind_decim))))))), 'c', 'linewidth', 1, 'visible', 'off');
@@ -1847,7 +1847,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 p_startaresp= plot((ones(1, pk.num_aresp) .* block.dist_lin(pk.ind_x_start_aresp)), (1e6 .* block.twtt(pk.ind_y_start_aresp)), 'r.', 'markersize', 12, 'visible', 'off'); % plot the starting y indices
                 if depth_avail
                     p_arespdepth ...
-                            = zeros(1, pk.num_aresp);
+                            = NaN(1, pk.num_aresp);
                     for ii = 1:pk.num_aresp
                         tmp1= ind_decim(~isnan(ind_y_aresp(ii, ind_decim)) & ~isnan(ind_surf(ind_decim)));
                         tmp2= round(ind_y_aresp(ii, tmp1) - ind_surf(tmp1) + 1);
@@ -2068,11 +2068,11 @@ set(disp_group, 'selectedobject', disp_check(1))
         [ind_x_pk, ind_y_pk, button] ...
                             = deal([]);
         if all(~p_man)
-            p_man           = zeros(0, 2);
+            p_man           = NaN(0, 2);
         end
         if depth_avail
             if all(~p_mandepth)
-                p_mandepth  = zeros(0, 2);
+                p_mandepth  = NaN(0, 2);
             end
         end
         
@@ -2662,7 +2662,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             delete(p_pksmoothflat(ishandle(p_pksmoothflat)))
         end
         [p_pkflat, p_pksmoothflat] ...
-                            = deal(zeros(1, pk.num_layer));
+                            = deal(NaN(1, pk.num_layer));
         [tmp1, tmp2]        = deal(ind_y_flat_mean, ind_y_flat_smooth);
         [ind_y_flat_mean, ind_y_flat_smooth] ...
                             = deal(NaN(pk.num_layer, num_decim_flat));
@@ -3154,7 +3154,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                         delete(p_pkdepth(ishandle(p_pkdepth)))
                     end
                     p_pkdepth ...
-                            = zeros(1, pk.num_layer);
+                            = NaN(1, pk.num_layer);
                     if depth_avail
                         for ii = 1:pk.num_layer
                             tmp1= ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim)));
@@ -3170,7 +3170,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     if any(ishandle(p_pk))
                         delete(p_pk(ishandle(p_pk)))
                     end
-                    p_pk    = zeros(1, pk.num_layer);
+                    p_pk    = NaN(1, pk.num_layer);
                     for ii = 1:pk.num_layer
                         tmp1= pk.layer(ii).ind_y(ind_decim);
                         p_pk(ii) ...
@@ -3182,7 +3182,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 if any(ishandle(p_pkflat))
                     delete(p_pkflat(ishandle(p_pkflat)))
                 end
-                p_pkflat    = zeros(1, pk.num_layer);
+                p_pkflat    = NaN(1, pk.num_layer);
                 if flat_done
                     warning('off', 'MATLAB:interp1:NaNinY')
                     ind_y_curr ...
@@ -3239,7 +3239,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 
                 [p_pk, p_pkdepth] ...
-                            = deal(zeros(1, pk.num_layer));
+                            = deal(NaN(1, pk.num_layer));
                 for ii = 1:pk.num_layer
                     tmp1    = pk.layer(ii).ind_y(ind_decim);
                     tmp2    = block.dist_lin(ind_decim);
@@ -3526,7 +3526,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = plot(block.dist_lin(tmp1(~isnan(tmp2))), (1e6 .* block.twtt(round(tmp2(~isnan(tmp2))))), 'r.', 'markersize', 12, 'visible', 'off');
                 else
                     p_pkdepth(pk.num_layer) ...
-                            = 0;
+                            = NaN;
                 end
                 
                 [ind_y_flat_mean, ind_y_flat_smooth] ...
@@ -3549,7 +3549,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = plot(block.dist_lin(ind_decim_flat(~isnan(ind_y_flat_mean(pk.num_layer, :)))), (1e6 .* block.twtt(ind_y_flat_mean(pk.num_layer, ~isnan(ind_y_flat_mean(pk.num_layer, :))))), 'r.', 'markersize', 12, 'visible', 'off');
                 else
                     p_pkflat(pk.num_layer) ...
-                            = 0;
+                            = NaN;
                 end
                 
                 [smooth_done, p_pksmooth, p_pksmoothdepth, p_pksmoothflat] ...
@@ -3574,7 +3574,7 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Sort layers from top to bottom based on their mean vertical index
 
     function pk_sort(source, eventdata)
-        tmp1                = zeros(pk.num_layer, 1);
+        tmp1                = NaN(pk.num_layer, 1);
         for ii = 1:pk.num_layer
             tmp1(ii)        = nanmean(pk.layer(ii).ind_y);
         end
@@ -4461,7 +4461,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(disp_check(2), 'visible', 'on')
             depth_avail     = true;
             [p_pkdepth, p_pksmoothdepth] ...
-                            = deal(zeros(1, pk.num_layer));
+                            = deal(NaN(1, pk.num_layer));
             for ii = 1:pk.num_layer
                 if ~isempty(find((~isnan(pk.layer(ii).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim))), 1))
                     tmp2    = ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim)));
@@ -4957,7 +4957,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 set(disp_check(2), 'visible', 'on')
                 depth_avail = true;
                 [p_pkdepth, p_pksmoothdepth] ...
-                            = deal(zeros(1, pk.num_layer));
+                            = deal(NaN(1, pk.num_layer));
                 for ii = 1:pk.num_layer
                     if ~isempty(find((~isnan(pk.layer(ii).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim))), 1))
                         tmp1= ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim)));
@@ -6516,7 +6516,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
             if pk.num_layer
                 [p_pk, p_pkdepth, p_pksmooth, p_pksmoothdepth] ...
-                            = deal(zeros(1, pk.num_layer));
+                            = deal(NaN(1, pk.num_layer));
                 tmp1        = [];
                 for ii = 1:pk.num_layer
                     if ~isempty(find(~isnan(pk.layer(ii).ind_y(ind_decim)), 1))
@@ -6613,7 +6613,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
             axes(ax_radar) %#ok<*LAXES>
             [p_phase, p_phasedepth] ...
-                            = deal(zeros(1, pk.num_phase));
+                            = deal(NaN(1, pk.num_phase));
             for ii = 1:pk.num_phase
                 p_phase(ii) = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(ind_y_phase(ii, ind_decim)))), 'b', 'linewidth', 1, 'visible', 'off');
                 p_phasedepth(ii) ...

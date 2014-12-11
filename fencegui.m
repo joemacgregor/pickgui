@@ -11,7 +11,7 @@ function fencegui
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 11/24/14
+% Last updated: 12/11/14
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -69,6 +69,7 @@ colors_def                  = [0    0       0.75;
                                0.75 0       0];
 
 % allocate a bunch of variables
+p_beddepth                  = NaN(1, 2);
 [core_done, int_done, master_done] ...
                             = deal(false);
 [bed_avail, data_done, pk_done, surf_avail] ...
@@ -78,7 +79,7 @@ colors_def                  = [0    0       0.75;
 p_int1                      = cell(2, 3);
 [p_core, p_corename, p_int2, p_pk] ...
                             = deal(cell(2));
-[curr_layer, curr_trans, curr_subtrans, curr_year, disp_check, dt, num_data, num_decim, num_int_core, num_sample, p_beddepth] ...
+[curr_layer, curr_trans, curr_subtrans, curr_year, disp_check, dt, num_data, num_decim, num_int_core, num_sample] ...
                             = deal(zeros(1, 2));
 [decim_edit, layer_list, p_bed, p_data, pk_check, p_surf] ...
                             = deal(NaN(2));
@@ -660,7 +661,7 @@ linkaxes(ax(2:3), 'y')
             
             for jj = 1:2
                 [p_core{jj, ii}, p_corename{jj, ii}] ...
-                            = deal(zeros(1, num_int_core(ii)));
+                            = deal(NaN(1, num_int_core(ii)));
                 for kk = 1:num_int_core(ii)
                     if (jj == 1)
                         axes(ax(1))
@@ -676,7 +677,7 @@ linkaxes(ax(2:3), 'y')
                 end
             end
             [p_coredepth{ii}, p_corenamedepth{ii}] ...
-                            = deal(zeros(1, num_int_core(ii)));
+                            = deal(NaN(1, num_int_core(ii)));
             for jj = 1:num_int_core(ii)
                 p_coredepth{ii}(jj) = plot(repmat(double(pk{ii}.dist_lin(ind_int_core{ii}(jj))), 1, 2), [depth_min_ref depth_max_ref], 'color', [0.5 0.5 0.5], 'linewidth', 2, 'visible', 'off');
                 p_corenamedepth{ii}(jj) = text(double(pk{ii}.dist_lin(ind_int_core{ii}(jj)) + 1), double(depth_min_ref + 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(jj, 3)}, 'color', [0.5 0.5 0.5], 'fontsize', size_font, 'visible', 'off');
@@ -925,7 +926,7 @@ linkaxes(ax(2:3), 'y')
         pause(0.1)
         tmp1                = load([path_pk{curr_rad} file_pk{curr_rad}]);
         try
-            pk{curr_rad}= tmp1.pk;
+            pk{curr_rad}    = tmp1.pk;
             tmp1            = 0;
             if ~isfield(pk{curr_rad}, 'merge_flag')
                 set(status_box(1), 'string', 'Load merged picks files only.')
@@ -1098,7 +1099,7 @@ linkaxes(ax(2:3), 'y')
         colors{curr_rad}    = repmat(colors_def, ceil(pk{curr_rad}.num_layer / size(colors_def, 1)), 1); % extend predefined color pattern
         colors{curr_rad}    = colors{curr_rad}(1:pk{curr_rad}.num_layer, :);
         [p_pk{1, curr_rad}, p_pk{2, curr_rad}, p_pkdepth{curr_rad}] ...
-                            = deal(zeros(1, pk{curr_rad}.num_layer));
+                            = deal(NaN(1, pk{curr_rad}.num_layer));
         layer_str{curr_rad} = num2cell(1:pk{curr_rad}.num_layer);
         for ii = 1:pk{curr_rad}.num_layer %#ok<*FXUP>
             if all(isnan(elev_smooth{curr_rad}(ii, ind_decim{curr_rad})))
@@ -1240,12 +1241,12 @@ linkaxes(ax(2:3), 'y')
             for ii = 1:2
                 for jj = 1:3
                     p_int1{ii, jj} ...
-                            = zeros(1, num_int);
+                            = NaN(1, num_int);
                 end
                 p_int2{ii, 1} ...
-                            = zeros(1, pk{2}.num_layer);
+                            = NaN(1, pk{2}.num_layer);
                 p_int2{ii, 2} ...
-                            = zeros(1, pk{1}.num_layer);
+                            = NaN(1, pk{1}.num_layer);
             end
             axes(ax(1))
             for ii = 1:num_int
