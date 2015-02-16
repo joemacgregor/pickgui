@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 12/11/14
+% Last updated: 02/09/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -664,12 +664,19 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         pk.ind_trim_start   = tmp1(1);
         
+        % adjust and trim surface and bed indices
         if surf_avail
             ind_surf        = ind_surf - pk.ind_trim_start;
+            ind_surf(ind_surf < 1) ...
+                            = NaN;
         end
         if bed_avail
             ind_bed         = ind_bed - pk.ind_trim_start;
+            ind_bed(ind_bed < 1) ...
+                            = NaN;
         end
+        
+        % trim data
         block.amp           = block.amp(tmp1, :);
         amp_mean            = amp_mean(tmp1, :);
         if depth_avail
@@ -690,6 +697,16 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = block.slope_aresp(tmp1, :);
         end
         num_sample_trim     = length(tmp1);
+        
+        % trim surface and bed indices
+        if surf_avail
+            ind_surf(ind_surf > num_sample_trim) ...
+                            = NaN;
+        end
+        if bed_avail
+            ind_bed(ind_bed > num_sample_trim) ...
+                            = NaN;
+        end
         
         % if layers already exist, then trim them too
         if pk_done
@@ -2756,7 +2773,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 pk.num_layer= pk.num_layer + 1;
                 curr_layer  = pk.num_layer;
                 [smooth_done, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, ind_y_flat_mean, ind_y_flat_smooth] ...
-                            = deal([smooth_done false], [p_pksmooth 0], [p_pksmoothdepth 0], [p_pksmoothflat 0], [ind_y_flat_mean; NaN(1, num_decim_flat)], [ind_y_flat_smooth; NaN(1, num_decim_flat)]);
+                            = deal([smooth_done false], [p_pksmooth NaN], [p_pksmoothdepth NaN], [p_pksmoothflat NaN], [ind_y_flat_mean; NaN(1, num_decim_flat)], [ind_y_flat_smooth; NaN(1, num_decim_flat)]);
                 pk_prop
                 set(status_box, 'string', ['Layer #' num2str(curr_layer) ' picked.'])
                 pause(0.5)
@@ -3553,7 +3570,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 
                 [smooth_done, p_pksmooth, p_pksmoothdepth, p_pksmoothflat] ...
-                            = deal([smooth_done false], [p_pksmooth 0], [p_pksmoothdepth 0], [p_pksmoothflat 0]);
+                            = deal([smooth_done false], [p_pksmooth NaN], [p_pksmoothdepth NaN], [p_pksmoothflat NaN]);
                 
                 pk_done     = true;
                 pk_sort

@@ -22,7 +22,7 @@ function radblockproc(dir_in, file_in, file_block, num_file_block, num_overlap, 
 %   within the user's path.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 08/13/14
+% Last updated: 08/21/14
 
 if (nargin ~= 9)
     error('radblockproc:inputs', ['Number input arguments (' num2str(nargin) ') should be 9.'])

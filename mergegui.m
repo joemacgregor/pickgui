@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 12/11/14
+% Last updated: 02/02/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -78,10 +78,11 @@ letters                     = 'a':'z';
 % allocate a bunch of variables
 [age_done, bed_avail, core_done, data_done, edit_flag, flat_done, merge_done, merge_file, surf_avail, time_avail] ...
                             = deal(false);
-[age, age_curr, amp_depth, amp_elev, amp_flat, button, colors, colors_age, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ...
- ind_x_pk, ind_x_ref, ind_y_pk, int_core, jj, kk, name_core, name_trans, num_chunk, num_core, num_data, num_decim, num_int, num_pk, num_sample, num_trans, num_year, p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, ...
- p_data, pk_all, p_pk, p_pkdepth, p_pkflat, p_snr, p_surf, pkfig, p_refflat, rad_threshold, snr_all, snrgui, snrlist, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
+[age, age_curr, amp_depth, amp_elev, amp_flat, button, colors, colors_age, curr_chunk, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ind_x_pk, ...
+ ind_x_ref, ind_y_pk, int_core, jj, kk, name_core, name_trans, num_chunk, num_core, num_data, num_decim, num_int, num_pk, num_sample, num_trans, num_year, p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, ...
+ pk_all, p_pk, p_pkdepth, p_pkflat, p_snr, p_surf, pkfig, p_refflat, rad_threshold, snr_all, snrgui, snrlist, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
                             = deal(NaN);
+curr_layer                  = 1;
 [file_age, file_data, file_core, file_pk, file_pk_short, file_save, file_snr, path_age, path_core, path_data, path_pk, path_save, path_snr, radar_type] ...
                             = deal('');
 layer_str                   = {};
@@ -321,9 +322,10 @@ set(cb_group, 'selectedobject', cb_check(1))
         pk                  = struct;
         [bed_avail, data_done, edit_flag, flat_done, merge_done, merge_file, surf_avail, time_avail] ...
                             = deal(false);
-        [age_curr, amp_depth, amp_elev, amp_flat, colors, curr_chunk, curr_layer, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ind_x_pk, ind_x_ref, ...
+        [age_curr, amp_depth, amp_elev, amp_flat, colors, curr_chunk, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ind_x_pk, ind_x_ref, ...
          ind_y_pk, jj, kk, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, pk_all, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
                             = deal(0);
+        curr_layer          = 1;
         [p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, p_pk, p_pkdepth, p_pkflat, p_refflat, p_snr, p_surf, pkfig, snrgui, snrlist] ...
                             = deal(NaN);
         [file_data, file_pk, file_pk_short, file_save, radar_type] ...
@@ -671,7 +673,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         layer_str           = num2cell(1:pk.num_layer);
         for ii = 1:pk.num_layer
             if all(isnan(pk.elev_smooth(ii, ind_decim)))
-                p_pk(ii)=plot(0, 0, 'w.', 'markersize', 1, 'visible', 'off');
+                p_pk(ii)    = plot(0, 0, 'w.', 'markersize', 1, 'visible', 'off');
                 layer_str{ii} ...
                             = [num2str(layer_str{ii}) ' H'];
             else
@@ -742,11 +744,12 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         
         set([pk_check surfbed_check], 'value', 1)
-        merge_done      = true;
+        merge_done          = true;
         set(disp_group, 'selectedobject', disp_check(1))
-        disp_type       = 'elev.';
+        disp_type           = 'elev.';
         axes(ax_radar)
         axis xy
+        curr_layer          = 1;
         show_surfbed
         show_pk
         show_block
@@ -1023,10 +1026,11 @@ set(cb_group, 'selectedobject', cb_check(1))
                             = amp_elev(tmp2(ii):num_sample, ii); % shift data up to surface
         end
         amp_elev            = topocorr(amp_depth, depth, tmp3); % topographically correct data
+        amp_depth           = 0;
         amp_elev            = flipud(amp_elev); % flip for axes
         depth               = (speed_ice / 2) .* (0:dt:((num_sample - 1) * dt))'; % simple monotonically increasing depth vector
         elev                = flipud(max(pk.elev_surf_gimp(ind_decim)) - depth); % elevation vector
-                
+        
         % assign traveltime and distance reference values/sliders based on data
         [elev_min_ref, elev_max_ref, db_min_ref, db_max_ref, elev_min, elev_max, db_min, db_max, depth_min_ref, depth_max_ref, depth_min, depth_max] ...
                             = deal(min(elev), max(elev), min(amp_elev(~isinf(amp_elev(:)) & ~isnan(amp_elev(:)))), max(amp_elev(~isinf(amp_elev(:)) & ~isnan(amp_elev(:)))), min(elev), max(elev), min(amp_elev(~isinf(amp_elev(:)) & ~isnan(amp_elev(:)))), ...
@@ -1359,7 +1363,13 @@ set(cb_group, 'selectedobject', cb_check(1))
         pause(0.1)
         
         % flattened radargram based on the polyfits
+        amp_depth           = NaN(size(amp_elev), 'single');
+        for ii = 1:num_decim
+            amp_depth(1:(num_sample - tmp2(ii) + 1), ii) ...
+                            = amp_elev(tmp2(ii):num_sample, ii); % shift data up to surface
+        end
         tmp1                = amp_depth;
+        amp_depth           = 0;
         tmp2                = find(sum(~isnan(depth_flat)));
         amp_flat            = NaN(num_sample, num_decim, 'single');
         if parallel_check
@@ -2052,10 +2062,12 @@ set(cb_group, 'selectedobject', cb_check(1))
             for ii = 1:pk.num_layer
                 plot(pk.dist_lin(ind_decim), pk.elev_smooth_gimp(ii, ind_decim), '.', 'color', colors(ii, :), 'markersize', 12)
             end
-            tmp1            = find(~isnan(ind_int));
-            for ii = 1:num_int
-                plot(pk.dist_lin(ind_int(tmp1(ii))), get(gca, 'ylim'), 'm', 'linewidth', 2)
-                text(double(pk.dist_lin(ind_int(tmp1(ii))) + 1), double(elev_max_ref - 250), name_core{int_core{curr_year}{curr_trans}(tmp1(ii), 3)}, 'color', 'm', 'fontsize', size_font)
+            if do_core
+                tmp1            = find(~isnan(ind_int));
+                for ii = 1:num_int
+                    plot(pk.dist_lin(ind_int(tmp1(ii))), get(gca, 'ylim'), 'm', 'linewidth', 2)
+                    text(double(pk.dist_lin(ind_int(tmp1(ii))) + 1), double(elev_max_ref - 250), name_core{int_core{curr_year}{curr_trans}(tmp1(ii), 3)}, 'color', 'm', 'fontsize', size_font)
+                end
             end
             set(gca, 'fontsize', 18)
             xlabel('Distance (km)')
@@ -3332,6 +3344,12 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Plot radargram in terms of depth
 
     function plot_depth(source, eventdata)
+        if ~data_done
+            set(disp_type, 'selectedobject', disp_check(1))
+            disp_type       = 'elev.';
+            plot_elev
+            return
+        end
         if ishandle(p_data)
             delete(p_data)
         end
@@ -3343,7 +3361,13 @@ set(cb_group, 'selectedobject', cb_check(1))
         set(z_max_edit, 'string', sprintf('%4.0f', depth_min))
         ylim([depth_min depth_max])
         if data_done
+            amp_depth       = NaN(size(amp_elev), 'single');
+            for ii = 1:num_decim
+                amp_depth(1:(num_sample - tmp2(ii) + 1), ii) ...
+                            = amp_elev(tmp2(ii):num_sample, ii); % shift data up to surface
+            end
             p_data          = imagesc(pk.dist_lin(ind_decim), depth, amp_depth, [db_min db_max]);
+            amp_depth       = 0;
         end
         set(yl, 'string', 'Depth (m)')
         narrow_cb
@@ -3357,7 +3381,7 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Plot layer-flattened radargram in terms of depth
 
     function plot_flat(source, eventdata)
-        if (~flat_done && ~data_done)
+        if (~flat_done || ~data_done)
             set(disp_group, 'selectedobject', disp_check(1))
             disp_type       = 'elev.';
             plot_elev
@@ -3721,11 +3745,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                             = plot(pk.dist_lin(ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), pk.depth_smooth(ii, ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 12, 'visible', 'off');
                 end
             end
-            if curr_layer
-                set(layer_list, 'string', layer_str, 'value', curr_layer)
-            else
-                set(layer_list, 'string', layer_str, 'value', 1)
-            end
+            set(layer_list, 'string', layer_str, 'value', curr_layer)
             show_surfbed
             show_pk
         end
@@ -3745,11 +3765,10 @@ set(cb_group, 'selectedobject', cb_check(1))
 
     function adj_length_chunk(source, eventdata)
         length_chunk        = abs(round(str2double(get(length_chunk_edit, 'string'))));
-        tmp1                = pk.dist_lin;
-        num_chunk           = floor((tmp1(end) - tmp1(1)) ./ length_chunk);
-        dist_chunk          = tmp1(1):length_chunk:tmp1(end);
-        if (dist_chunk(end) ~= tmp1(end))
-            dist_chunk(end) = tmp1(end);
+        num_chunk           = floor((pk.dist_lin(end) - pk.dist_lin(1)) ./ length_chunk);
+        dist_chunk          = pk.dist_lin(1):length_chunk:pk.dist_lin(end);
+        if (dist_chunk(end) ~= pk.dist_lin(end))
+            dist_chunk(end) = pk.dist_lin(end);
         end
         set(chunk_list, 'string', [num2cell(1:num_chunk) 'full'], 'value', (num_chunk + 1))
         set(status_box, 'string', ['Display chunk length adjusted to ' num2str(length_chunk) ' km.'])
@@ -3930,7 +3949,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             return
         end
         set(0, 'DefaultFigureWindowStyle', 'default')
-        figure('position', [200 200 1600 800])
+        figure('position', [200 200 1600 800], 'renderer', 'zbuffer')
         axis tight
         hold on
         colormap(cmaps{get(cmap_list, 'value')})
@@ -4042,7 +4061,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                         text(double(tmp1(ind_int(ii)) - 15), double(depth_min - (0.02 * (depth_max - depth_min))), name_core{int_core{curr_year}{curr_trans}(ii, 3)}, 'color', 'm', 'fontsize', size_font)
                     end
                 end
-                if (strcmp(disp_type, 'flat') && get(surfbed_check, 'value'))
+                if strcmp(disp_type, 'flat')
                     plot(repmat(tmp1(ind_x_ref), 1, 2), [depth_min depth_max], 'w--', 'linewidth', 2)
                 end
                 ylabel('Depth (m)', 'fontsize', 20)
@@ -4419,7 +4438,7 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Test something
 
     function misctest(source, eventdata)
-        
+        set(status_box, 'string', 'Test complete.')
     end
 
 %%
