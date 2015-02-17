@@ -5,14 +5,14 @@ function mergegui
 %   previously for individual blocks using PICKGUI. Refer to manual for
 %   operation (pickgui_man.pdf).
 %   
-%   MERGEGUI requires that the functions TOPOCORR AND SMOOTH_LOWESS be
+%   MERGEGUI requires that the functions TOPOCORR and SMOOTH_LOWESS be
 %   available within the user's path. If the Parallel Computing Toolbox is
 %   licensed and available, then several calculations related to data
 %   flattening will be parallelized. The Mapping Toolbox is necessary to
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 02/02/15
+% Last updated: 02/17/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -78,7 +78,7 @@ letters                     = 'a':'z';
 % allocate a bunch of variables
 [age_done, bed_avail, core_done, data_done, edit_flag, flat_done, merge_done, merge_file, surf_avail, time_avail] ...
                             = deal(false);
-[age, age_curr, amp_depth, amp_elev, amp_flat, button, colors, colors_age, curr_chunk, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ind_x_pk, ...
+[age, age_curr, amp_depth, amp_elev, amp_flat, button, colors, colors_age, curr_chunk, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ind_surf, ind_x_pk, ...
  ind_x_ref, ind_y_pk, int_core, jj, kk, name_core, name_trans, num_chunk, num_core, num_data, num_decim, num_int, num_pk, num_sample, num_trans, num_year, p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, ...
  pk_all, p_pk, p_pkdepth, p_pkflat, p_snr, p_surf, pkfig, p_refflat, rad_threshold, snr_all, snrgui, snrlist, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
                             = deal(NaN);
@@ -322,7 +322,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         pk                  = struct;
         [bed_avail, data_done, edit_flag, flat_done, merge_done, merge_file, surf_avail, time_avail] ...
                             = deal(false);
-        [age_curr, amp_depth, amp_elev, amp_flat, colors, curr_chunk, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ind_x_pk, ind_x_ref, ...
+        [age_curr, amp_depth, amp_elev, amp_flat, colors, curr_chunk, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ind_surf, ind_x_pk, ind_x_ref, ...
          ind_y_pk, jj, kk, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, pk_all, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
                             = deal(0);
         curr_layer          = 1;
@@ -1005,14 +1005,15 @@ set(cb_group, 'selectedobject', cb_check(1))
         depth               = (speed_ice / 2) .* twtt;
         
         if (any(surf_avail) && any(~isnan(pk.elev_surf)))
-            tmp2            = interp1(twtt, 1:num_sample, pk.twtt_surf(ind_decim), 'nearest', 'extrap'); % surface traveltime indices
-            if any(isnan(tmp2))
-                tmp2(isnan(tmp2)) ...
-                            = round(interp1(find(~isnan(tmp2)), tmp2(~isnan(tmp2)), find(isnan(tmp2)), 'linear', 'extrap'));
+            ind_surf        = interp1(twtt, 1:num_sample, pk.twtt_surf(ind_decim), 'nearest', 'extrap'); % surface traveltime indices
+            if any(isnan(ind_surf))
+                ind_surf(isnan(ind_surf)) ...
+                            = round(interp1(find(~isnan(ind_surf)), ind_surf(~isnan(ind_surf)), find(isnan(ind_surf)), 'linear', 'extrap'));
             end
-            tmp2(tmp2 <= 0) = 1;
+            ind_surf(ind_surf <= 0) ...
+                            = 1;
         else
-            tmp2            = ones(1, num_decim);
+            ind_surf        = ones(1, num_decim);
         end
         tmp3                = pk.elev_surf_gimp(ind_decim);
         if any(isnan(tmp3))
@@ -1022,11 +1023,10 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         amp_depth           = NaN(size(amp_elev), 'single');
         for ii = 1:num_decim
-            amp_depth(1:(num_sample - tmp2(ii) + 1), ii) ...
-                            = amp_elev(tmp2(ii):num_sample, ii); % shift data up to surface
+            amp_depth(1:(num_sample - ind_surf(ii) + 1), ii) ...
+                            = amp_elev(ind_surf(ii):num_sample, ii); % shift data up to surface
         end
         amp_elev            = topocorr(amp_depth, depth, tmp3); % topographically correct data
-        amp_depth           = 0;
         amp_elev            = flipud(amp_elev); % flip for axes
         depth               = (speed_ice / 2) .* (0:dt:((num_sample - 1) * dt))'; % simple monotonically increasing depth vector
         elev                = flipud(max(pk.elev_surf_gimp(ind_decim)) - depth); % elevation vector
@@ -1340,11 +1340,9 @@ set(cb_group, 'selectedobject', cb_check(1))
         depth_mat           = single(depth(:, ones(1, num_decim))); % depth matrix
         switch ord_poly
             case 2
-                depth_flat  = ((depth_mat .^ 2) .* pk.poly_flat_merge(ones(num_sample, 1), :)) + (depth_mat .* (pk.poly_flat_merge((2 .* ones(num_sample, 1)), :))) + ...
-                              pk.poly_flat_merge((3 .* ones(num_sample, 1)), :);                
+                depth_flat  = ((depth_mat .^ 2) .* pk.poly_flat_merge(ones(num_sample, 1), :)) + (depth_mat .* (pk.poly_flat_merge((2 .* ones(num_sample, 1)), :))) + pk.poly_flat_merge((3 .* ones(num_sample, 1)), :);                
             case 3
-                depth_flat  = ((depth_mat .^ 3) .* pk.poly_flat_merge(ones(num_sample, 1), :)) + ((depth_mat .^ 2) .* pk.poly_flat_merge((2 .* ones(num_sample, 1)), :)) + ...
-                              (depth_mat .* (pk.poly_flat_merge((3 .* ones(num_sample, 1)), :))) + pk.poly_flat_merge((4 .* ones(num_sample, 1)), :);
+                depth_flat  = ((depth_mat .^ 3) .* pk.poly_flat_merge(ones(num_sample, 1), :)) + ((depth_mat .^ 2) .* pk.poly_flat_merge((2 .* ones(num_sample, 1)), :)) + (depth_mat .* (pk.poly_flat_merge((3 .* ones(num_sample, 1)), :))) + pk.poly_flat_merge((4 .* ones(num_sample, 1)), :);
         end
         depth_mat           = 0;
         if any(isnan(depth_flat(:))) % fix nans
@@ -1362,14 +1360,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         set(status_box, 'string', 'Calculated remapping...')
         pause(0.1)
         
-        % flattened radargram based on the polyfits
-        amp_depth           = NaN(size(amp_elev), 'single');
-        for ii = 1:num_decim
-            amp_depth(1:(num_sample - tmp2(ii) + 1), ii) ...
-                            = amp_elev(tmp2(ii):num_sample, ii); % shift data up to surface
-        end
         tmp1                = amp_depth;
-        amp_depth           = 0;
         tmp2                = find(sum(~isnan(depth_flat)));
         amp_flat            = NaN(num_sample, num_decim, 'single');
         if parallel_check
@@ -3345,7 +3336,7 @@ set(cb_group, 'selectedobject', cb_check(1))
 
     function plot_depth(source, eventdata)
         if ~data_done
-            set(disp_type, 'selectedobject', disp_check(1))
+            set(disp_group, 'selectedobject', disp_check(1))
             disp_type       = 'elev.';
             plot_elev
             return
@@ -3361,13 +3352,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         set(z_max_edit, 'string', sprintf('%4.0f', depth_min))
         ylim([depth_min depth_max])
         if data_done
-            amp_depth       = NaN(size(amp_elev), 'single');
-            for ii = 1:num_decim
-                amp_depth(1:(num_sample - tmp2(ii) + 1), ii) ...
-                            = amp_elev(tmp2(ii):num_sample, ii); % shift data up to surface
-            end
             p_data          = imagesc(pk.dist_lin(ind_decim), depth, amp_depth, [db_min db_max]);
-            amp_depth       = 0;
         end
         set(yl, 'string', 'Depth (m)')
         narrow_cb
@@ -4438,6 +4423,8 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Test something
 
     function misctest(source, eventdata)
+        tmp1
+        size(amp_depth)
         set(status_box, 'string', 'Test complete.')
     end
 
