@@ -339,12 +339,14 @@ set(disp_group, 'selectedobject', disp_check(1))
 
     function load_data(source, eventdata) %#ok<*INUSD>
         
+        set(pkgui, 'windowbuttondownfcn', '')
+        
         tmp1                = file_data;
         
         % see if user just wants to move on to next data block
         if ~isempty(file_data)
             try %#ok<TRYNC>
-                tmp2        = str2double(file_data((end - 5):(end - 4))) + 1;
+                tmp2        = str2double(file_data((end - 5):(end - 4))) + 1; 
                 if (tmp2 < 10)
                     tmp2    = ['0' num2str(tmp2)];
                 else
@@ -361,8 +363,11 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
         end
         
-        % Dialog box to choose radar data file to load
+        set(pkgui, 'windowbuttondownfcn', @mouse_click)
+        
+        % dialog box to choose radar data file to load
         if (isempty(file_data) || strcmp(tmp1, file_data))
+            disp('here')
             [tmp1, tmp2]    = deal(file_data, path_data);
             if ~isempty(path_data)
                 [file_data, path_data] = uigetfile('*.mat', 'Load radar data:', path_data);
