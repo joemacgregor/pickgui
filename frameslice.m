@@ -7,7 +7,7 @@ function frameslice(dir_in, file_in, num_slice, dir_out)
 %   in DIR_OUT.
 %
 % Joe MacGregor (UTIG)
-% Last updated: 08/23/14
+% Last updated: 02/22/15
 
 % warning/error checks
 if (nargin < 4)
@@ -51,20 +51,24 @@ end
 
 disp(['Slicing ' num2str(num_in) ' files in ' dir_in ' into ' num2str(num_slice) ' slices each...'])
 
-vars2slice                  = {'Bottom' 'Data' 'Elevation' 'GPS_time' 'Latitude' 'Longitude' 'Surface'};
-
 for ii = 1:num_in
     
     tmp1                    = load([dir_in file_in_all{ii}]);
     
+    if isfield(tmp1, 'Bottom')
+        var2slice           = {'Bottom' 'Data' 'Elevation' 'GPS_time' 'Latitude' 'Longitude' 'Surface'};
+    else
+        var2slice           = {'Data' 'Elevation' 'GPS_time' 'Latitude' 'Longitude' 'Surface'};
+    end
+    
     % remove overlapping data
     if (ii > 1)
-        if any(tmp1.GPS_time < tmp1_old.GPS_time(end));
+        if any(tmp1.GPS_time < tmp1_old.GPS_time(end))
             ind_tmp         = find(tmp1.GPS_time > tmp1_old.GPS_time(end)); %#ok<EFIND>
             if ~isempty(ind_tmp)
-                for jj = 1:length(vars2slice)
-                    if isfield(tmp1, vars2slice{jj})
-                        eval(['tmp1.' vars2slice{jj} ' = tmp1.' vars2slice{jj} '(:, ind_tmp);'])
+                for jj = 1:length(var2slice)
+                    if isfield(tmp1, var2slice{jj})
+                        eval(['tmp1.' var2slice{jj} ' = tmp1.' var2slice{jj} '(:, ind_tmp);'])
                     end
                 end
             else
@@ -92,9 +96,9 @@ for ii = 1:num_in
         
         curr_ind            = ind_slice(jj):(ind_slice(jj + 1) - 1); % indices within original dataset to keep for this loop iteration
         
-        for kk = 1:length(vars2slice) % go through each variable and get the values of the current indices
-            if isfield(tmp1, vars2slice{kk})
-                eval([vars2slice{kk} ' = tmp1.' vars2slice{kk} '(:, curr_ind);'])
+        for kk = 1:length(var2slice) % go through each variable and get the values of the current indices
+            if isfield(tmp1, var2slice{kk})
+                eval([var2slice{kk} ' = tmp1.' var2slice{kk} '(:, curr_ind);'])
             end
         end
         
@@ -149,25 +153,39 @@ for ii = 1:num_in
                             = [];
             end
             if (jj < 10)
-                save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_00' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Depth', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time', ...
-                                                                                              'array_param', 'param_combine_wf_chan', 'param_csarp', 'param_radar', 'param_records', 'param_get_heights', 'param_qlook', 'param_vectors')
-            elseif (jj < 100)
-                save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_00' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Depth', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time', ...
-                                                                                              'array_param', 'param_combine_wf_chan', 'param_csarp', 'param_radar', 'param_records', 'param_get_heights', 'param_qlook', 'param_vectors')
+                if exist('Bottom', 'var')
+                    save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_0' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Depth', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time', ...
+                                                                                                  'array_param', 'param_combine_wf_chan', 'param_csarp', 'param_radar', 'param_records', 'param_get_heights', 'param_qlook', 'param_vectors')
+                else
+                    save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_0' num2str(jj)], '-v7.3', 'Data', 'Depth', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time', ...
+                                                                                                  'array_param', 'param_combine_wf_chan', 'param_csarp', 'param_radar', 'param_records', 'param_get_heights', 'param_qlook', 'param_vectors')
+                end
             else
-                save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Depth', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time', ...
-                                                                                            'array_param', 'param_combine_wf_chan', 'param_csarp', 'param_radar', 'param_records', 'param_get_heights', 'param_qlook', 'param_vectors')
+                if exist('Bottom', 'var')
+                    save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Depth', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time', ...
+                                                                                                'array_param', 'param_combine_wf_chan', 'param_csarp', 'param_radar', 'param_records', 'param_get_heights', 'param_qlook', 'param_vectors')
+                else
+                    save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_' num2str(jj)], '-v7.3', 'Data', 'Depth', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time', ...
+                                                                                                'array_param', 'param_combine_wf_chan', 'param_csarp', 'param_radar', 'param_records', 'param_get_heights', 'param_qlook', 'param_vectors')
+                end
             end
             
         else % old format
             
             % save the sliced variable in the output directory with the slice extension
             if (jj < 10)
-                save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_0' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time')
+                if exist('Bottom', 'var')
+                    save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_0' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time')
+                else
+                    save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_0' num2str(jj)], '-v7.3', 'Data', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time')
+                end
             else
-                save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time')
+                if exist('Bottom', 'var')
+                    save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_' num2str(jj)], '-v7.3', 'Bottom', 'Data', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time')
+                else
+                    save([dir_out file_in_all{ii}(1:(end - 4)) '_slice_' num2str(jj)], '-v7.3', 'Data', 'Elevation', 'GPS_time', 'Latitude', 'Longitude', 'Surface', 'Time')
+                end
             end
-            
         end
     end
     

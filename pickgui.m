@@ -367,7 +367,6 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         % dialog box to choose radar data file to load
         if (isempty(file_data) || strcmp(tmp1, file_data))
-            disp('here')
             [tmp1, tmp2]    = deal(file_data, path_data);
             if ~isempty(path_data)
                 [file_data, path_data] = uigetfile('*.mat', 'Load radar data:', path_data);
