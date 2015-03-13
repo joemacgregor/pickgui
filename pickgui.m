@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 02/09/15
+% Last updated: 03/13/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -189,7 +189,7 @@ a(3)                        = annotation('textbox', [0.21 0.925 0.03 0.03], 'str
 a(4)                        = annotation('textbox', [0.21 0.885 0.03 0.03], 'string', 'f_{center}', 'fontsize', size_font, 'color', 'b', 'edgecolor', 'none');
 a(5)                        = annotation('textbox', [0.965 0.42 0.03 0.03], 'string', 'dB_{min}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 a(6)                        = annotation('textbox', [0.965 0.85 0.03 0.03], 'string', 'dB_{max}', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
-a(7)                        = annotation('textbox', [0.56 0.965 0.06 0.03], 'string', 'N_{flat mean}', 'fontsize', size_font, 'color', 'm', 'edgecolor', 'none');
+a(7)                        = annotation('textbox', [0.56 0.965 0.06 0.03], 'string', 'N_{flat,mean}', 'fontsize', size_font, 'color', 'm', 'edgecolor', 'none');
 a(8)                        = annotation('textbox', [0.56 0.925 0.03 0.03], 'string', 'N_{win}', 'fontsize', size_font, 'color', 'm', 'edgecolor', 'none');
 a(9)                        = annotation('textbox', [0.56 0.885 0.03 0.03], 'string', 'L_{smooth}', 'fontsize', size_font, 'color', 'm', 'edgecolor', 'none');
 a(10)                       = annotation('textbox', [0.8575 0.885 0.03 0.03], 'string', 'Grid', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
@@ -2088,11 +2088,11 @@ set(disp_group, 'selectedobject', disp_check(1))
         ii                  = 0;
         [ind_x_pk, ind_y_pk, button] ...
                             = deal([]);
-        if all(~p_man)
+        if all(isnan(p_man))
             p_man           = NaN(0, 2);
         end
         if depth_avail
-            if all(~p_mandepth)
+            if all(isnan(p_mandepth))
                 p_mandepth  = NaN(0, 2);
             end
         end
