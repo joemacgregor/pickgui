@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 02/17/15
+% Last updated: 03/23/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -2348,10 +2348,14 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         
         switch radar_type
-            case 'deep'
-                tmp1        = 'date_all.mat';
             case 'accum'
                 tmp1        = 'date_all_accum.mat';
+                [age_max, age_max_ref] ...
+                            = deal(2);
+            case 'deep'
+                tmp1        = 'date_all.mat';
+                [age_max, age_max_ref] ...
+                            = deal(130);
         end
         
         if (~isempty(path_age) && exist([path_age tmp1], 'file'))
@@ -2368,7 +2372,8 @@ set(cb_group, 'selectedobject', cb_check(1))
                 [file_age, path_age] = uigetfile('*.mat', ['Load layer ages (' tmp1 '):']);
             end
             if isnumeric(file_age)
-                [file_age, path_age] = deal('');
+                [file_age, path_age] ...
+                            = deal('');
             end
         end
         
@@ -3961,9 +3966,12 @@ set(cb_group, 'selectedobject', cb_check(1))
                     for ii = 1:pk.num_layer
                         if any(~isnan(pk.elev_smooth(ii, ind_decim)))
                             tmp1 = plot(pk.dist_lin(ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), pk.elev_smooth_gimp(ii, ind_decim(~isnan(pk.elev_smooth_gimp(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 6);
-                            if (ii == curr_layer)
-%                                 set(tmp1, 'markersize', 24)
+                            if strcmp(cb_type, 'age')
+                                set(tmp1, 'color', colors_age(ii, :))
                             end
+%                             if (ii == curr_layer)
+%                                 set(tmp1, 'markersize', 24)
+%                             end
                         end
                     end
                 end                
@@ -3987,7 +3995,12 @@ set(cb_group, 'selectedobject', cb_check(1))
                     end
                 end
                 ylabel('Elevation (m)', 'fontsize', 20)
-                text(double(dist_max + (0.015 * (dist_max - dist_min))), double(elev_max + (0.04 * (elev_max - elev_min))), '(dB)', 'color', 'k', 'fontsize', 20)
+                switch cb_type
+                    case 'std'
+                        text(double(dist_max + (0.015 * (dist_max - dist_min))), double(elev_max + (0.04 * (elev_max - elev_min))), '(dB)', 'color', 'k', 'fontsize', 20)
+                    case 'age'
+                        text(double(dist_max + (0.015 * (dist_max - dist_min))), double(elev_max + (0.04 * (elev_max - elev_min))), '(ka)', 'color', 'k', 'fontsize', 20)
+                end
             case {'depth' 'flat'}
                 axis ij
                 axis([dist_min dist_max depth_min depth_max])
@@ -4016,14 +4029,20 @@ set(cb_group, 'selectedobject', cb_check(1))
                     for ii = 1:pk.num_layer
                         if strcmp(disp_type, 'depth')
                             if any(~isnan(pk.depth_smooth(ii, ind_decim)))
-                                tmp1 = plot(pk.dist_lin(ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), pk.depth_smooth(ii, ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 6);
-                                if (ii == curr_layer)
-%                                     set(tmp1, 'markersize', 24)
+                                tmp3 = plot(pk.dist_lin(ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), pk.depth_smooth(ii, ind_decim(~isnan(pk.depth_smooth(ii, ind_decim)))), '.', 'color', colors(ii, :), 'markersize', 6);
+                                if strcmp(cb_type, 'age')
+                                    set(tmp3, 'color', colors_age(ii, :))
                                 end
+%                                 if (ii == curr_layer)
+%                                     set(tmp1, 'markersize', 24)
+%                                 end
                             end
                         else
                             if ~isempty(find(~isnan(depth_layer_flat(ii, :)), 1))
-                                plot(tmp1(ind_decim(~isnan(depth_layer_flat(ii, :)))), depth_layer_flat(ii, ~isnan(depth_layer_flat(ii, :))), '.', 'markersize', 6, 'color', colors(ii, :))
+                                tmp3 = plot(tmp1(ind_decim(~isnan(depth_layer_flat(ii, :)))), depth_layer_flat(ii, ~isnan(depth_layer_flat(ii, :))), '.', 'markersize', 6, 'color', colors(ii, :));
+                                if strcmp(cb_type, 'age')
+                                    set(tmp3, 'color', colors_age(ii, :))
+                                end
                             end
                         end
                     end
@@ -4050,7 +4069,12 @@ set(cb_group, 'selectedobject', cb_check(1))
                     plot(repmat(tmp1(ind_x_ref), 1, 2), [depth_min depth_max], 'w--', 'linewidth', 2)
                 end
                 ylabel('Depth (m)', 'fontsize', 20)
-                text(double(dist_max + (0.015 * (dist_max - dist_min))), double(depth_min - (0.04 * (depth_max - depth_min))), '(dB)', 'color', 'k', 'fontsize', 20)
+                switch cb_type
+                    case 'std'
+                        text(double(dist_max + (0.015 * (dist_max - dist_min))), double(depth_min - (0.04 * (depth_max - depth_min))), '(dB)', 'color', 'k', 'fontsize', 20)
+                    case 'age'
+                        text(double(dist_max + (0.015 * (dist_max - dist_min))), double(depth_min - (0.04 * (depth_max - depth_min))), '(ka)', 'color', 'k', 'fontsize', 20)
+                end
         end
         set(gca, 'fontsize', 20, 'layer', 'top')
         xlabel('Distance (km)')
@@ -4423,8 +4447,7 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Test something
 
     function misctest(source, eventdata)
-        tmp1
-        size(amp_depth)
+        
         set(status_box, 'string', 'Test complete.')
     end
 
