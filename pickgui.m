@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 03/13/15
+% Last updated: 04/03/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -2096,13 +2096,11 @@ set(disp_group, 'selectedobject', disp_check(1))
                 p_mandepth  = NaN(0, 2);
             end
         end
-        
         tmp4                = 0;
         
         set(pkgui, 'keypressfcn', [], 'windowbuttondownfcn', [])
         
         while true
-            
             set(status_box, 'string', 'Left-click: pick; U: undo pick; D: delete layer; return: done; Q: quit...')
             [tmp1, tmp2, button] ...
                             = ginput(1); % pick manually, press enter when done
@@ -2132,9 +2130,13 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 p_man((pk.num_man + 1), 1) ...
                             = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'wx', 'markersize', 12, 'visible', 'off'); % original picks
+                p_man((pk.num_man + 1), 2) ...
+                            = NaN;
                 if depth_avail
                     p_mandepth((pk.num_man + 1), 1) ...
                             = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk - ind_surf(ind_x_pk) + 1)), 'wx', 'markersize', 12, 'visible', 'off');
+                    p_mandepth((pk.num_man + 1), 2) ...
+                            = NaN;
                 end
                 switch disp_type
                     case 'twtt'
@@ -2155,10 +2157,14 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 if (ii > 2)
                     p_man((pk.num_man + 1), 1) ...
-                            = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'wx', 'markersize', 12, 'visible', 'off'); % original picks
+                            = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'wx', 'markersize', 12, 'visible', 'off');
+                    p_man((pk.num_man + 1), 2) ...
+                            = NaN;
                     if depth_avail
                         p_mandepth((pk.num_man + 1), 1) ...
                             = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk - ind_surf(ind_x_pk) + 1)), 'wx', 'markersize', 12, 'visible', 'off');
+                        p_mandepth((pk.num_man + 1), 2) ...
+                            = NaN;
                     end
                 end
                 switch disp_type
@@ -3182,8 +3188,10 @@ set(disp_group, 'selectedobject', disp_check(1))
                             tmp2= pk.layer(ii).ind_y(tmp1) - ind_surf(tmp1) + 1;
                             tmp2((tmp2 < 1) | (tmp2 > num_sample_trim)) ...
                                 = NaN;
-                            p_pkdepth(ii) ...
-                                = plot(block.dist_lin(tmp1(~isnan(tmp2))), (1e6 .* block.twtt(round(tmp2(~isnan(tmp2))))), 'r.', 'markersize', 12, 'visible', 'off');
+                            if ~isempty(find(~isnan(tmp2), 1))
+                                p_pkdepth(ii) ...
+                                    = plot(block.dist_lin(tmp1(~isnan(tmp2))), (1e6 .* block.twtt(round(tmp2(~isnan(tmp2))))), 'r.', 'markersize', 12, 'visible', 'off');
+                            end
                         end
                     end
                     
@@ -4449,12 +4457,12 @@ set(disp_group, 'selectedobject', disp_check(1))
             
             % fix plots
             tmp2            = ind_decim(~isnan(ind_surf(ind_decim)));
-            if (any([p_pk(tmp1) p_surf]) && any(ishandle([p_pk(tmp1) p_surf])))
+            if any(ishandle([p_pk(tmp1) p_surf]))
                 delete([p_pk(tmp1) p_surf])
                 p_surf      = plot(block.dist_lin(tmp2), (1e6 .* block.twtt_surf(tmp2)), 'm.', 'markersize', 24, 'visible', 'off');
             end
             if flat_done
-                if (any([p_pkflat(tmp1) p_surfflat]) && any(ishandle([p_pkflat(tmp1) p_surfflat])))
+                if any(ishandle([p_pkflat(tmp1) p_surfflat]))
                     delete([p_pkflat(tmp1) p_surfflat])
                     p_surfflat ...
                             = plot(block.dist_lin(ind_decim_flat(~isnan(ind_surf_flat(ind_decim_flat)))), (1e6 .* block.twtt(ind_surf_flat(ind_decim_flat(~isnan(ind_surf_flat(ind_decim_flat)))))), 'm.', 'markersize', 24, 'visible', 'off');
@@ -4559,12 +4567,12 @@ set(disp_group, 'selectedobject', disp_check(1))
             
             % fix plots
             tmp2            = ind_decim(~isnan(ind_bed(ind_decim)));
-            if (any([p_pk(tmp1) p_bed]) && any(ishandle([p_pk(tmp1) p_bed])))
+            if any(ishandle([p_pk(tmp1) p_bed]))
                 delete([p_pk(tmp1) p_bed])
                 p_bed       = plot(block.dist_lin(tmp2), (1e6 .* block.twtt_bed(tmp2)), 'm.', 'markersize', 24, 'visible', 'off');
             end
             if (bed_avail && depth_avail)
-                if (any([p_pkdepth(tmp1) p_beddepth]) && any(ishandle([p_pkdepth(tmp1) p_beddepth])))
+                if any(ishandle([p_pkdepth(tmp1) p_beddepth]))
                     delete([p_pkdepth(tmp1) p_beddepth])
                     tmp2    = ind_decim(~isnan(ind_bed(ind_decim)) & ~isnan(ind_surf(ind_decim)));
                     p_beddepth ...
@@ -4572,7 +4580,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
             end
             if flat_done
-                if (any([p_pkflat(tmp1) p_bedflat]) && any(ishandle([p_pkflat(tmp1) p_bedflat])))
+                if any(ishandle([p_pkflat(tmp1) p_bedflat]))
                     delete([p_pkflat(tmp1) p_bedflat])
                     p_bedflat ...
                             = plot(block.dist_lin(ind_decim_flat(~isnan(ind_bed_flat(ind_decim_flat)))), (1e6 .* block.twtt(ind_bed_flat(ind_decim_flat(~isnan(ind_bed_flat(ind_decim_flat)))))), 'm.', 'markersize', 24, 'visible', 'off');
@@ -4782,8 +4790,10 @@ set(disp_group, 'selectedobject', disp_check(1))
                 tmp3        = pk.layer(ii).ind_y_smooth(tmp2) - ind_surf(tmp2) + 1;
                 tmp3((tmp3 < 1) | (tmp3 > num_sample_trim)) ...
                             = NaN;
-                p_pksmoothdepth(ii) ...
+                if ~isempty(find(~isnan(tmp3), 1))
+                    p_pksmoothdepth(ii) ...
                             = plot(block.dist_lin(tmp2(~isnan(tmp3))), (1e6 .* block.twtt(round(tmp3(~isnan(tmp3))))), 'g.', 'markersize', 12, 'visible', 'off');
+                end
             end
             if (flat_done && any(~isnan(ind_y_flat_smooth(ii, :))))
                 p_pksmoothflat(ii) ...
@@ -4934,9 +4944,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             return
         end
         set(status_box, 'string', 'Assign current layer? S: surface; B: bed; otherwise: no.')
-        [~, ~, button]      = ginput(1);
+        waitforbuttonpress
         
-        if strcmpi(char(button), 'S')
+        if strcmpi(get(pkgui, 'currentcharacter'), 'S')
             
             ind_surf        = round(pk.layer(curr_layer).ind_y_smooth);
             block.twtt_surf = NaN(1, block.num_trace);
@@ -5013,7 +5023,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             show_surfbed
             set(status_box, 'string', 'Layer assigned to surface.')
             
-        elseif strcmpi(char(button), 'B')
+        elseif strcmpi(get(pkgui, 'currentcharacter'), 'B')
             
             ind_bed         = round(pk.layer(curr_layer).ind_y_smooth);
             block.twtt_bed  = NaN(1, block.num_trace);
@@ -7233,7 +7243,7 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Test something
 
     function misctest(source, eventdata)
-        
+        set(status_box, 'string', 'Test done.')
     end
 
 %%

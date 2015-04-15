@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 03/23/15
+% Last updated: 03/27/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -2351,7 +2351,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             case 'accum'
                 tmp1        = 'date_all_accum.mat';
                 [age_max, age_max_ref] ...
-                            = deal(2);
+                            = deal(3);
             case 'deep'
                 tmp1        = 'date_all.mat';
                 [age_max, age_max_ref] ...
@@ -3969,9 +3969,9 @@ set(cb_group, 'selectedobject', cb_check(1))
                             if strcmp(cb_type, 'age')
                                 set(tmp1, 'color', colors_age(ii, :))
                             end
-%                             if (ii == curr_layer)
-%                                 set(tmp1, 'markersize', 24)
-%                             end
+                            if (ii == curr_layer)
+                                set(tmp1, 'markersize', 24)
+                            end
                         end
                     end
                 end                
@@ -4033,9 +4033,9 @@ set(cb_group, 'selectedobject', cb_check(1))
                                 if strcmp(cb_type, 'age')
                                     set(tmp3, 'color', colors_age(ii, :))
                                 end
-%                                 if (ii == curr_layer)
-%                                     set(tmp1, 'markersize', 24)
-%                                 end
+                                if (ii == curr_layer)
+                                    set(tmp1, 'markersize', 24)
+                                end
                             end
                         else
                             if ~isempty(find(~isnan(depth_layer_flat(ii, :)), 1))
@@ -4078,7 +4078,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         set(gca, 'fontsize', 20, 'layer', 'top')
         xlabel('Distance (km)')
-%         title(file_pk_short, 'fontweight', 'bold', 'interpreter', 'none')
+        title(file_pk_short, 'fontweight', 'bold', 'interpreter', 'none')
         colorbar('fontsize', 20)
         if get(grid_check, 'value')
             grid on
