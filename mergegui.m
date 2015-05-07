@@ -13,7 +13,6 @@ function mergegui(varargin)
 %   
 %   The value of any input into the MERGEGUI call will be ignored, but the
 %   input will be assumed to mean that no parallelization is desired.
-%    
 % 
 % Joe MacGregor (UTIG)
 % Last updated: 05/07/15
@@ -697,17 +696,17 @@ set(cb_group, 'selectedobject', cb_check(1))
                             = deal(pk.dist_lin(1), pk.dist_lin(end), pk.dist_lin(1), pk.dist_lin(end));
         if (any(surf_avail) && any(~isnan(pk.elev_surf)))
             [elev_max_ref, elev_max] ...
-                            = deal(max(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp)), 'omitnan') + (0.1 * (max(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp)), 'omitnan') - min(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp)), 'omitnan'))));
+                            = deal(max(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp)), [], 'omitnan') + (0.1 * (max(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp)), [], 'omitnan') - min(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp)), [], 'omitnan'))));
         else
             [elev_max_ref, elev_max] ...
-                            = deal(max(pk.elev_smooth_gimp(:), 'omitnan') + (0.1 * (max(pk.elev_smooth_gimp(:), 'omitnan') - min(pk.elev_smooth_gimp(:), 'omitnan'))));
+                            = deal(max(pk.elev_smooth_gimp(:), [], 'omitnan') + (0.1 * (max(pk.elev_smooth_gimp(:), [], 'omitnan') - min(pk.elev_smooth_gimp(:), [], 'omitnan'))));
         end
         if (any(bed_avail) && any(~isnan(pk.elev_bed)))
             [elev_min_ref, elev_min] ...
-                            = deal(min(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp)), 'omitnan') - (0.1 * (max(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp)), 'omitnan') - min(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp)), 'omitnan'))));
+                            = deal(min(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp)), [], 'omitnan') - (0.1 * (max(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp)), [], 'omitnan') - min(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp)), [], 'omitnan'))));
         else
             [elev_min_ref, elev_min] ...
-                            = deal(min(pk.elev_smooth_gimp(:), 'omitnan') - (0.1 * (max(pk.elev_smooth_gimp(:), 'omitnan') - min(pk.elev_smooth_gimp(:), 'omitnan'))));
+                            = deal(min(pk.elev_smooth_gimp(:), [], 'omitnan') - (0.1 * (max(pk.elev_smooth_gimp(:), [], 'omitnan') - min(pk.elev_smooth_gimp(:), [], 'omitnan'))));
         end
         set(z_min_slide, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min_ref)
         set(z_max_slide, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max_ref)

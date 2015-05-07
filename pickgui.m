@@ -489,9 +489,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(keep_phase_push, 'visible', 'on')
             set(disp_check(3), 'visible', 'on')
             [phase_diff_min_ref, phase_diff_min] ...
-                            = deal(min(block.phase_diff_filt(:), 'omitnan'));
+                            = deal(min(block.phase_diff_filt(:), [], 'omitnan'));
             [phase_diff_max_ref, phase_diff_max] ...
-                            = deal(max(block.phase_diff_filt(:), 'omitnan'));
+                            = deal(max(block.phase_diff_filt(:), [], 'omitnan'));
             phase_avail     = true;
         end
         
@@ -503,9 +503,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(keep_aresp_push, 'visible', 'on')
             set(disp_check(4), 'visible', 'on')
             [aresp_min_ref, aresp_min] ...
-                            = deal(atand(min(block.slope_aresp(:), 'omitnan')));
+                            = deal(atand(min(block.slope_aresp(:), [], 'omitnan')));
             [aresp_max_ref, aresp_max] ...
-                            = deal(atand(max(block.slope_aresp(:), 'omitnan')));
+                            = deal(atand(max(block.slope_aresp(:), [], 'omitnan')));
             aresp_avail     = true;
         end
         

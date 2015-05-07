@@ -1178,41 +1178,41 @@ linkaxes(ax(2:3), 'y')
                             = deal([x{1}(~isinf(x{1})) x{2}(~isinf(x{2}))], [y{1}(~isinf(y{1})) y{2}(~isinf(y{2}))], ...
                                    [elev_surf{1}(~isinf(elev_surf{1})) elev_surf{2}(~isinf(elev_surf{2}))], [elev_bed{1}(~isinf(elev_bed{1})) elev_bed{2}(~isinf(elev_bed{2}))], [elev_smooth{1}(~isinf(elev_smooth{1}(:))); elev_smooth{2}(~isinf(elev_smooth{2}(:)))]);
             [x_min_ref, x_max_ref, x_min, x_max] ...
-                            = deal(min(tmp1, 'omitnan'), max(tmp1, 'omitnan'), min(tmp1, 'omitnan'), max(tmp1, 'omitnan'));
+                            = deal(min(tmp1, [], 'omitnan'), max(tmp1, [], 'omitnan'), min(tmp1, [], 'omitnan'), max(tmp1, [], 'omitnan'));
             [y_min_ref, y_max_ref, y_min, y_max] ...
-                            = deal(min(tmp2, 'omitnan'), max(tmp2, 'omitnan'), min(tmp2, 'omitnan'), max(tmp2, 'omitnan'));
+                            = deal(min(tmp2, [], 'omitnan'), max(tmp2, [], 'omitnan'), min(tmp2, [], 'omitnan'), max(tmp2, [], 'omitnan'));
             if all(surf_avail)
                 [elev_max_ref, elev_max(1:2)] ...
                             = deal(max(tmp3));
             else
                 [elev_max_ref, elev_max(1:2)] ...
-                            = deal(max(tmp5, 'omitnan') + (0.1 * (max(tmp5, 'omitnan') - min(tmp5, 'omitnan'))));
+                            = deal(max(tmp5, [], 'omitnan') + (0.1 * (max(tmp5, [], 'omitnan') - min(tmp5, [], 'omitnan'))));
             end
             if all(bed_avail)
                 [elev_min_ref, elev_min(1:2)] ...
-                            = deal(min(tmp4, 'omitnan'));
+                            = deal(min(tmp4, [], 'omitnan'));
             else
                 [elev_min_ref, elev_min(1:2)] ...
-                            = deal(min(tmp5, 'omitnan') - (0.1 * (max(tmp5, 'omitnan') - min(tmp5, 'omitnan'))));
+                            = deal(min(tmp5, [], 'omitnan') - (0.1 * (max(tmp5, [], 'omitnan') - min(tmp5, [], 'omitnan'))));
             end
         else
             [x_min_ref, x_max_ref, x_min, x_max] ...
-                            = deal(min(x{curr_rad}(~isinf(x{curr_rad})), 'omitnan'), max(x{curr_rad}(~isinf(x{curr_rad})), 'omitnan'), min(x{curr_rad}(~isinf(x{curr_rad})), 'omitnan'), max(x{curr_rad}(~isinf(x{curr_rad})), 'omitnan'));
+                            = deal(min(x{curr_rad}(~isinf(x{curr_rad})), [], 'omitnan'), max(x{curr_rad}(~isinf(x{curr_rad})), [], 'omitnan'), min(x{curr_rad}(~isinf(x{curr_rad})), [], 'omitnan'), max(x{curr_rad}(~isinf(x{curr_rad})), [], 'omitnan'));
             [y_min_ref, y_max_ref, y_min, y_max] ...
-                            = deal(min(y{curr_rad}(~isinf(y{curr_rad})), 'omitnan'), max(y{curr_rad}(~isinf(y{curr_rad})), 'omitnan'), min(y{curr_rad}(~isinf(y{curr_rad})), 'omitnan'), max(y{curr_rad}(~isinf(y{curr_rad})), 'omitnan'));
+                            = deal(min(y{curr_rad}(~isinf(y{curr_rad})), [], 'omitnan'), max(y{curr_rad}(~isinf(y{curr_rad})), [], 'omitnan'), min(y{curr_rad}(~isinf(y{curr_rad})), [], 'omitnan'), max(y{curr_rad}(~isinf(y{curr_rad})), [], 'omitnan'));
             if surf_avail(curr_rad)
                 [elev_max_ref, elev_max(1:2)] ...
-                            = deal(max(elev_surf{curr_rad}(~isinf(elev_surf{curr_rad})), 'omitnan'));
+                            = deal(max(elev_surf{curr_rad}(~isinf(elev_surf{curr_rad})), [], 'omitnan'));
             else
                 [elev_max_ref, elev_max(1:2)] ...
-                            = deal(max(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), 'omitnan') + (0.1 * (max(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), 'omitnan') - min(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), 'omitnan'))));
+                            = deal(max(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), [], 'omitnan') + (0.1 * (max(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), [], 'omitnan') - min(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), [], 'omitnan'))));
             end
             if bed_avail(curr_rad)
                 [elev_min_ref, elev_min(1:2)] ...
-                            = deal(min(elev_bed{curr_rad}(~isinf(elev_bed{curr_rad})), 'omitnan'));
+                            = deal(min(elev_bed{curr_rad}(~isinf(elev_bed{curr_rad})), [], 'omitnan'));
             else
                 [elev_min_ref, elev_min(1:2)] ...
-                            = deal(min(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), 'omitnan') - (0.1 * (max(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), 'omitnan') - min(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), 'omitnan'))));
+                            = deal(min(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), [], 'omitnan') - (0.1 * (max(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), [], 'omitnan') - min(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), [], 'omitnan'))));
             end
         end
         
@@ -1577,9 +1577,10 @@ amp_depth{curr_rad}=0;
         
         % assign traveltime and distance reference values/sliders based on data
         [elev_min_ref, db_min_ref(curr_ax), elev_max_ref, db_max_ref(curr_ax), elev_min(curr_gui), db_min(curr_ax), elev_max(curr_gui), db_max(curr_ax), depth_min, depth_max] ...
-                            = deal(min([min(elev{curr_rad}(~isinf(elev{curr_rad})), 'omitnan') elev_min_ref], 'omitnan'), min(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), 'omitnan'), max([max(elev{curr_rad}(~isinf(elev{curr_rad})), 'omitnan') elev_max_ref], 'omitnan'), ...
-                                   max(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), 'omitnan'), min([min(elev{curr_rad}(~isinf(elev{curr_rad})), 'omitnan') elev_min_ref], 'omitnan'), min(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), 'omitnan'), ...
-                                   max([max(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_max_ref], 'omitnan'), max(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), 'omitnan'), min(depth{curr_rad}), max(depth{curr_rad}));
+                            = deal(min([min(elev{curr_rad}(~isinf(elev{curr_rad})), [], 'omitnan') elev_min_ref], [], 'omitnan'), min(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), [], 'omitnan'), ...
+                                   max([max(elev{curr_rad}(~isinf(elev{curr_rad})), [], 'omitnan') elev_max_ref], [], 'omitnan'), max(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), [], 'omitnan'), ...
+                                   min([min(elev{curr_rad}(~isinf(elev{curr_rad})), [], 'omitnan') elev_min_ref], [], 'omitnan'), min(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), [], 'omitnan'), ...
+                                   max([max(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_max_ref], [], 'omitnan'), max(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), [], 'omitnan'), min(depth{curr_rad}), max(depth{curr_rad}));
         if data_done(curr_rad_alt)
             [depth_min_ref, depth_max_ref] ...
                             = deal(min([depth{1}; depth{2}]), max([depth{1}; depth{2}]));
