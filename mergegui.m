@@ -1,4 +1,4 @@
-function mergegui
+function mergegui(varargin)
 % MERGEGUI Interactive merging of layer picks from consecutive, overlapping radar data blocks.
 %   
 %   MERGEGUI loads a GUI for merging a transect's radar layers traced
@@ -10,6 +10,10 @@ function mergegui
 %   licensed and available, then several calculations related to data
 %   flattening will be parallelized. The Mapping Toolbox is necessary to
 %   plot a map of the transect location.
+%   
+%   The value of any input into the MERGEGUI call will be ignored, but the
+%   input will be assumed to mean that no parallelization is desired.
+%    
 % 
 % Joe MacGregor (UTIG)
 % Last updated: 05/07/15
@@ -88,7 +92,7 @@ curr_layer                  = 1;
 layer_str                   = {};
 cb_type                     = 'std';
 
-if license('checkout', 'distrib_computing_toolbox')
+if (license('checkout', 'distrib_computing_toolbox') && ~nargin)
     pool_check              = gcp('nocreate');
     if isempty(pool_check)
         try

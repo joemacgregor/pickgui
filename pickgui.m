@@ -1,4 +1,4 @@
-function pickgui
+function pickgui(varargin)
 % PICKGUI Interactive radar-layer picker.
 %
 %   PICKGUI loads a GUI for tracing layers in CReSIS radar data, either the
@@ -19,6 +19,9 @@ function pickgui
 %   Parallel Computing Toolbox is licensed and available, then several
 %   calculations related to data flattening will be parallelized.
 %
+%   The value of any input into the PICKGUI call will be ignored, but the
+%   input will be assumed to mean that no parallelization is desired.
+% 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
 % Last updated: 05/07/15
 
@@ -77,7 +80,7 @@ disp_type                   = 'twtt';
 cmaps                       = {'bone' 'jet'}';
 ref_start_or_end            = 'start';
 
-if license('checkout', 'distrib_computing_toolbox')
+if (license('checkout', 'distrib_computing_toolbox') && ~nargin)
     pool_check              = gcp('nocreate');
     if isempty(pool_check)
         try
