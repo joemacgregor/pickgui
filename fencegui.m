@@ -11,7 +11,7 @@ function fencegui
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 12/11/14
+% Last updated: 05/07/15
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -191,8 +191,8 @@ if ~ispc
 end
 
 % variable text annotations
-file_box(1)                 = annotation('textbox', [0.005 0.925 0.10 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none');
-status_box(1)               = annotation('textbox', [0.545 0.925 0.35 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none');
+file_box(1)                 = annotation('textbox', [0.005 0.925 0.10 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none', 'linewidth', 1);
+status_box(1)               = annotation('textbox', [0.545 0.925 0.35 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none', 'linewidth', 1);
 
 dim_group                   = uibuttongroup('position', [0.90 0.965 0.06 0.03], 'selectionchangefcn', @choose_dim);
 uicontrol(fgui(1), 'style', 'text', 'parent', dim_group, 'units', 'normalized', 'position', [0 0.6 0.9 0.3], 'fontsize', size_font)
@@ -356,9 +356,9 @@ if ~ispc
 end
 
 % variable text annotations
-file_box(2)                 = annotation('textbox', [0.005 0.965 0.16 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none');
-file_box(3)                 = annotation('textbox', [0.345 0.965 0.16 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none');
-status_box(2)               = annotation('textbox', [0.69 0.965 0.30 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none');
+file_box(2)                 = annotation('textbox', [0.005 0.965 0.16 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none', 'linewidth', 1);
+file_box(3)                 = annotation('textbox', [0.345 0.965 0.16 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none', 'linewidth', 1);
+status_box(2)               = annotation('textbox', [0.69 0.965 0.30 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none', 'linewidth', 1);
 
 rad_group                   = uibuttongroup('position', [0.84 0.925 0.06 0.03], 'selectionchangefcn', @rad_radio);
 uicontrol(fgui(2), 'style', 'text', 'parent', rad_group, 'units', 'normalized', 'position', [0 0.6 0.9 0.3], 'fontsize', size_font)
@@ -1178,41 +1178,41 @@ linkaxes(ax(2:3), 'y')
                             = deal([x{1}(~isinf(x{1})) x{2}(~isinf(x{2}))], [y{1}(~isinf(y{1})) y{2}(~isinf(y{2}))], ...
                                    [elev_surf{1}(~isinf(elev_surf{1})) elev_surf{2}(~isinf(elev_surf{2}))], [elev_bed{1}(~isinf(elev_bed{1})) elev_bed{2}(~isinf(elev_bed{2}))], [elev_smooth{1}(~isinf(elev_smooth{1}(:))); elev_smooth{2}(~isinf(elev_smooth{2}(:)))]);
             [x_min_ref, x_max_ref, x_min, x_max] ...
-                            = deal(nanmin(tmp1), nanmax(tmp1), nanmin(tmp1), nanmax(tmp1));
+                            = deal(min(tmp1, 'omitnan'), max(tmp1, 'omitnan'), min(tmp1, 'omitnan'), max(tmp1, 'omitnan'));
             [y_min_ref, y_max_ref, y_min, y_max] ...
-                            = deal(nanmin(tmp2), nanmax(tmp2), nanmin(tmp2), nanmax(tmp2));
+                            = deal(min(tmp2, 'omitnan'), max(tmp2, 'omitnan'), min(tmp2, 'omitnan'), max(tmp2, 'omitnan'));
             if all(surf_avail)
                 [elev_max_ref, elev_max(1:2)] ...
                             = deal(max(tmp3));
             else
                 [elev_max_ref, elev_max(1:2)] ...
-                            = deal(nanmax(tmp5) + (0.1 * (nanmax(tmp5) - nanmin(tmp5))));
+                            = deal(max(tmp5, 'omitnan') + (0.1 * (max(tmp5, 'omitnan') - min(tmp5, 'omitnan'))));
             end
             if all(bed_avail)
                 [elev_min_ref, elev_min(1:2)] ...
-                            = deal(nanmin(tmp4));
+                            = deal(min(tmp4, 'omitnan'));
             else
                 [elev_min_ref, elev_min(1:2)] ...
-                            = deal(nanmin(tmp5) - (0.1 * (nanmax(tmp5) - nanmin(tmp5))));
+                            = deal(min(tmp5, 'omitnan') - (0.1 * (max(tmp5, 'omitnan') - min(tmp5, 'omitnan'))));
             end
         else
             [x_min_ref, x_max_ref, x_min, x_max] ...
-                            = deal(nanmin(x{curr_rad}(~isinf(x{curr_rad}))), nanmax(x{curr_rad}(~isinf(x{curr_rad}))), nanmin(x{curr_rad}(~isinf(x{curr_rad}))), nanmax(x{curr_rad}(~isinf(x{curr_rad}))));
+                            = deal(min(x{curr_rad}(~isinf(x{curr_rad})), 'omitnan'), max(x{curr_rad}(~isinf(x{curr_rad})), 'omitnan'), min(x{curr_rad}(~isinf(x{curr_rad})), 'omitnan'), max(x{curr_rad}(~isinf(x{curr_rad})), 'omitnan'));
             [y_min_ref, y_max_ref, y_min, y_max] ...
-                            = deal(nanmin(y{curr_rad}(~isinf(y{curr_rad}))), nanmax(y{curr_rad}(~isinf(y{curr_rad}))), nanmin(y{curr_rad}(~isinf(y{curr_rad}))), nanmax(y{curr_rad}(~isinf(y{curr_rad}))));
+                            = deal(min(y{curr_rad}(~isinf(y{curr_rad})), 'omitnan'), max(y{curr_rad}(~isinf(y{curr_rad})), 'omitnan'), min(y{curr_rad}(~isinf(y{curr_rad})), 'omitnan'), max(y{curr_rad}(~isinf(y{curr_rad})), 'omitnan'));
             if surf_avail(curr_rad)
                 [elev_max_ref, elev_max(1:2)] ...
-                            = deal(nanmax(elev_surf{curr_rad}(~isinf(elev_surf{curr_rad}))));
+                            = deal(max(elev_surf{curr_rad}(~isinf(elev_surf{curr_rad})), 'omitnan'));
             else
                 [elev_max_ref, elev_max(1:2)] ...
-                            = deal(nanmax(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))) + (0.1 * (nanmax(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))) - nanmin(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))))));
+                            = deal(max(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), 'omitnan') + (0.1 * (max(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), 'omitnan') - min(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), 'omitnan'))));
             end
             if bed_avail(curr_rad)
                 [elev_min_ref, elev_min(1:2)] ...
-                            = deal(nanmin(elev_bed{curr_rad}(~isinf(elev_bed{curr_rad}))));
+                            = deal(min(elev_bed{curr_rad}(~isinf(elev_bed{curr_rad})), 'omitnan'));
             else
                 [elev_min_ref, elev_min(1:2)] ...
-                            = deal(nanmin(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))) - (0.1 * (nanmax(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))) - nanmin(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:)))))));
+                            = deal(min(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), 'omitnan') - (0.1 * (max(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), 'omitnan') - min(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), 'omitnan'))));
             end
         end
         
@@ -1491,7 +1491,7 @@ linkaxes(ax(2:3), 'y')
                 tmp3        = floor(decim(curr_rad) / 2);
                 for jj = 1:length(tmp2)
                     amp_elev{curr_rad}(:, jj) ...
-                            = nanmean(tmp1.amp(:, (tmp2(jj) - tmp3):(tmp2(jj) + tmp3)), 2);
+                            = mean(tmp1.amp(:, (tmp2(jj) - tmp3):(tmp2(jj) + tmp3)), 2, 'omitnan');
                 end
                 
             else % middle/end
@@ -1516,17 +1516,17 @@ linkaxes(ax(2:3), 'y')
                 if (size(amp_elev{curr_rad}, 1) > size(tmp1.amp, 1))
                     for jj = 1:length(tmp3)
                         amp_elev{curr_rad}(:, tmp3(jj)) ...
-                            = [nanmean(tmp1.amp(:, tmp4(jj):tmp5(jj)), 2); NaN((size(amp_elev{curr_rad}, 1) - size(tmp1.amp, 1)), 1)];
+                            = [mean(tmp1.amp(:, tmp4(jj):tmp5(jj)), 2, 'omitnan'); NaN((size(amp_elev{curr_rad}, 1) - size(tmp1.amp, 1)), 1)];
                     end
                 elseif (size(amp_elev{curr_rad}, 1) < size(tmp1.amp, 1))
                     for jj = 1:length(tmp3)
                         amp_elev{curr_rad}(:, tmp3(jj)) ...
-                            = nanmean(tmp1.amp(1:size(amp_elev{curr_rad}, 1), tmp4(jj):tmp5(jj)), 2);
+                            = mean(tmp1.amp(1:size(amp_elev{curr_rad}, 1, 'omitnan'), tmp4(jj):tmp5(jj)), 2);
                     end
                 else
                     for jj = 1:length(tmp3)
                         amp_elev{curr_rad}(:, tmp3(jj)) ...
-                            = nanmean(tmp1.amp(:, tmp4(jj):tmp5(jj)), 2);
+                            = mean(tmp1.amp(:, tmp4(jj):tmp5(jj)), 2, 'omitnan');
                     end
                 end
             end
@@ -1577,9 +1577,9 @@ amp_depth{curr_rad}=0;
         
         % assign traveltime and distance reference values/sliders based on data
         [elev_min_ref, db_min_ref(curr_ax), elev_max_ref, db_max_ref(curr_ax), elev_min(curr_gui), db_min(curr_ax), elev_max(curr_gui), db_max(curr_ax), depth_min, depth_max] ...
-                            = deal(nanmin([nanmin(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_min_ref]), nanmin(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:)))), nanmax([nanmax(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_max_ref]), ...
-                                   nanmax(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:)))), nanmin([nanmin(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_min_ref]), nanmin(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:)))), ...
-                                   nanmax([max(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_max_ref]), nanmax(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:)))), min(depth{curr_rad}), max(depth{curr_rad}));
+                            = deal(min([min(elev{curr_rad}(~isinf(elev{curr_rad})), 'omitnan') elev_min_ref], 'omitnan'), min(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), 'omitnan'), max([max(elev{curr_rad}(~isinf(elev{curr_rad})), 'omitnan') elev_max_ref], 'omitnan'), ...
+                                   max(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), 'omitnan'), min([min(elev{curr_rad}(~isinf(elev{curr_rad})), 'omitnan') elev_min_ref], 'omitnan'), min(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), 'omitnan'), ...
+                                   max([max(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_max_ref], 'omitnan'), max(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), 'omitnan'), min(depth{curr_rad}), max(depth{curr_rad}));
         if data_done(curr_rad_alt)
             [depth_min_ref, depth_max_ref] ...
                             = deal(min([depth{1}; depth{2}]), max([depth{1}; depth{2}]));
@@ -4012,12 +4012,12 @@ amp_depth{curr_rad}=0;
         [curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(tmp3(1), tmp3(2), tmp3(3));
         if any(~isnan([elev_surf{1}(curr_ind_int(curr_int, 1)) elev_surf{2}(curr_ind_int(curr_int, 2))]))
-            elev_max(2)     = nanmean([elev_surf{1}(curr_ind_int(curr_int, 1)) elev_surf{2}(curr_ind_int(curr_int, 2))]);
+            elev_max(2)     = mean([elev_surf{1}(curr_ind_int(curr_int, 1)) elev_surf{2}(curr_ind_int(curr_int, 2))], 'omitnan');
             set(z_max_slide(2), 'value', elev_max(2))
             set(z_max_edit(2), 'string', sprintf('%4.0f', elev_max(2)))
         end
         if any(~isnan([elev_bed{1}(curr_ind_int(curr_int, 1)) elev_bed{2}(curr_ind_int(curr_int, 2))]))
-            elev_min(2)     = nanmean([elev_bed{1}(curr_ind_int(curr_int, 1)) elev_bed{2}(curr_ind_int(curr_int, 2))]);
+            elev_min(2)     = mean([elev_bed{1}(curr_ind_int(curr_int, 1)) elev_bed{2}(curr_ind_int(curr_int, 2))], 'omitnan');
             set(z_min_slide(2), 'value', elev_min(2))
             set(z_min_edit(2), 'string', sprintf('%4.0f', elev_min(2)))
         end
@@ -4090,7 +4090,7 @@ amp_depth{curr_rad}=0;
                 tmp1        = amp_depth{curr_rad}(tmp1(2, 1):10:tmp1(2, 2), tmp1(1, 1):10:tmp1(1, 2));
         end
         tmp2                = NaN(1, 2);
-        [tmp2(1), tmp2(2)]  = deal(nanmean(tmp1(~isinf(tmp1))), nanstd(tmp1(~isinf(tmp1))));
+        [tmp2(1), tmp2(2)]  = deal(mean(tmp1(~isinf(tmp1)), 'omitnan'), std(tmp1(~isinf(tmp1)), 'omitnan'));
         if any(isnan(tmp2))
             return
         end

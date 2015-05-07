@@ -12,7 +12,7 @@ function mergegui
 %   plot a map of the transect location.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 03/27/15
+% Last updated: 05/07/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -204,8 +204,8 @@ if ~ispc
 end
 
 % variable text annotations
-file_box                    = annotation('textbox', [0.005 0.925 0.20 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none');
-status_box                  = annotation('textbox', [0.64 0.965 0.35 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none');
+file_box                    = annotation('textbox', [0.005 0.925 0.20 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none', 'linewidth', 1);
+status_box                  = annotation('textbox', [0.64 0.965 0.35 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none', 'linewidth', 1);
 cbl                         = annotation('textbox', [0.93 0.03 0.03 0.03], 'string', '(dB)', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 if ~ispc
     set(cbl, 'fontweight', 'bold')
@@ -550,12 +550,12 @@ set(cb_group, 'selectedobject', cb_check(1))
                             end
                         else
                             for kk = 1:num_var_layer
-                                eval(['pk.' var_layer{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1))) = nanmean([pk_all{ii}.layer(tmp2).' var_layer{kk} '(1:pk.ind_overlap(ii, 1)); pk.' var_layer{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1)))]);'])
+                                eval(['pk.' var_layer{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1))) = mean([pk_all{ii}.layer(tmp2).' var_layer{kk} '(1:pk.ind_overlap(ii, 1)); pk.' var_layer{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1)))], ''omitnan'');'])
                                 tmp3                = pk_all{ii}.layer(tmp2); % intermediate step because of some variable assignment restriction
                                 eval(['pk.' var_layer{kk} '(jj, tmp1((pk.ind_overlap(ii, 1) + 1):end)) = tmp3.' var_layer{kk} '((pk.ind_overlap(ii, 1) + 1):end);'])
                             end
                             for kk = 1:num_var_layer_gimp
-                                eval(['pk.' var_layer_gimp{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1))) = nanmean([pk_all{ii}.layer(tmp2).' var_layer_gimp{kk} '(1:pk.ind_overlap(ii, 1)); pk.' var_layer_gimp{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1)))]);'])
+                                eval(['pk.' var_layer_gimp{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1))) = mean([pk_all{ii}.layer(tmp2).' var_layer_gimp{kk} '(1:pk.ind_overlap(ii, 1)); pk.' var_layer_gimp{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1)))], ''omitnan'');'])
                                 tmp3            = pk_all{ii}.layer(tmp2); % intermediate step because of some variable assignment restriction
                                 eval(['pk.' var_layer_gimp{kk} '(jj, tmp1((pk.ind_overlap(ii, 1) + 1):end)) = tmp3.' var_layer_gimp{kk} '((pk.ind_overlap(ii, 1) + 1):end);'])
                             end
@@ -616,7 +616,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             % sort layers by decreasing elevation
             tmp1            = zeros(pk.num_layer, 1);
             for ii = 1:pk.num_layer
-                tmp1(ii)    = nanmean(pk.elev_smooth_gimp(ii, :));
+                tmp1(ii)    = mean(pk.elev_smooth_gimp(ii, :), 'omitnan');
             end
             [~, tmp1]       = sort(tmp1);
             for ii = 1:num_var_layer
@@ -693,17 +693,17 @@ set(cb_group, 'selectedobject', cb_check(1))
                             = deal(pk.dist_lin(1), pk.dist_lin(end), pk.dist_lin(1), pk.dist_lin(end));
         if (any(surf_avail) && any(~isnan(pk.elev_surf)))
             [elev_max_ref, elev_max] ...
-                            = deal(nanmax(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp))) + (0.1 * (nanmax(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp))) - nanmin(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp))))));
+                            = deal(max(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp)), 'omitnan') + (0.1 * (max(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp)), 'omitnan') - min(pk.elev_surf_gimp(~isinf(pk.elev_surf_gimp)), 'omitnan'))));
         else
             [elev_max_ref, elev_max] ...
-                            = deal(nanmax(pk.elev_smooth_gimp(:)) + (0.1 * (nanmax(pk.elev_smooth_gimp(:)) - nanmin(pk.elev_smooth_gimp(:)))));
+                            = deal(max(pk.elev_smooth_gimp(:), 'omitnan') + (0.1 * (max(pk.elev_smooth_gimp(:), 'omitnan') - min(pk.elev_smooth_gimp(:), 'omitnan'))));
         end
         if (any(bed_avail) && any(~isnan(pk.elev_bed)))
             [elev_min_ref, elev_min] ...
-                            = deal(nanmin(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp))) - (0.1 * (nanmax(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp))) - nanmin(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp))))));
+                            = deal(min(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp)), 'omitnan') - (0.1 * (max(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp)), 'omitnan') - min(pk.elev_bed_gimp(~isinf(pk.elev_bed_gimp)), 'omitnan'))));
         else
             [elev_min_ref, elev_min] ...
-                            = deal(nanmin(pk.elev_smooth_gimp(:)) - (0.1 * (nanmax(pk.elev_smooth_gimp(:)) - nanmin(pk.elev_smooth_gimp(:)))));
+                            = deal(min(pk.elev_smooth_gimp(:), 'omitnan') - (0.1 * (max(pk.elev_smooth_gimp(:), 'omitnan') - min(pk.elev_smooth_gimp(:), 'omitnan'))));
         end
         set(z_min_slide, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min_ref)
         set(z_max_slide, 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max_ref)
@@ -953,7 +953,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 tmp3        = floor(decim / 2);
                 for jj = 1:length(tmp2)
                     amp_elev(:, jj) ...
-                            = nanmean(tmp1.amp(:, (tmp2(jj) - tmp3):(tmp2(jj) + tmp3)), 2);
+                            = mean(tmp1.amp(:, (tmp2(jj) - tmp3):(tmp2(jj) + tmp3)), 2, 'omitnan');
                 end
                 
             else % middle/end
@@ -978,17 +978,17 @@ set(cb_group, 'selectedobject', cb_check(1))
                 if (size(amp_elev, 1) > size(tmp1.amp, 1))
                     for jj = 1:length(tmp3)
                         amp_elev(:, tmp3(jj)) ...
-                            = [nanmean(tmp1.amp(:, tmp4(jj):tmp5(jj)), 2); NaN((size(amp_elev, 1) - size(tmp1.amp, 1)), 1)];
+                            = [mean(tmp1.amp(:, tmp4(jj):tmp5(jj)), 2, 'omitnan'); NaN((size(amp_elev, 1) - size(tmp1.amp, 1)), 1)];
                     end
                 elseif (size(amp_elev, 1) < size(tmp1.amp, 1))
                     for jj = 1:length(tmp3)
                         amp_elev(:, tmp3(jj)) ...
-                            = nanmean(tmp1.amp(1:size(amp_elev, 1), tmp4(jj):tmp5(jj)), 2);
+                            = mean(tmp1.amp(1:size(amp_elev, 1), tmp4(jj):tmp5(jj)), 2, 'omitnan');
                     end
                 else
                     for jj = 1:length(tmp3)
                         amp_elev(:, tmp3(jj)) ...
-                            = nanmean(tmp1.amp(:, tmp4(jj):tmp5(jj)), 2);
+                            = mean(tmp1.amp(:, tmp4(jj):tmp5(jj)), 2, 'omitnan');
                     end
                 end
             end
@@ -1181,7 +1181,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         pause(0.1)
         
         % smooth polynomials
-        tmp2                = round(mean(pk.length_smooth) / nanmean(diff(pk.dist(ind_decim))));
+        tmp2                = round(mean(pk.length_smooth) / mean(diff(pk.dist(ind_decim)), 'omitnan'));
         if parallel_check
             tmp1            = pk.poly_flat_merge;
             parfor ii = 1:(ord_poly + 1)
@@ -1258,7 +1258,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 end
                 
                 depth_layer_ref(ii) ...
-                            = nanmean(tmp4); % best guess depth at reference trace 
+                            = mean(tmp4, 'omitnan'); % best guess depth at reference trace 
                 
                 % extract best layers again, now including the new layer
                 tmp4        = tmp1(tmp3);
@@ -1285,7 +1285,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 end
                 
                 % smooth polynomials again
-                tmp2        = round(mean(pk.length_smooth) / nanmean(diff(pk.dist(ind_decim))));
+                tmp2        = round(mean(pk.length_smooth) / mean(diff(pk.dist(ind_decim)), 'omitnan'));
                 if parallel_check
                     tmp1    = pk.poly_flat_merge;
                     parfor jj = 1:(ord_poly + 1)
@@ -3864,7 +3864,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 tmp1        = amp_flat(tmp1(2, 1):tmp1(2, 2), tmp1(1, 1):tmp1(1, 2));
         end
         tmp2                = NaN(1, 2);
-        [tmp2(1), tmp2(2)]  = deal(nanmean(tmp1(~isinf(tmp1))), nanstd(tmp1(~isinf(tmp1))));
+        [tmp2(1), tmp2(2)]  = deal(mean(tmp1(~isinf(tmp1)), 'omitnan'), std(tmp1(~isinf(tmp1)), 'omitnan'));
         if any(isnan(tmp2))
             return
         end

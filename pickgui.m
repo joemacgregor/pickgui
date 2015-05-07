@@ -20,7 +20,7 @@ function pickgui
 %   calculations related to data flattening will be parallelized.
 %
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 04/03/15
+% Last updated: 05/07/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -210,8 +210,8 @@ if ~ispc
 end
 
 % variable text annotations
-file_box                    = annotation('textbox', [0.005 0.925 0.20 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none');
-status_box                  = annotation('textbox', [0.64 0.965 0.35 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none');
+file_box                    = annotation('textbox', [0.005 0.925 0.20 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none', 'linewidth', 1);
+status_box                  = annotation('textbox', [0.64 0.965 0.35 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none', 'linewidth', 1);
 cbl                         = annotation('textbox', [0.93 0.03 0.03 0.03], 'string', '', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 if ~ispc
     set(cbl, 'fontweight', 'bold')
@@ -486,9 +486,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(keep_phase_push, 'visible', 'on')
             set(disp_check(3), 'visible', 'on')
             [phase_diff_min_ref, phase_diff_min] ...
-                            = deal(nanmin(block.phase_diff_filt(:)));
+                            = deal(min(block.phase_diff_filt(:), 'omitnan'));
             [phase_diff_max_ref, phase_diff_max] ...
-                            = deal(nanmax(block.phase_diff_filt(:)));
+                            = deal(max(block.phase_diff_filt(:), 'omitnan'));
             phase_avail     = true;
         end
         
@@ -500,9 +500,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(keep_aresp_push, 'visible', 'on')
             set(disp_check(4), 'visible', 'on')
             [aresp_min_ref, aresp_min] ...
-                            = deal(atand(nanmin(block.slope_aresp(:))));
+                            = deal(atand(min(block.slope_aresp(:), 'omitnan')));
             [aresp_max_ref, aresp_max] ...
-                            = deal(atand(nanmax(block.slope_aresp(:))));
+                            = deal(atand(max(block.slope_aresp(:), 'omitnan')));
             aresp_avail     = true;
         end
         
@@ -539,7 +539,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             tmp1            = floor(decim / 2);
             for ii = 1:num_decim
                 amp_mean(:, ii) ...
-                            = nanmean(block.amp(:, (ind_decim(ii) - tmp1):(ind_decim(ii) + tmp1)), 2);
+                            = mean(block.amp(:, (ind_decim(ii) - tmp1):(ind_decim(ii) + tmp1)), 2, 'omitnan');
             end
         else
             amp_mean        = single(block.amp);
@@ -867,7 +867,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 pk.layer(ii).ind_y_smooth ...
                             = interp1(block.twtt, 1:num_sample_trim, pk.layer(ii).twtt_smooth, 'nearest', 'extrap');
                 tmp1(ii, :) = pk.layer(ii).twtt;
-                tmp2(ii)    = nanmean(pk.layer(ii).ind_y);
+                tmp2(ii)    = mean(pk.layer(ii).ind_y, 'omitnan');
             end
             [~, tmp3]       = sort(tmp2);
             pk.layer        = pk.layer(tmp3);
@@ -2372,7 +2372,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     tmp1    = [tmp1; pk.ind_y_man];
                 end
                 
-                [~, tmp2]   = sort(nanmean(tmp1, 2));
+                [~, tmp2]   = sort(mean(tmp1, 2, 'omitnan'));
                 tmp1        = tmp1(tmp2, :); % all layers sorted by mean value
                 tmp2        = tmp1(:, 1);
                 ind_x_pk    = 1;
@@ -2417,7 +2417,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         tmp4                = 0;
         
         % smooth polynomials
-        tmp1                = round((2 * pk.length_smooth) / nanmean(diff(block.dist_lin)));
+        tmp1                = round((2 * pk.length_smooth) / mean(diff(block.dist_lin), 'omitnan'));
         if parallel_check
             tmp4            = pk.poly_flat;
             parfor ii = 1:(ord_poly + 1)
@@ -2491,7 +2491,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     end
                 end
                 
-                ind_y_pk(ii)        = nanmean(tmp4); % best guess y index at reference trace 
+                ind_y_pk(ii)        = mean(tmp4, 'omitnan'); % best guess y index at reference trace 
                 
                 % extract best layers again, now including the new layer
                 tmp4                = tmp1(tmp3);
@@ -2517,7 +2517,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 
                 % smooth polynomials again
-                tmp2                = round(mean(pk.length_smooth) / nanmean(diff(block.dist_lin(ind_decim))));
+                tmp2                = round(mean(pk.length_smooth) / mean(diff(block.dist_lin(ind_decim)), 'omitnan'));
                 if parallel_check
                     tmp1            = pk.poly_flat;
                     parfor jj = 1:(ord_poly + 1)
@@ -2669,7 +2669,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             tmp1            = floor(decim_flat / 2);
             for ii = 1:num_decim_flat
                 amp_flat_mean(:, ii) ...
-                            = nanmean(amp_flat(:, (ind_decim_flat(ii) - tmp1):(ind_decim_flat(ii) + tmp1)), 2);
+                            = mean(amp_flat(:, (ind_decim_flat(ii) - tmp1):(ind_decim_flat(ii) + tmp1)), 2, 'omitnan');
             end
         elseif (decim_flat == 1)
             ind_decim_flat  = 1:block.num_trace;
@@ -3605,7 +3605,7 @@ set(disp_group, 'selectedobject', disp_check(1))
     function pk_sort(source, eventdata)
         tmp1                = NaN(pk.num_layer, 1);
         for ii = 1:pk.num_layer
-            tmp1(ii)        = nanmean(pk.layer(ii).ind_y);
+            tmp1(ii)        = mean(pk.layer(ii).ind_y, 'omitnan');
         end
         [~, tmp1]           = sort(tmp1);
         [pk.layer, smooth_done, p_pk, p_pkdepth, p_pkflat, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, ind_y_flat_mean, ind_y_flat_smooth] ...
@@ -4717,12 +4717,12 @@ set(disp_group, 'selectedobject', disp_check(1))
         warning('off', 'MATLAB:interp1:NaNinY')
         for ii = find(~smooth_done)
             pk.layer(ii).ind_y_smooth ...
-                            = round(smooth_lowess(pk.layer(ii).ind_y, round(pk.length_smooth / nanmean(diff(block.dist_lin))))');
+                            = round(smooth_lowess(pk.layer(ii).ind_y, round(pk.length_smooth / mean(diff(block.dist_lin), 'omitnan')))');
             pk.layer(ii).ind_y_smooth((pk.layer(ii).ind_y_smooth < 1) | (pk.layer(ii).ind_y_smooth > num_sample_trim)) ...
                             = NaN;
             if flat_done
                 ind_y_flat_smooth(ii, :) ...
-                            = round(smooth_lowess(ind_y_flat_mean(ii, :), round(pk.length_smooth / (nanmean(diff(block.dist_lin)) * decim_flat)))');
+                            = round(smooth_lowess(ind_y_flat_mean(ii, :), round(pk.length_smooth / (mean(diff(block.dist_lin), 'omitnan') * decim_flat)))');
                 ind_y_flat_smooth(ii, ((ind_y_flat_smooth(ii, :) < 1) | (ind_y_flat_smooth(ii, :) > num_sample_trim))) ...
                             = NaN;
             end
@@ -4878,7 +4878,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = tmp1(:, ~isnan(pk.layer(ii).ind_y_smooth(1:block.ind_overlap(1)))) - repmat(block.twtt(round(pk.layer(ii).ind_y_smooth(~isnan(pk.layer(ii).ind_y_smooth(1:block.ind_overlap(1))))))', pk_ref.num_layer, 1);
             tmp3            = NaN(1, pk_ref.num_layer);
             for jj = 1:pk_ref.num_layer
-                tmp3(jj)    = abs(nanmean(tmp2(jj, :)));
+                tmp3(jj)    = abs(mean(tmp2(jj, :), 'omitnan'));
             end
             
             if (length(find(tmp3 < pk.twtt_match)) == 1) % found a single matching layer within the threshold
@@ -4920,7 +4920,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         % add new layer numbers for those that didn't match any reference layers
         if any(isnan(pk.ind_match))
-            tmp1            = nanmax(pk.ind_match);
+            tmp1            = max(pk.ind_match, 'omitnan');
             if isfield(pk_ref, 'ind_match_max') % if available, take care not to repeat layer numbers
                 if ((pk_ref.ind_match_max > tmp1) || isnan(tmp1))
                     tmp1    = pk_ref.ind_match_max;
@@ -6490,7 +6490,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 tmp1        = floor(decim / 2);
                 for ii = 1:num_decim
                     amp_mean(:, ii) ...
-                            = nanmean(block.amp(:, (ind_decim(ii) - tmp1):(ind_decim(ii) + tmp1)), 2);
+                            = mean(block.amp(:, (ind_decim(ii) - tmp1):(ind_decim(ii) + tmp1)), 2, 'omitnan');
                 end
             else
                 amp_mean    = single(block.amp);
@@ -6967,7 +6967,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
             tmp2            = NaN(1, 2);
             [tmp2(1), tmp2(2)] ...
-                            = deal(nanmean(tmp1(~isinf(tmp1))), nanstd(tmp1(~isinf(tmp1))));
+                            = deal(mean(tmp1(~isinf(tmp1)), 'omitnan'), std(tmp1(~isinf(tmp1)), 'omitnan'));
             [tmp1, tmp4]    = deal(zeros(1, 2));
             switch disp_type
                 case {'twtt' '~depth' 'flat'}
