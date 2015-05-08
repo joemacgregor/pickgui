@@ -609,7 +609,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 if (ii < num_pk)
                     pk.ind_trace_start(ii + 1) ...
                             = pk.ind_trace_start(ii) + pk.num_trace(ii);
-                    if ~isnan(pk.ind_overlap(ii, 2));
+                    if ~isnan(pk.ind_overlap(ii, 2))
                         pk.ind_trace_start(ii + 1) ...
                             = pk.ind_trace_start(ii + 1) - (pk.num_trace(ii) - pk.ind_overlap(ii, 2) + 1);
                     end
@@ -727,7 +727,6 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         
         if any(surf_avail & bed_avail)
-            set(disp_check(2), 'visible', 'on')
             depth_bed       = pk.elev_surf_gimp(ind_decim) - pk.elev_bed_gimp(ind_decim);
             if any(~isnan(depth_bed))
                 p_beddepth  = plot(pk.dist_lin(ind_decim), depth_bed, 'm.', 'markersize', 12, 'visible', 'off');
@@ -777,74 +776,74 @@ set(cb_group, 'selectedobject', cb_check(1))
 
     function load_data(source, eventdata)
         
-        if ~merge_done
-            set(status_box, 'string', 'Load picks before data.')
-            return
-        end
-        
-        % check if data are in expected location based on picks' path
-        tmp1                = file_pk_short;
-        if (isnan(str2double(tmp1(end))) || ~isreal(str2double(tmp1(end)))) % check for a/b/c/etc in file_pk_short
-            tmp2            = tmp1(1:(end - 1));
-        else
-            tmp2            = tmp1;
-        end
-        
-        if merge_file
-            if ispc
-                if ~strcmp(tmp1, tmp2)
-                    if (~isempty(path_pk) && exist([path_pk '..\block\' tmp2 '\' tmp1(end) '\'], 'dir'))
-                        path_data = [path_pk(1:strfind(path_pk, '\merge')) 'block\' tmp2 '\' tmp1(end) '\'];
+        if merge_done
+
+            % check if data are in expected location based on picks' path
+            tmp1            = file_pk_short;
+            if (isnan(str2double(tmp1(end))) || ~isreal(str2double(tmp1(end)))) % check for a/b/c/etc in file_pk_short
+                tmp2        = tmp1(1:(end - 1));
+            else
+                tmp2        = tmp1;
+            end
+            
+            if merge_file
+                if ispc
+                    if ~strcmp(tmp1, tmp2)
+                        if (~isempty(path_pk) && exist([path_pk '..\block\' tmp2 '\' tmp1(end) '\'], 'dir'))
+                            path_data = [path_pk(1:strfind(path_pk, '\merge')) 'block\' tmp2 '\' tmp1(end) '\'];
+                        elseif (~isempty(path_pk) && exist([path_pk '..\block\' tmp2 '\'], 'dir'))
+                            path_data = [path_pk(1:strfind(path_pk, '\merge')) 'block\' tmp2 '\'];
+                        end
                     elseif (~isempty(path_pk) && exist([path_pk '..\block\' tmp2 '\'], 'dir'))
                         path_data = [path_pk(1:strfind(path_pk, '\merge')) 'block\' tmp2 '\'];
                     end
-                elseif (~isempty(path_pk) && exist([path_pk '..\block\' tmp2 '\'], 'dir'))
-                    path_data = [path_pk(1:strfind(path_pk, '\merge')) 'block\' tmp2 '\'];
-                end
-            else
-                if ~strcmp(tmp1, tmp2)
-                    if (~isempty(path_pk) && exist([path_pk '../block/' tmp2 '/' tmp1(end) '/'], 'dir'))
-                        path_data = [path_pk(1:strfind(path_pk, '/merge')) 'block/' tmp2 '/' tmp1(end) '/'];
+                else
+                    if ~strcmp(tmp1, tmp2)
+                        if (~isempty(path_pk) && exist([path_pk '../block/' tmp2 '/' tmp1(end) '/'], 'dir'))
+                            path_data = [path_pk(1:strfind(path_pk, '/merge')) 'block/' tmp2 '/' tmp1(end) '/'];
+                        elseif (~isempty(path_pk) && exist([path_pk '../block/' tmp2 '/'], 'dir'))
+                            path_data = [path_pk(1:strfind(path_pk, '/merge')) 'block/' tmp2 '/'];
+                        end
                     elseif (~isempty(path_pk) && exist([path_pk '../block/' tmp2 '/'], 'dir'))
                         path_data = [path_pk(1:strfind(path_pk, '/merge')) 'block/' tmp2 '/'];
                     end
-                elseif (~isempty(path_pk) && exist([path_pk '../block/' tmp2 '/'], 'dir'))
-                    path_data = [path_pk(1:strfind(path_pk, '/merge')) 'block/' tmp2 '/'];
                 end
-            end
-        else
-            if ispc
-                if ~strcmp(tmp1, tmp2)
-                    if (~isempty(path_pk) && exist([path_pk '..\..\..\block\' tmp2 '\' tmp1(end) '\'], 'dir'))
-                        path_data = [path_pk(1:strfind(path_pk, '\pk')) 'block\' tmp2 '\' tmp1(end) '\'];
+            else
+                if ispc
+                    if ~strcmp(tmp1, tmp2)
+                        if (~isempty(path_pk) && exist([path_pk '..\..\..\block\' tmp2 '\' tmp1(end) '\'], 'dir'))
+                            path_data = [path_pk(1:strfind(path_pk, '\pk')) 'block\' tmp2 '\' tmp1(end) '\'];
+                        elseif (~isempty(path_pk) && exist([path_pk '..\..\block\' tmp2 '\'], 'dir'))
+                            path_data = [path_pk(1:strfind(path_pk, '\pk')) 'block\' tmp2 '\'];
+                        end
                     elseif (~isempty(path_pk) && exist([path_pk '..\..\block\' tmp2 '\'], 'dir'))
                         path_data = [path_pk(1:strfind(path_pk, '\pk')) 'block\' tmp2 '\'];
                     end
-                elseif (~isempty(path_pk) && exist([path_pk '..\..\block\' tmp2 '\'], 'dir'))
-                    path_data = [path_pk(1:strfind(path_pk, '\pk')) 'block\' tmp2 '\'];
-                end
-            else
-                if ~strcmp(tmp1, tmp2)
-                    if (~isempty(path_pk) && exist([path_pk '../../../block/' tmp2 '/' tmp1(end) '/'], 'dir'))
-                        path_data = [path_pk(1:strfind(path_pk, '/pk')) 'block/' tmp2 '/' tmp1(end) '/'];
+                else
+                    if ~strcmp(tmp1, tmp2)
+                        if (~isempty(path_pk) && exist([path_pk '../../../block/' tmp2 '/' tmp1(end) '/'], 'dir'))
+                            path_data = [path_pk(1:strfind(path_pk, '/pk')) 'block/' tmp2 '/' tmp1(end) '/'];
+                        elseif (~isempty(path_pk) && exist([path_pk '../../block/' tmp2 '/'], 'dir'))
+                            path_data = [path_pk(1:strfind(path_pk, '/pk')) '/block/' tmp2 '/'];
+                        end
                     elseif (~isempty(path_pk) && exist([path_pk '../../block/' tmp2 '/'], 'dir'))
-                        path_data = [path_pk(1:strfind(path_pk, '/pk')) '/block/' tmp2 '/'];
+                        path_data = [path_pk(1:strfind(path_pk, '/pk')) 'block/' tmp2 '/'];
                     end
-                elseif (~isempty(path_pk) && exist([path_pk '../../block/' tmp2 '/'], 'dir'))
-                    path_data = [path_pk(1:strfind(path_pk, '/pk')) 'block/' tmp2 '/'];
                 end
             end
-        end
-        
-        % check filenames are available
-        tmp1                = false(length(pk.file_block), 1);
-        for ii = 1:length(pk.file_block)
-            if ~isempty(pk.file_block{ii})
-                tmp1(ii)    = true;
+            
+            % check filenames are available
+            tmp1            = false(length(pk.file_block), 1);
+            for ii = 1:length(pk.file_block)
+                if ~isempty(pk.file_block{ii})
+                    tmp1(ii)= true;
+                end
             end
+        else
+            tmp1            = 0;
         end
         
-        if (~isempty(path_data) && all(tmp1) && ~isempty(dir([path_data '*.mat']))) % get data filenames automatically if path found
+        if (merge_done && ~isempty(path_data) && all(tmp1) && ~isempty(dir([path_data '*.mat']))) % get data filenames automatically if path found
             if (merge_file && exist([path_data pk.file_block{1} '.mat'], 'file'))
                 file_data   = pk.file_block;
                 for ii = 1:num_pk
@@ -896,7 +895,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         
         num_data            = length(file_data);
-        if ((num_data ~= num_pk) && ~merge_file)
+        if (merge_done && (num_data ~= num_pk) && ~merge_file)
             set(status_box, 'string', ['Number of data blocks (' num2str(num_data) ') does not match number of picks files (' num2str(num_pk) ').'])
             return
         end
@@ -935,6 +934,14 @@ set(cb_group, 'selectedobject', cb_check(1))
         set(status_box, 'string', 'Loading radar data...')
         pause(0.1)
         
+        if ~merge_done
+            pk              = struct;
+            pk.ind_trace_start ...
+                            = 1;
+            pk.file_block   = cell(num_data, 1);
+            surf_avail      = true(1, num_data);
+        end
+        
         for ii = 1:num_data
             
             set(status_box, 'string', ['Loading ' file_data{ii}(1:(end - 4)) ' (' num2str(ii) ' / ' num2str(num_data) ')...'])
@@ -947,12 +954,36 @@ set(cb_group, 'selectedobject', cb_check(1))
                 return
             end
             
+            if ~merge_done
+                pk.file_block{ii} ...
+                            = file_data{ii}(1:(end - 4));
+                tmp2        = pk.ind_trace_start(ii):(pk.ind_trace_start(ii) + tmp1.num_trace - 1); % merged indices
+                if (ii == 1)
+                    [pk.x(tmp2), pk.y(tmp2), pk.dist(tmp2), pk.twtt_surf(tmp2), pk.elev_air_gimp(tmp2)] ...
+                            = deal(tmp1.x, tmp1.y, tmp1.dist, tmp1.twtt_surf, tmp1.elev_air_gimp);
+                else % should not need to average overlapping position data
+                    [pk.x(tmp2((tmp1.ind_overlap(1) + 1):end)), pk.y(tmp2((tmp1.ind_overlap(1) + 1):end)), pk.dist(tmp2((tmp1.ind_overlap(1) + 1):end)), pk.twtt_surf(tmp2((tmp1.ind_overlap(1) + 1):end)), pk.elev_air_gimp(tmp2((tmp1.ind_overlap(1) + 1):end))]...
+                            = deal(tmp1.x((tmp1.ind_overlap(1) + 1):end), tmp1.y((tmp1.ind_overlap(1) + 1):end), tmp1.dist((tmp1.ind_overlap(1) + 1):end), tmp1.twtt_surf((tmp1.ind_overlap(1) + 1):end), tmp1.elev_air_gimp((tmp1.ind_overlap(1) + 1):end));
+                end
+            end
+            
             if (ii == 1) % start decimation
                 
-                amp_elev    = NaN(pk.num_sample(ii), num_decim, 'single');
+                if ~merge_done
+                    if (decim > 1)
+                        ind_decim ...
+                            = (1 + ceil(decim / 2)):decim:((1.5 * tmp1.num_trace * num_data) - ceil(decim / 2));
+                    else
+                        ind_decim ...
+                            = 1:(1.5 * tmp1.num_trace * num_data);
+                    end
+                    num_decim ...
+                            = length(ind_decim);
+                end
+                amp_elev    = NaN(tmp1.num_sample, num_decim, 'single');
                 [dt, twtt, num_sample] ...
                             = deal(tmp1.dt, tmp1.twtt, tmp1.num_sample);
-                tmp2        = (1 + ceil(decim / 2)):decim:(pk.num_trace(ii) - ceil(decim / 2));
+                tmp2        = (1 + ceil(decim / 2)):decim:(tmp1.num_trace - ceil(decim / 2));
                 tmp3        = floor(decim / 2);
                 for jj = 1:length(tmp2)
                     amp_elev(:, jj) ...
@@ -961,8 +992,8 @@ set(cb_group, 'selectedobject', cb_check(1))
                 
             else % middle/end
                 
-                tmp2        = repmat((pk.ind_trace_start(ii) + pk.ind_overlap(ii, 1)), 1, 2);
-                tmp2(2)     = tmp2(2) + pk.num_trace(ii) - pk.ind_overlap(ii, 1) - 1;
+                tmp2        = repmat((pk.ind_trace_start(ii) + tmp1.ind_overlap(1)), 1, 2);
+                tmp2(2)     = tmp2(2) + tmp1.num_trace - tmp1.ind_overlap(1) - 1;
                 if (ii < num_data)
                     tmp3    = (find((tmp2(1) > ind_decim), 1, 'last') + 1):find((tmp2(2) <= ind_decim), 1);
                 else
@@ -976,8 +1007,8 @@ set(cb_group, 'selectedobject', cb_check(1))
                 tmp5        = tmp2 + floor(decim / 2);
                 tmp4(tmp4 < 1) ...
                             = 1;
-                tmp5(tmp5 > pk.num_trace(ii)) ...
-                            = pk.num_trace(ii);
+                tmp5(tmp5 > tmp1.num_trace) ...
+                            = tmp1.num_trace;
                 if (size(amp_elev, 1) > size(tmp1.amp, 1))
                     for jj = 1:length(tmp3)
                         amp_elev(:, tmp3(jj)) ...
@@ -996,8 +1027,31 @@ set(cb_group, 'selectedobject', cb_check(1))
                 end
             end
             
+            if (~merge_done && (ii < num_data))
+                pk.ind_trace_start(ii + 1) ...
+                    = pk.ind_trace_start(ii) + tmp1.num_trace;
+                if ~isnan(tmp1.ind_overlap(2))
+                    pk.ind_trace_start(ii + 1) ...
+                        = pk.ind_trace_start(ii + 1) - (tmp1.num_trace - tmp1.ind_overlap(2) + 1);
+                end
+            end
+            
             tmp1            = 0;
             
+        end
+        
+        if ~merge_done
+            pk.num_trace_tot= length(pk.dist);
+            if (decim > 1)
+                ind_decim   = (1 + ceil(decim / 2)):decim:(pk.num_trace_tot - ceil(decim / 2));
+            else
+                ind_decim   = 1:pk.num_trace_tot;
+            end
+            num_decim       = length(ind_decim);
+            amp_elev        = amp_elev(:, 1:num_decim);
+            pk.dist_lin     = interp1([1 pk.num_trace_tot], pk.dist([1 end]), 1:pk.num_trace_tot); % new linear distance vector (should not be merged because each linear distance vector is different)
+            pk.elev_surf_gimp ...
+                            = pk.elev_air_gimp - (pk.twtt_surf .* (speed_vacuum / 2));
         end
         
         % convert to dB and determine elevation/depth vectors
@@ -1007,7 +1061,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         num_sample          = size(amp_elev, 1);
         depth               = (speed_ice / 2) .* twtt;
         
-        if (any(surf_avail) && any(~isnan(pk.elev_surf)))
+        if (any(surf_avail) && any(~isnan(pk.twtt_surf)))
             ind_surf        = interp1(twtt, 1:num_sample, pk.twtt_surf(ind_decim), 'nearest', 'extrap'); % surface traveltime indices
             if any(isnan(ind_surf))
                 ind_surf(isnan(ind_surf)) ...
@@ -1048,19 +1102,29 @@ set(cb_group, 'selectedobject', cb_check(1))
         set(cb_max_edit, 'string', sprintf('%3.0f', db_max_ref))
         update_z_range
         
+        if ~merge_done
+            [dist_min_ref, dist_max_ref, dist_min, dist_max] ...
+                            = deal(pk.dist_lin(1), pk.dist_lin(end), pk.dist_lin(1), pk.dist_lin(end));
+            set(dist_min_slide, 'min', dist_min_ref, 'max', dist_max_ref, 'value', dist_min_ref)
+            set(dist_max_slide, 'min', dist_min_ref, 'max', dist_max_ref, 'value', dist_max_ref)
+            set(dist_min_edit, 'string', sprintf('%3.1f', dist_min_ref))
+            set(dist_max_edit, 'string', sprintf('%3.1f', dist_max_ref))
+            update_dist_range
+        end
+        
         % plot block divisions
         [p_block, p_blockflat, p_blocknum, p_blocknumflat] ...
                             = deal(NaN(1, length(pk.ind_trace_start)));
         tmp1                = pk.dist_lin;
-        for ii = 1:length(pk.ind_trace_start)
+        for ii = 1:num_data
             p_block(ii)     = plot(repmat(tmp1(pk.ind_trace_start(ii)), 1, 2), [elev_min_ref elev_max_ref], 'm--', 'linewidth', 1, 'visible', 'off');
             if ~isempty(pk.file_block{ii})
-                [~, tmp2]   = regexp(pk.file_block{ii}, 'block_');                
+                [~, tmp2]   = regexp(pk.file_block{ii}, 'block_');
                 p_blocknum(ii) ...
                             = text(double(tmp1(pk.ind_trace_start(ii)) + 1), double(elev_max_ref - 100), pk.file_block{ii}((tmp2 + 1):end), 'color', 'm', 'fontsize', (size_font - 2), 'visible', 'off');
             end
             p_blockflat(ii) = plot(repmat(tmp1(pk.ind_trace_start(ii)), 1, 2), [depth_min_ref depth_max_ref], 'm--', 'linewidth', 1, 'visible', 'off');
-            if ~isempty(pk.file_block{ii})                
+            if ~isempty(pk.file_block{ii})
                 p_blocknumflat(ii) ...
                             = text((tmp1(pk.ind_trace_start(ii)) + 1), (depth_min_ref + 100), pk.file_block{ii}((tmp2 + 1):end), 'color', 'm', 'fontsize', (size_font - 2), 'visible', 'off');
             end
@@ -1078,6 +1142,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         % plot data
         data_done           = true;
+        set(disp_check(2), 'visible', 'on')
         set(data_check, 'value', 1)
         plot_elev
         
@@ -3901,16 +3966,12 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Pop out map
 
     function pop_map(source, eventdata)
-        if ~merge_done
-            set(status_box, 'string', 'Cannot make map until picks are loaded.')
-            return
-        end
         if (~license('checkout', 'map_toolbox') || ~exist('num_coast', 'var'))
             set(status_box, 'string', 'Cannot make map without Mapping Toolbox.')
             return
         end
         set(0, 'DefaultFigureWindowStyle', 'default')
-        figure('position', [100 100 240 480]);
+        figure('position', [200 200 800 600]);
         hold on
         for ii = 1:num_coast
             plot(x_coast{ii}, y_coast{ii}, 'k', 'linewidth', 1) %#ok<USENS>
@@ -3919,16 +3980,15 @@ set(cb_group, 'selectedobject', cb_check(1))
         plot(pk.x(1), pk.y(1), 'ko', 'markersize', 12, 'markerfacecolor', 'g')
         plot(pk.x(end), pk.y(end), 'ko', 'markersize', 12, 'markerfacecolor', 'r')
         tmp1            = (100 * ceil(pk.dist_lin(1) / 100)):100:(100 * floor(pk.dist_lin(end) / 100));
-        plot(pk.x(interp1(pk.dist_lin, 1:pk.num_trace_tot, tmp1, 'nearest')), pk.y(interp1(pk.dist_lin, 1:pk.num_trace_tot, tmp1, 'nearest')), 'ko', 'markersize', 6, 'markerfacecolor', 'b')
-        set(gca, 'fontsize', 20, 'xtick', [], 'ytick', [])
+        plot(pk.x(interp1(pk.dist_lin, 1:pk.num_trace_tot, tmp1, 'nearest')), pk.y(interp1(pk.dist_lin, 1:pk.num_trace_tot, tmp1, 'nearest')), 'ko', 'markersize', 12, 'markerfacecolor', 'b')
+        set(gca, 'fontsize', 20)
         xlabel('Polar stereographic X (km)')
         ylabel('Polar stereographic Y (km)')
-        axis equal tight
+        axis equal tight image
         grid on
         box on
         fill([325 450 450 325], [-3230 -3230 -3260 -3260], 'k')
         fill([450 575 575 450], [-3230 -3230 -3260 -3260], 'w', 'edgecolor', 'k')
-%         text(-550, -800, '(c)', 'color', 'k', 'fontsize', 20, 'fontweight', 'bold', 'edgecolor', 'k')
         text(300, -3180, '0', 'color', 'k', 'fontsize', 18)
         text(520, -3180, '250 km', 'color', 'k', 'fontsize', 18)
         set(0, 'DefaultFigureWindowStyle', 'docked')
