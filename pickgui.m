@@ -4923,7 +4923,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         % add new layer numbers for those that didn't match any reference layers
         if any(isnan(pk.ind_match))
-            tmp1            = max(pk.ind_match, 'omitnan');
+            tmp1            = max(pk.ind_match, [], 'omitnan');
             if isfield(pk_ref, 'ind_match_max') % if available, take care not to repeat layer numbers
                 if ((pk_ref.ind_match_max > tmp1) || isnan(tmp1))
                     tmp1    = pk_ref.ind_match_max;
