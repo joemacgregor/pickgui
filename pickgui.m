@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 05/07/15
+% Last updated: 05/11/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -97,9 +97,9 @@ end
 % pre-allocate a bunch of variables
 [aresp_avail, aresp_done, bed_avail, depth_avail, do_surfbed, flat_done, keep_phase_done, keep_aresp_done, load_done, load_flat, match_done, phase_avail, phase_done, pk_done, ref_done, smooth_done, surf_avail, trim_done] ...
                             = deal(false);
-[amp_depth, amp_flat_mean, amp_mean, block, button, curr_chunk, curr_layer, dist_chunk, ii, ind_bed, ind_bed_flat, ind_decim, ind_decim_flat, ind_surf, ind_surf_flat, ind_decim_flat_old, ind_x_pk, ind_y_aresp, ind_y_curr, ind_y_flat, ind_y_mat, ind_y_phase, ind_y_pk, jj, kk, num_chunk, ...
- num_decim, num_decim_flat, num_sample_trim, p_aresp, p_arespdepth, p_bed, p_beddepth, p_bedflat, p_data, p_man, p_mandepth, p_phase, p_phasedepth, p_pk, p_pkdepth, p_pkflat, p_ref, p_refdepth, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, p_startphase, p_startphasedepth, p_startaresp, ...
- p_startarespdepth, p_surf, p_surfflat, pkfig, rad_sample, tmp1, tmp2, tmp3, tmp4, tmp5] ...
+[amp_depth, amp_flat_mean, amp_mean, block, button, curr_chunk, curr_layer, dist_chunk, elev_surf_gimp, ii, ind_bed, ind_bed_flat, ind_decim, ind_decim_flat, ind_surf, ind_surf_flat, ind_decim_flat_old, ind_x_pk, ind_y_aresp, ind_y_curr, ind_y_flat, ind_y_mat, ind_y_phase, ind_y_pk, jj, kk, ...
+ num_chunk, num_decim, num_decim_flat, num_sample_trim, p_aresp, p_arespdepth, p_bed, p_beddepth, p_bedflat, p_data, p_man, p_mandepth, p_phase, p_phasedepth, p_pk, p_pkdepth, p_pkflat, p_ref, p_refdepth, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, p_startphase, p_startphasedepth, ...
+ p_startaresp, p_startarespdepth, p_surf, p_surfflat, pkfig, rad_sample, x_gimp, y_gimp, tmp1, tmp2, tmp3, tmp4, tmp5] ...
                             = deal(NaN);
 [ind_y_flat_mean, ind_y_flat_smooth] ...
                             = deal([]);
@@ -4951,10 +4951,29 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         if strcmpi(get(pkgui, 'currentcharacter'), 'S')
             
+            try
+                if (x_gimp == 0) % only reload if necessary
+                    load mat/gimp_90m elev_surf_gimp x_gimp y_gimp
+                    [elev_surf_gimp, x_gimp, y_gimp] ...
+                            = deal(single(elev_surf_gimp(1:5:end, 1:5:end)), x_gimp(1:5:end), y_gimp(1:5:end));
+                    [x_gimp, y_gimp] ...
+                            = meshgrid((1e-3 .* x_gimp), (1e-3 .* y_gimp));
+                end
+                tmp1        = find((x_gimp(1, :) >= (min(block.x) - 2.5)) & (x_gimp(1, :) <= (max(block.x) + 2.5)));
+                tmp2        = find((y_gimp(:, 1) >= (min(block.y) - 2.5)) & (y_gimp(:, 1) <= (max(block.y) + 2.5)));
+            catch
+                set(status_box, 'string', 'File mat/gimp_90m.mat unavailable but necessary to fix surface.')
+                return
+            end
+            
             ind_surf        = round(pk.layer(curr_layer).ind_y_smooth);
             block.twtt_surf = NaN(1, block.num_trace);
             block.twtt_surf(~isnan(pk.layer(curr_layer).ind_y_smooth)) ...
-                            = block.twtt(round(pk.layer(curr_layer).ind_y_smooth(~isnan(pk.layer(curr_layer).ind_y_smooth))));
+                            = block.twtt(round(pk.layer(curr_layer).ind_y_smooth(~isnan(pk.layer(curr_layer).ind_y_smooth)))); % fix block traveltime.
+            block.elev_air_gimp(~isnan(pk.layer(curr_layer).ind_y_smooth)) ...
+                            = block.elev_air + (interp2(x_gimp(tmp2, tmp1), y_gimp(tmp2, tmp1), elev_surf_gimp(tmp2, tmp1), block.x, block.y, 'spline') - ...
+                              (block.elev_air(~isnan(pk.layer(curr_layer).ind_y_smooth)) - (block.twtt_surf(~isnan(pk.layer(curr_layer).ind_y_smooth)) .* (speed_vacuum / 2)))); % fix GIMP-corrected aircraft elevation
+            
             pk_del_breakout
             surf_avail      = true;
             
