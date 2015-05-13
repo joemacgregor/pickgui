@@ -4952,7 +4952,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         if strcmpi(get(pkgui, 'currentcharacter'), 'S')
             
             try
-                if (x_gimp == 0) % only reload if necessary
+                if (isnan(x_gimp)) % only reload if necessary
                     load mat/gimp_90m elev_surf_gimp x_gimp y_gimp
                     [elev_surf_gimp, x_gimp, y_gimp] ...
                             = deal(single(elev_surf_gimp(1:5:end, 1:5:end)), x_gimp(1:5:end), y_gimp(1:5:end));
@@ -4969,10 +4969,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             ind_surf        = round(pk.layer(curr_layer).ind_y_smooth);
             block.twtt_surf = NaN(1, block.num_trace);
             block.twtt_surf(~isnan(pk.layer(curr_layer).ind_y_smooth)) ...
-                            = block.twtt(round(pk.layer(curr_layer).ind_y_smooth(~isnan(pk.layer(curr_layer).ind_y_smooth)))); % fix block traveltime.
-            block.elev_air_gimp(~isnan(pk.layer(curr_layer).ind_y_smooth)) ...
-                            = block.elev_air + (interp2(x_gimp(tmp2, tmp1), y_gimp(tmp2, tmp1), elev_surf_gimp(tmp2, tmp1), block.x, block.y, 'spline') - ...
-                              (block.elev_air(~isnan(pk.layer(curr_layer).ind_y_smooth)) - (block.twtt_surf(~isnan(pk.layer(curr_layer).ind_y_smooth)) .* (speed_vacuum / 2)))); % fix GIMP-corrected aircraft elevation
+                            = block.twtt(round(pk.layer(curr_layer).ind_y_smooth(~isnan(pk.layer(curr_layer).ind_y_smooth)))); % fix block traveltime.           
             
             pk_del_breakout
             surf_avail      = true;
@@ -5144,6 +5141,30 @@ set(disp_group, 'selectedobject', disp_check(1))
         [pk.lat, pk.lon, pk.x, pk.y, pk.num_sample, pk.num_trace, pk.file_in, pk.file_block, pk.twtt_min_ref, pk.twtt_max_ref, pk.dist, pk.block.dist_lin, pk.ind_overlap, pk.elev_air, pk.time] ...
                             = deal(block.lat, block.lon, block.x, block.y, block.num_sample, block.num_trace, block.file_in, file_data(1:(end - 4)), twtt_min_ref, twtt_max_ref, block.dist, block.dist_lin, block.ind_overlap, block.elev_air, block.time);
         if isfield(block, 'elev_air_gimp')
+            if do_surfbed
+                try
+                    if (isnan(x_gimp)) % only reload if necessary
+                        %load mat/gimp_90m elev_surf_gimp x_gimp y_gimp
+                        temp = load('mat/gimp_90m', 'x_gimp', 'y_gimp', 'elev_surf_gimp');
+                        x_gimp = temp.x_gimp;
+                        y_gimp = temp.y_gimp;
+                        elev_surf_gimp = temp.elev_surf_gimp;
+                        
+                        [elev_surf_gimp, x_gimp, y_gimp] ...
+                                = deal(single(elev_surf_gimp(1:5:end, 1:5:end)), x_gimp(1:5:end), y_gimp(1:5:end));
+                        [x_gimp, y_gimp] ...
+                                = meshgrid((1e-3 .* x_gimp), (1e-3 .* y_gimp));
+                    end
+                    tmp1        = find((x_gimp(1, :) >= (min(block.x) - 2.5)) & (x_gimp(1, :) <= (max(block.x) + 2.5)));
+                    tmp2        = find((y_gimp(:, 1) >= (min(block.y) - 2.5)) & (y_gimp(:, 1) <= (max(block.y) + 2.5)));
+                catch
+                    set(status_box, 'string', 'File mat/gimp_90m.mat unavailable but necessary to fix surface.')
+                    return
+                end
+                
+                block.elev_air_gimp(~isnan(ind_surf)) ...
+                            = block.elev_air + (interp2(x_gimp(tmp2, tmp1), y_gimp(tmp2, tmp1), elev_surf_gimp(tmp2, tmp1), block.x, block.y, 'spline') - (block.elev_air(~isnan(ind_surf)) - (block.twtt_surf(~isnan(ind_surf)) .* (speed_vacuum / 2)))); % fix GIMP-corrected aircraft elevation
+            end            
             pk.elev_air_gimp= block.elev_air_gimp;
         else
             pk.elev_air_gimp= NaN(1, block.num_trace);
