@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 05/11/15
+% Last updated: 05/19/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -1340,48 +1340,71 @@ set(disp_group, 'selectedobject', disp_check(1))
             file_pk         = [file_data(1:(end - 4)) '_pk.mat'];
         end
         
-        ref_start_or_end       = '';
+        ref_start_or_end    = '';
         
         % check for existing pick files before and after current block
         if (~isempty(path_pk) && ~isempty(file_pk))
             try %#ok<TRYNC>
-                tmp1        = str2double(file_pk((end - 8):(end - 7))) - 1;
-                if (tmp1 < 10)
-                    tmp1    = ['0' num2str(tmp1)];
+                if isnan(str2double(file_pk((end - 9):(end - 7))))
+                    tmp1    = str2double(file_pk((end - 8):(end - 7))) - 1;
+                    tmp2    = str2double(file_pk((end - 8):(end - 7))) + 1;
+                    if (tmp1 < 10)
+                        tmp1= ['0' num2str(tmp1)];
+                    else
+                        tmp1= num2str(tmp1);
+                    end
+                    if (tmp2 < 10)
+                        tmp2= ['0' num2str(tmp2)];
+                    else
+                        tmp2= num2str(tmp2);
+                    end
+                    tmp3    = 0;
                 else
-                    tmp1    = num2str(tmp1);
+                    tmp1    = str2double(file_pk((end - 9):(end - 7))) - 1;
+                    tmp2    = str2double(file_pk((end - 9):(end - 7))) + 1;
+                    if (tmp1 < 10)
+                        tmp1= ['00' num2str(tmp1)];
+                    elseif (tmp1 < 100)
+                        tmp1= ['0' num2str(tmp1)];
+                    else
+                        tmp1= num2str(tmp1);
+                    end
+                    if (tmp2 < 10)
+                        tmp2= ['00' num2str(tmp2)];
+                    elseif (tmp2 < 100)
+                        tmp2= ['0' num2str(tmp2)];
+                    else
+                        tmp2= num2str(tmp2);
+                    end
+                    tmp3    = 1;
                 end
-                tmp2        = str2double(file_pk((end - 8):(end - 7))) + 1;
-                if (tmp2 < 10)
-                    tmp2    = ['0' num2str(tmp2)];
-                else
-                    tmp2    = num2str(tmp2);
-                end
-                if (exist([path_pk file_pk(1:(end - 9)) tmp1 '_pk.mat'], 'file') && ~exist([path_pk file_pk(1:(end - 9)) tmp2 '_pk.mat'], 'file'))
-                    file_ref= [file_pk(1:(end - 9)) tmp1 '_pk.mat'];
+                if (exist([path_pk file_pk(1:(end - 9 - tmp3)) tmp1 '_pk.mat'], 'file') && ~exist([path_pk file_pk(1:(end - 9 - tmp3)) tmp2 '_pk.mat'], 'file'))
+                    file_ref= [file_pk(1:(end - 9 - tmp3)) tmp1 '_pk.mat'];
                     ref_start_or_end ...
                             = 'start';
-                elseif (~exist([path_pk file_pk(1:(end - 9)) tmp1 '_pk.mat'], 'file') && exist([path_pk file_pk(1:(end - 9)) tmp2 '_pk.mat'], 'file'))
+                elseif (~exist([path_pk file_pk(1:(end - 9 - tmp3)) tmp1 '_pk.mat'], 'file') && exist([path_pk file_pk(1:(end - 9 - tmp3)) tmp2 '_pk.mat'], 'file'))
                     set(status_box, 'string', 'Only right-hand-side reference picks available. Load these? Y: yes; otherwise: no...')
                     waitforbuttonpress
                     if strcmpi(get(pkgui, 'currentcharacter'), 'Y')
                         file_ref ...
-                            = [file_pk(1:(end - 9)) tmp2 '_pk.mat'];
+                            = [file_pk(1:(end - 9 - tmp3)) tmp2 '_pk.mat'];
                         ref_start_or_end ...
                             = 'end';
                     else
                         [file_ref, ref_start_or_end] ...
                             = deal('');
                     end
-                elseif (exist([path_pk file_pk(1:(end - 9)) tmp1 '_pk.mat'], 'file') && exist([path_pk file_pk(1:(end - 9)) tmp2 '_pk.mat'], 'file'))
+                elseif (exist([path_pk file_pk(1:(end - 9 - tmp3)) tmp1 '_pk.mat'], 'file') && exist([path_pk file_pk(1:(end - 9 - tmp3)) tmp2 '_pk.mat'], 'file'))
                     set(status_box, 'string', 'Left (L) or right (R) reference picks?')
                     waitforbuttonpress
                     if strcmpi(get(pkgui, 'currentcharacter'), 'L')
-                        file_ref= [file_pk(1:(end - 9)) tmp1 '_pk.mat'];
+                        file_ref ...
+                            = [file_pk(1:(end - 9 - tmp3)) tmp1 '_pk.mat'];
                         ref_start_or_end ...
                             = 'start';
                     elseif strcmpi(get(pkgui, 'currentcharacter'), 'R')
-                        file_ref= [file_pk(1:(end - 9)) tmp2 '_pk.mat'];
+                        file_ref ...
+                            = [file_pk(1:(end - 9 - tmp3)) tmp2 '_pk.mat'];
                         ref_start_or_end ...
                             = 'end';
                     end
@@ -5145,26 +5168,22 @@ set(disp_group, 'selectedobject', disp_check(1))
                 try
                     if (isnan(x_gimp)) % only reload if necessary
                         %load mat/gimp_90m elev_surf_gimp x_gimp y_gimp
-                        temp = load('mat/gimp_90m', 'x_gimp', 'y_gimp', 'elev_surf_gimp');
-                        x_gimp = temp.x_gimp;
-                        y_gimp = temp.y_gimp;
-                        elev_surf_gimp = temp.elev_surf_gimp;
-                        
+                        tmp1= load('mat/gimp_90m', 'x_gimp', 'y_gimp', 'elev_surf_gimp');
                         [elev_surf_gimp, x_gimp, y_gimp] ...
-                                = deal(single(elev_surf_gimp(1:5:end, 1:5:end)), x_gimp(1:5:end), y_gimp(1:5:end));
+                            = deal(single(tmp1.elev_surf_gimp(1:5:end, 1:5:end)), tmp1.x_gimp(1:5:end), tmp1.y_gimp(1:5:end));
                         [x_gimp, y_gimp] ...
-                                = meshgrid((1e-3 .* x_gimp), (1e-3 .* y_gimp));
+                            = meshgrid((1e-3 .* x_gimp), (1e-3 .* y_gimp));
                     end
-                    tmp1        = find((x_gimp(1, :) >= (min(block.x) - 2.5)) & (x_gimp(1, :) <= (max(block.x) + 2.5)));
-                    tmp2        = find((y_gimp(:, 1) >= (min(block.y) - 2.5)) & (y_gimp(:, 1) <= (max(block.y) + 2.5)));
                 catch
                     set(status_box, 'string', 'File mat/gimp_90m.mat unavailable but necessary to fix surface.')
                     return
                 end
-                
+
+                tmp2        = find((x_gimp(1, :) >= (min(block.x) - 2.5)) & (x_gimp(1, :) <= (max(block.x) + 2.5)));
+                tmp3        = find((y_gimp(:, 1) >= (min(block.y) - 2.5)) & (y_gimp(:, 1) <= (max(block.y) + 2.5)));
                 block.elev_air_gimp(~isnan(ind_surf)) ...
-                            = block.elev_air + (interp2(x_gimp(tmp2, tmp1), y_gimp(tmp2, tmp1), elev_surf_gimp(tmp2, tmp1), block.x, block.y, 'spline') - (block.elev_air(~isnan(ind_surf)) - (block.twtt_surf(~isnan(ind_surf)) .* (speed_vacuum / 2)))); % fix GIMP-corrected aircraft elevation
-            end            
+                            = block.elev_air + (interp2(x_gimp(tmp3, tmp2), y_gimp(tmp3, tmp2), elev_surf_gimp(tmp3, tmp2), block.x, block.y, 'spline') - (block.elev_air(~isnan(ind_surf)) - (block.twtt_surf(~isnan(ind_surf)) .* (speed_vacuum / 2)))); % fix GIMP-corrected aircraft elevation
+            end
             pk.elev_air_gimp= block.elev_air_gimp;
         else
             pk.elev_air_gimp= NaN(1, block.num_trace);
