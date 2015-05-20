@@ -1306,6 +1306,8 @@ set(disp_group, 'selectedobject', disp_check(1))
 
     function load_ref(source, eventdata)
         
+        set(pkgui, 'windowbuttondownfcn', '')
+        
         if ~load_done
             set(status_box, 'string', 'Data not loaded yet.')
             return
