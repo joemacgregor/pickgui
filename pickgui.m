@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 05/19/15
+% Last updated: 05/22/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -1557,7 +1557,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         set(phase_check, 'value', 0)
         set(status_box, 'string', 'Choose trace to propagate layers from...(Q: cancel)')
         
-        set(pkgui, 'keypressfcn', [], 'windowbuttondownfcxn', [])
+        set(pkgui, 'keypressfcn', [], 'windowbuttondownfcn', [])
         
         while true
             
