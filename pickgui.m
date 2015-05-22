@@ -1306,12 +1306,12 @@ set(disp_group, 'selectedobject', disp_check(1))
 
     function load_ref(source, eventdata)
         
-        set(pkgui, 'windowbuttondownfcn', '')
-        
         if ~load_done
             set(status_box, 'string', 'Data not loaded yet.')
             return
         end
+        
+        set(pkgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         
         if ispc
             tmp1            = '..\..\pk\';
@@ -1513,6 +1513,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         set(ref_check, 'value', 1)
         ref_done        = true;
         show_ref
+        set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)        
         set(status_box, 'string', ['Reference picks loaded from ' file_ref(1:(end - 4)) '.'])
     end
 
@@ -1556,7 +1557,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         set(phase_check, 'value', 0)
         set(status_box, 'string', 'Choose trace to propagate layers from...(Q: cancel)')
         
-        set(pkgui, 'keypressfcn', [], 'windowbuttondownfcn', [])
+        set(pkgui, 'keypressfcn', [], 'windowbuttondownfcxn', [])
         
         while true
             
