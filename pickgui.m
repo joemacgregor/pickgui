@@ -742,7 +742,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
             tmp2            = ind_decim(~isnan(ind_bed(ind_decim)) & ~isnan(ind_surf(ind_decim)));
             p_beddepth      = plot(block.dist_lin(tmp2), (1e6 .* (block.twtt_bed(tmp2) - block.twtt_surf(tmp2) + block.twtt(1))), 'm.', 'markersize', 12, 'visible', 'off');
-        end        
+        end
         
         if trim_done
             pk.ind_trim_start ...
@@ -1029,6 +1029,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     p_mandepth ...
                             = NaN(pk.num_man, 2);
                 end
+                tmp2        = [];
                 for ii = 1:pk.num_man
                     p_man(ii, 1) ...
                             = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(pk.ind_y_man(ii, ind_decim)))), 'linewidth', 2, 'color', [0.85 0.85 0.85], 'visible', 'off'); % max-picking spline
@@ -1036,11 +1037,21 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(pk.ind_y_man(ii, ind_decim)))), 'linewidth', 2, 'color', [0.85 0.85 0.85], 'visible', 'off');
                     if depth_avail
                         tmp1= ind_decim(~isnan(pk.ind_y_man(ii, ind_decim)) & ~isnan(ind_surf(ind_decim)));
-                        p_mandepth(ii, 1) ...
-                            = plot(block.dist_lin(tmp1), (1e6 .* block.twtt(round(pk.ind_y_man(ii, tmp1) - ind_surf(tmp1) + 1))), 'linewidth', 2, 'color', [0.85 0.85 0.85], 'visible', 'off');
-                        p_mandepth(ii, 2) ...
-                            = plot(block.dist_lin(tmp1), (1e6 .* block.twtt(round(pk.ind_y_man(ii, tmp1) - ind_surf(tmp1) + 1))), 'linewidth', 2, 'color', [0.85 0.85 0.85], 'visible', 'off');
+                        if all(round(pk.ind_y_man(ii, tmp1) - ind_surf(tmp1) + 1) > 0)
+                            p_mandepth(ii, 1) ...
+                                = plot(block.dist_lin(tmp1), (1e6 .* block.twtt(round(pk.ind_y_man(ii, tmp1) - ind_surf(tmp1) + 1))), 'linewidth', 2, 'color', [0.85 0.85 0.85], 'visible', 'off');
+                            p_mandepth(ii, 2) ...
+                                = plot(block.dist_lin(tmp1), (1e6 .* block.twtt(round(pk.ind_y_man(ii, tmp1) - ind_surf(tmp1) + 1))), 'linewidth', 2, 'color', [0.85 0.85 0.85], 'visible', 'off');
+                        else
+                            tmp2= [tmp2 ii]; %#ok<AGROW>
+                        end
                     end
+                end
+                if (depth_avail && ~isempty(tmp2)) % cleanup bad layers
+                    tmp1    = setdiff(1:pk.num_man, tmp2);
+                    delete(p_man(tmp2))
+                    [pk.ind_y_man, pk.num_man, p_man, p_mandepth] ...
+                            = deal(pk.ind_y_man(tmp1, :), length(tmp1), p_man(tmp1, :), p_mandepth(tmp1, :));
                 end
             end
         end
@@ -7279,12 +7290,14 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Mouse wheel shortcut
 
     function wheel_zoom(~, eventdata)
-%         switch eventdata.VerticalScrollCount
-%             case -1
-%                 zoom_in
-%             case 1
-%                 zoom_out
-%         end
+        if ~nargin
+            switch eventdata.VerticalScrollCount
+                case -1
+                    zoom_in
+                case 1
+                    zoom_out
+            end
+        end
     end
 
 %% Mouse click
