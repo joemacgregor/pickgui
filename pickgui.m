@@ -4491,8 +4491,8 @@ set(disp_group, 'selectedobject', disp_check(1))
                     if ishandle(p_pk(tmp1))
                         delete(p_pk(tmp1))
                     end
-                    if ishandle(p_surf(tmp1))
-                        delete(p_surf(tmp1))
+                    if ishandle(p_surf)
+                        delete(p_surf)
                     end
                 p_surf      = plot(block.dist_lin(tmp2), (1e6 .* block.twtt_surf(tmp2)), 'm.', 'markersize', 24, 'visible', 'off');
             end
@@ -4501,8 +4501,8 @@ set(disp_group, 'selectedobject', disp_check(1))
                     if ishandle(p_pkflat(tmp1))
                         delete(p_pkflat(tmp1))
                     end
-                    if ishandle(p_surfflat(tmp1))
-                        delete(p_surfflat(tmp1))
+                    if ishandle(p_surfflat)
+                        delete(p_surfflat)
                     end
                     p_surfflat ...
                             = plot(block.dist_lin(ind_decim_flat(~isnan(ind_surf_flat(ind_decim_flat)))), (1e6 .* block.twtt(ind_surf_flat(ind_decim_flat(~isnan(ind_surf_flat(ind_decim_flat)))))), 'm.', 'markersize', 24, 'visible', 'off');
