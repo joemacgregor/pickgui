@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 05/22/15
+% Last updated: 06/02/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -621,6 +621,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     p_beddepth  ...
                             = plot(NaN, NaN, 'm.', 'markersize', 12, 'visible', 'off');
                 end
+                surf_avail  = true;
                 set(surfbed_check, 'value', 1)
             else
                 p_beddepth  = plot(NaN, NaN, 'm.', 'markersize', 12, 'visible', 'off');
@@ -854,6 +855,9 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         
         clear_plots
+        if (surf_avail || bed_avail)
+            set(surfbed_check, 'value', 1)
+        end
         
         [aresp_done, flat_done, keep_aresp_done, keep_phase_done, load_flat, match_done, phase_done, pk_done] ...
                             = deal(false);
@@ -1127,7 +1131,6 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         % get rid of empty layers
         if ~isempty(tmp3)
-            pk.num_layer
             tmp2            = setdiff(1:pk.num_layer, tmp3);
             for ii = tmp3
                 if ishandle(p_pk(ii))
@@ -3586,7 +3589,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 p_pk(pk.num_layer) ...
                             = plot(block.dist_lin(ind_decim(tmp1)), (1e6 .* block.twtt(round(pk.layer(pk.num_layer).ind_y(ind_decim(tmp1))))), 'r.', 'markersize', 12, 'visible', 'off');
                 
-                if depth_avail
+                if (depth_avail && ~isempty(find((~isnan(pk.layer(pk.num_layer).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim))), 1)))
                     tmp1    = ind_decim(~isnan(pk.layer(pk.num_layer).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim)));
                     tmp2    = pk.layer(pk.num_layer).ind_y(tmp1) - ind_surf(tmp1) + 1;
                     tmp2((tmp2 < 1) | (tmp2 > num_sample_trim)) ...
@@ -3954,7 +3957,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             [ind_bed, ind_bed_flat, block.twtt_bed] ...
                                 = deal(NaN(1, block.num_trace));
             do_surfbed          = true;
-            bed_avail           = false;            
+            bed_avail           = false;
         else
             tmp1                = setdiff(1:pk.num_layer, curr_layer);
             if ishandle(p_pk(curr_layer))
@@ -4168,7 +4171,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 set(status_box, 'string', 'Undid previous adjustment.')
                 
             elseif strcmpi(char(button), 'Q')
-
+                
                 if (curr_layer == (pk.num_layer + 1))
                     set(status_box, 'string', 'Done adjusting surface.')
                 elseif (curr_layer == (pk.num_layer + 2))
@@ -4232,53 +4235,41 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = plot(block.dist_lin(ind_decim_flat(~isnan(ind_surf_flat(ind_decim_flat)))), (1e6 .* block.twtt(ind_surf_flat(ind_decim_flat(~isnan(ind_surf_flat(ind_decim_flat)))))), 'm.', 'markersize', 24, 'visible', 'off');
                 end
             end
-            if ~isempty(find(~isnan(ind_surf(ind_decim)), 1))
-                amp_depth   = NaN(num_sample_trim, num_decim, 'single');
-                for ii = find(~isnan(ind_surf(ind_decim)))
-                    amp_depth(1:(num_sample_trim - ind_surf(ind_decim(ii)) + 1), ii) ...
+            amp_depth       = NaN(num_sample_trim, num_decim, 'single');
+            for ii = find(~isnan(ind_surf(ind_decim)))
+                amp_depth(1:(num_sample_trim - ind_surf(ind_decim(ii)) + 1), ii) ...
                             = amp_mean(ind_surf(ind_decim(ii)):num_sample_trim, ii); % shift data up to surface
+            end
+            if bed_avail
+                if ishandle(p_beddepth)
+                    delete(p_beddepth)
                 end
-                set(disp_check(2), 'visible', 'on')
-                depth_avail = true;
-                if bed_avail
-                    if ishandle(p_beddepth)
-                        delete(p_beddepth)
-                    end
-                    tmp1    = ind_decim(~isnan(ind_bed(ind_decim)) & ~isnan(ind_surf(ind_decim)));
-                    p_beddepth ...
-                            = plot(block.dist_lin(tmp1), (1e6 .* (block.twtt_bed(tmp1) - block.twtt_surf(tmp1) + block.twtt(1))), 'm.', 'markersize', 12, 'visible', 'off');
-                end
-                amp_depth   = NaN(num_sample_trim, num_decim, 'single');
-                for ii = find(~isnan(ind_surf(ind_decim)))
-                    amp_depth(1:(num_sample_trim - ind_surf(ind_decim(ii)) + 1), ii) ...
-                            = amp_mean(ind_surf(ind_decim(ii)):num_sample_trim, ii); % shift data up to surface
-                end
-                set(disp_check(2), 'visible', 'on')
-                depth_avail = true;
-                for ii = 1:pk.num_layer
-                    if ~isempty(find((~isnan(pk.layer(ii).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim))), 1))
-                        tmp1= ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim)));
-                        tmp2= pk.layer(ii).ind_y(tmp1) - ind_surf(tmp1) + 1;
-                        tmp2((tmp2 < 1) | (tmp2 > num_sample_trim)) ...
+                tmp1        = ind_decim(~isnan(ind_bed(ind_decim)) & ~isnan(ind_surf(ind_decim)));
+                p_beddepth  = plot(block.dist_lin(tmp1), (1e6 .* (block.twtt_bed(tmp1) - block.twtt_surf(tmp1) + block.twtt(1))), 'm.', 'markersize', 12, 'visible', 'off');
+            end
+            for ii = 1:pk.num_layer
+                if ~isempty(find((~isnan(pk.layer(ii).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim))), 1))
+                    tmp1    = ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim)));
+                    tmp2    = pk.layer(ii).ind_y(tmp1) - ind_surf(tmp1) + 1;
+                    tmp2((tmp2 < 1) | (tmp2 > num_sample_trim)) ...
                             = NaN;
-                        p_pkdepth(ii) ...
-                            = plot(block.dist_lin(tmp1(~isnan(tmp2))), (1e6 .* block.twtt(round(tmp2(~isnan(tmp2))))), 'r.', 'markersize', 12, 'visible', 'off');
-                    end
-                    if ~isempty(find((~isnan(pk.layer(ii).ind_y_smooth(ind_decim)) & ~isnan(ind_surf(ind_decim))), 1))
-                        tmp1= ind_decim(~isnan(pk.layer(ii).ind_y_smooth(ind_decim)) & ~isnan(ind_surf(ind_decim)));
-                        tmp2= pk.layer(ii).ind_y_smooth(tmp1) - ind_surf(tmp1) + 1;
-                        tmp2((tmp2 < 1) | (tmp2 > num_sample_trim)) ...
+                    p_pkdepth(ii) ...
+                        = plot(block.dist_lin(tmp1(~isnan(tmp2))), (1e6 .* block.twtt(round(tmp2(~isnan(tmp2))))), 'r.', 'markersize', 12, 'visible', 'off');
+                end
+                if ~isempty(find((~isnan(pk.layer(ii).ind_y_smooth(ind_decim)) & ~isnan(ind_surf(ind_decim))), 1))
+                    tmp1    = ind_decim(~isnan(pk.layer(ii).ind_y_smooth(ind_decim)) & ~isnan(ind_surf(ind_decim)));
+                    tmp2    = pk.layer(ii).ind_y_smooth(tmp1) - ind_surf(tmp1) + 1;
+                    tmp2((tmp2 < 1) | (tmp2 > num_sample_trim)) ...
                             = NaN;
-                        p_pksmoothdepth(ii) ...
+                    p_pksmoothdepth(ii) ...
                             = plot(block.dist_lin(tmp1(~isnan(tmp2))), (1e6 .* block.twtt(round(tmp2(~isnan(tmp2))))), 'g.', 'markersize', 12, 'visible', 'off');
-                    end
-                end
-                if strcmp(disp_type, '~depth')
-                    plot_depth
                 end
             end
-            do_surfbed      = true;
-            show_surfbed
+            if strcmp(disp_type, '~depth')
+                plot_depth
+            else
+                show_surfbed
+            end
             
         elseif (curr_layer == (pk.num_layer + 2))
             
@@ -4301,7 +4292,6 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = plot(block.dist_lin(ind_decim_flat(~isnan(ind_bed_flat(ind_decim_flat)))), (1e6 .* block.twtt(ind_bed_flat(ind_decim_flat(~isnan(ind_bed_flat(ind_decim_flat)))))), 'm.', 'markersize', 24, 'visible', 'off');
                 end
             end
-            do_surfbed      = true;
             show_surfbed
             
         else
@@ -7321,6 +7311,7 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Test something
 
     function misctest(source, eventdata)
+        
         set(status_box, 'string', 'Test done.')
     end
 
