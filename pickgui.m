@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 06/02/15
+% Last updated: 06/03/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -3319,12 +3319,14 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 if depth_avail
                     for ii = 1:pk.num_layer
-                        tmp1= ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim)));
-                        tmp2= pk.layer(ii).ind_y(tmp1) - ind_surf(tmp1) + 1;
-                        tmp2((tmp2 < 1) | (tmp2 > num_sample_trim)) ...
-                            = NaN;
-                        p_pkdepth(ii) ...
-                            = plot(block.dist_lin(tmp1(~isnan(tmp2))), (1e6 .* block.twtt(round(tmp2(~isnan(tmp2))))), 'r.', 'markersize', 12, 'visible', 'off');
+                        if ~isempty(find((~isnan(pk.layer(ii).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim))), 1))
+                            tmp1= ind_decim(~isnan(pk.layer(ii).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim)));
+                            tmp2= pk.layer(ii).ind_y(tmp1) - ind_surf(tmp1) + 1;
+                            tmp2((tmp2 < 1) | (tmp2 > num_sample_trim)) ...
+                                = NaN;
+                            p_pkdepth(ii) ...
+                                = plot(block.dist_lin(tmp1(~isnan(tmp2))), (1e6 .* block.twtt(round(tmp2(~isnan(tmp2))))), 'r.', 'markersize', 12, 'visible', 'off');
+                        end
                     end
                 end
         end
