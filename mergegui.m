@@ -15,7 +15,7 @@ function mergegui(varargin)
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 05/07/15
+% Last updated: 06/10/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -267,45 +267,14 @@ set(cb_group, 'selectedobject', cb_check(1))
         if ishandle(p_refflat)
             delete(p_refflat)
         end
-        if any(ishandle(p_block))
-            delete(p_block(ishandle(p_block)))
-        end
-        if any(ishandle(p_blockflat))
-            delete(p_blockflat(ishandle(p_blockflat)))
-        end
-        if any(ishandle(p_blocknum))
-            delete(p_blocknum(ishandle(p_blocknum)))
-        end
-        if any(ishandle(p_blocknumflat))
-            delete(p_blocknumflat(ishandle(p_blocknumflat)))
-        end
-        if any(ishandle(p_core))
-            delete(p_core(ishandle(p_core)))
-        end
-        if any(ishandle(p_coreflat))
-            delete(p_coreflat(ishandle(p_coreflat)))
-        end
-        if any(ishandle(p_corename))
-            delete(p_corename(ishandle(p_corename)))
-        end
-        if any(ishandle(p_corenameflat))
-            delete(p_corenameflat(ishandle(p_corenameflat)))
+        if ishandle(p_surf)
+            delete(p_surf)
         end
         if ishandle(p_data)
             delete(p_data)
         end
-        if any(ishandle(p_pk))
-            delete(p_pk(ishandle(p_pk)))
-        end
-        if any(ishandle(p_pkdepth))
-            delete(p_pkdepth(ishandle(p_pkdepth)))
-        end
-        if any(ishandle(p_pkflat))
-            delete(p_pkflat(ishandle(p_pkflat)))
-        end
-        if ishandle(p_surf)
-            delete(p_surf)
-        end
+        delete([p_block(ishandle(p_block)) p_blockflat(ishandle(p_blockflat)) p_blocknum(ishandle(p_blocknum)) p_blocknumflat(ishandle(p_blocknumflat)) p_core(ishandle(p_core)) p_coreflat(ishandle(p_coreflat)) p_corename(ishandle(p_corename)) p_corenameflat(ishandle(p_corenameflat)) ...
+                p_pk(ishandle(p_pk)) p_pkdepth(ishandle(p_pkdepth)) p_pkflat(ishandle(p_pkflat))])
         set([layer_list block_list], 'string', 'N/A', 'value', 1)
         set([block_check core_check data_check pk_check surfbed_check], 'value', 0)
         if (get(disp_group, 'selectedobject') ~= disp_check(1))
@@ -502,7 +471,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                         eval(['pk.' var_zero{jj} '(ii) = pk_all{ii}.' var_zero{jj} ';'])
                     end
                 end
-                tmp1{ii}= pk_all{ii}.ind_match';
+                tmp1{ii}    = pk_all{ii}.ind_match';
             end
             
             pk.num_layer    = length(unique([tmp1{:}])); % number of layers in this transect
@@ -917,18 +886,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         if ishandle(p_bedflat)
             delete(p_bedflat)
         end
-        if any(ishandle(p_blockflat))
-            delete(p_blockflat(ishandle(p_blockflat)))
-        end
-        if any(ishandle(p_blocknumflat))
-            delete(p_blocknumflat(ishandle(p_blocknumflat)))
-        end
-        if any(ishandle(p_coreflat))
-            delete(p_coreflat(ishandle(p_coreflat)))
-        end
-        if any(ishandle(p_corenameflat))
-            delete(p_corenameflat(ishandle(p_corenameflat)))
-        end
+        delete([p_blockflat(ishandle(p_blockflat)) p_blocknumflat(ishandle(p_blocknumflat)) p_coreflat(ishandle(p_coreflat)) p_corenameflat(ishandle(p_corenameflat))])
         
         % attempt to load data
         set(status_box, 'string', 'Loading radar data...')
@@ -1179,15 +1137,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         if ishandle(p_bedflat)
             delete(p_bedflat)
         end
-        if any(ishandle(p_pkflat))
-            delete(p_pkflat(ishandle(p_pkflat)))
-        end
-        if any(ishandle(p_coreflat))
-            delete(p_coreflat(ishandle(p_coreflat)))
-        end
-        if any(ishandle(p_corenameflat))
-            delete(p_corenameflat(ishandle(p_corenameflat)))
-        end
+        delete([p_pkflat(ishandle(p_pkflat)) p_coreflat(ishandle(p_coreflat)) p_corenameflat(ishandle(p_corenameflat))])
         
         % compile layer depths to use in flattening
         pk.poly_flat_merge  = NaN((ord_poly + 1), num_decim, 'single');
@@ -1395,9 +1345,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         if ishandle(p_bedflat)
             delete(p_bedflat)
         end
-        if any(ishandle(p_pkflat))
-            delete(p_pkflat(ishandle(p_pkflat)))
-        end
+        delete(p_pkflat(ishandle(p_pkflat)))
         if ishandle(p_refflat) % get rid of old plotted data
             delete(p_refflat)
         end
@@ -1522,22 +1470,10 @@ set(cb_group, 'selectedobject', cb_check(1))
 
     function pk_curr(source, eventdata)
         set(layer_list, 'value', curr_layer)
-        if any(ishandle(p_pk))
-            set(p_pk(ishandle(p_pk)), 'markersize', 12)
-        end
-        if any(ishandle(p_pkdepth))
-            set(p_pkdepth(ishandle(p_pkdepth)), 'markersize', 12)
-        end
-        if ishandle(p_pk(curr_layer))
-            set(p_pk(curr_layer), 'markersize', 24)
-        end
-        if ishandle(p_pkdepth(curr_layer))
-            set(p_pkdepth(curr_layer), 'markersize', 24)
-        end
+        set([p_pk(ishandle(p_pk)) p_pkdepth(ishandle(p_pkdepth))], 'markersize', 12)
+        set([p_pk(curr_layer) p_pkdepth(curr_layer)], 'markersize', 24)
         if (flat_done && data_done)
-            if any(ishandle(p_pkflat))
-                set(p_pkflat(ishandle(p_pkflat)), 'markersize', 12)
-            end
+            set(p_pkflat(ishandle(p_pkflat)), 'markersize', 12)
             if ishandle(p_pkflat(curr_layer))
                 set(p_pkflat(curr_layer), 'markersize', 24)
             end
@@ -1865,17 +1801,32 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         % redo plots
         if any(ishandle(p_pk([curr_layer tmp1])))
-            delete(p_pk([curr_layer tmp1]))
+            if ishandle(p_pk(curr_layer))
+                delete(p_pk(curr_layer))
+            end
+            if ishandle(p_pk(tmp1))
+                delete(p_pk(tmp1))
+            end
             p_pk(curr_layer)= plot(pk.dist_lin(~isnan(pk.elev_smooth_gimp(curr_layer, :))), pk.elev_smooth_gimp(curr_layer, ~isnan(pk.elev_smooth_gimp(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
         end
         if any(ishandle(p_pkdepth([curr_layer tmp1])))
-            delete(p_pkdepth([curr_layer tmp1]))
+            if ishandle(p_pkdepth(curr_layer))
+                delete(p_pkdepth(curr_layer))
+            end
+            if ishandle(p_pkdepth(tmp1))
+                delete(p_pkdepth(tmp1))
+            end
             p_pkdepth(curr_layer) ...
                             = plot(pk.dist_lin(~isnan(pk.depth_smooth(curr_layer, :))), pk.depth_smooth(curr_layer, ~isnan(pk.depth_smooth(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
         end
         if flat_done
             if any(ishandle(p_pkflat([curr_layer tmp1])))
-                delete(p_pkflat([curr_layer tmp1]))
+                if ishandle(p_pkflat(curr_layer))
+                    delete(p_pkflat(curr_layer))
+                end
+                if ishandle(p_pkflat(tmp1))
+                    delete(p_pkflat(tmp1))
+                end
             end
             if any(~isnan(depth_layer_flat(curr_layer, :)))
                 p_pkflat(curr_layer) ...
@@ -2121,7 +2072,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             for ii = 1:pk.num_layer
                 plot(pk.dist_lin(ind_decim), pk.elev_smooth_gimp(ii, ind_decim), '.', 'color', colors(ii, :), 'markersize', 12)
             end
-            if core_done
+            if do_core
                 tmp1            = find(~isnan(ind_int));
                 for ii = 1:num_int
                     plot(pk.dist_lin(ind_int(tmp1(ii))), get(gca, 'ylim'), 'm', 'linewidth', 2)
@@ -2245,18 +2196,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         if merge_done
             
-            if any(ishandle(p_core))
-                delete(p_core(ishandle(p_core)))
-            end
-            if any(ishandle(p_corename))
-                delete(p_corename(ishandle(p_corename)))
-            end
-            if any(ishandle(p_coreflat))
-                delete(p_coreflat(ishandle(p_coreflat)))
-            end
-            if any(ishandle(p_corenameflat))
-                delete(p_corenameflat(ishandle(p_corenameflat)))
-            end
+            delete([p_core(ishandle(p_core)) p_corename(ishandle(p_corename)) p_coreflat(ishandle(p_coreflat)) p_corenameflat(ishandle(p_corenameflat))])
             
             % determine current year/transect
             tmp1            = file_pk_short;
@@ -3571,49 +3511,20 @@ set(cb_group, 'selectedobject', cb_check(1))
             if get(pk_check, 'value')
                 switch disp_type
                     case 'elev.'
-                        if any(ishandle(p_pk))
-                            set(p_pk(ishandle(p_pk)), 'visible', 'on')
-                            uistack(p_pk(ishandle(p_pk)), 'top')
-                        end
-                        if any(ishandle(p_pkdepth))
-                            set(p_pkdepth(ishandle(p_pkdepth)), 'visible', 'off')
-                        end
-                        if any(ishandle(p_pkflat))
-                            set(p_pkflat(ishandle(p_pkflat)), 'visible', 'off')
-                        end
+                        set(p_pk(ishandle(p_pk)), 'visible', 'on')
+                        uistack(p_pk(ishandle(p_pk)), 'top')
+                        set([p_pkdepth(ishandle(p_pkdepth)) p_pkflat(ishandle(p_pkflat))], 'visible', 'off')
                     case 'depth'
-                        if any(ishandle(p_pkdepth))
-                            set(p_pkdepth(ishandle(p_pkdepth)), 'visible', 'on')
-                            uistack(p_pkdepth(ishandle(p_pkdepth)), 'top')
-                        end
-                        if any(ishandle(p_pk))
-                            set(p_pk(ishandle(p_pk)), 'visible', 'off')
-                        end
-                        if any(ishandle(p_pkflat))
-                            set(p_pkflat(ishandle(p_pkflat)), 'visible', 'off')
-                        end
+                        set(p_pkdepth(ishandle(p_pkdepth)), 'visible', 'on')
+                        uistack(p_pkdepth(ishandle(p_pkdepth)), 'top')
+                        set([p_pk(ishandle(p_pk)) p_pkflat(ishandle(p_pkflat))], 'visible', 'off')
                     case 'flat'
-                        if any(ishandle(p_pkflat))
-                            set(p_pkflat(ishandle(p_pkflat)), 'visible', 'on')
-                            uistack(p_pkflat(ishandle(p_pkflat)), 'top')
-                        end
-                        if any(ishandle(p_pk))
-                            set(p_pk(ishandle(p_pk)), 'visible', 'off')
-                        end
-                        if any(ishandle(p_pkdepth))
-                            set(p_pkdepth(ishandle(p_pkdepth)), 'visible', 'off')
-                        end
+                        set(p_pkflat(ishandle(p_pkflat)), 'visible', 'on')
+                        uistack(p_pkflat(ishandle(p_pkflat)), 'top')
+                        set([p_pk(ishandle(p_pk)) p_pkdepth(ishandle(p_pkdepth))], 'visible', 'off')
                 end
             else
-                if any(ishandle(p_pk))
-                    set(p_pk(ishandle(p_pk)), 'visible', 'off')
-                end
-                if any(ishandle(p_pkdepth))
-                    set(p_pkdepth(ishandle(p_pkdepth)), 'visible', 'off')
-                end
-                if any(ishandle(p_pkflat))
-                    set(p_pkflat(ishandle(p_pkflat)), 'visible', 'off')
-                end
+                set([p_pk(ishandle(p_pk)) p_pkdepth(ishandle(p_pkdepth)) p_pkflat(ishandle(p_pkflat))], 'visible', 'off')
             end
         elseif get(pk_check, 'value')
             set(pk_check, 'value', 0)
@@ -3627,49 +3538,18 @@ set(cb_group, 'selectedobject', cb_check(1))
             if get(block_check, 'value')
                 switch disp_type
                     case 'elev.'
-                        if any(ishandle(p_block))
-                            set(p_block(ishandle(p_block)), 'visible', 'on')
-                            uistack(p_block(ishandle(p_block)), 'top')
-                        end
-                        if any(ishandle(p_blocknum))
-                            set(p_blocknum(ishandle(p_blocknum)), 'visible', 'on')
-                            uistack(p_blocknum(ishandle(p_blocknum)), 'top')
-                        end
-                        if any(ishandle(p_blockflat))
-                            set(p_blockflat(ishandle(p_blockflat)), 'visible', 'off')
-                        end
-                        if any(ishandle(p_blocknumflat))
-                            set(p_blocknumflat(ishandle(p_blocknumflat)), 'visible', 'off')
-                        end
+                        set([p_block(ishandle(p_block)) p_blocknum(ishandle(p_blocknum))], 'visible', 'on')
+                        uistack(p_block(ishandle(p_block)), 'top')
+                        uistack(p_blocknum(ishandle(p_blocknum)), 'top')
+                        set([p_blockflat(ishandle(p_blockflat)) p_blocknumflat(ishandle(p_blocknumflat))], 'visible', 'off')
                     case {'depth' 'flat'}
-                        if any(ishandle(p_blockflat))
-                            set(p_blockflat(ishandle(p_blockflat)), 'visible', 'on')
-                            uistack(p_blockflat(ishandle(p_blockflat)), 'top')
-                        end
-                        if any(ishandle(p_blocknumflat))
-                            set(p_blocknumflat(ishandle(p_blocknumflat)), 'visible', 'on')
-                            uistack(p_blocknumflat(ishandle(p_blocknumflat)), 'top')
-                        end
-                        if any(ishandle(p_block))
-                            set(p_block(ishandle(p_block)), 'visible', 'off')
-                        end
-                        if any(ishandle(p_blocknum))
-                            set(p_blocknum(ishandle(p_blocknum)), 'visible', 'off')
-                        end
+                        set([p_blockflat(ishandle(p_blockflat)) p_blocknumflat(ishandle(p_blocknumflat))], 'visible', 'on')
+                        uistack(p_blockflat(ishandle(p_blockflat)), 'top')
+                        uistack(p_blocknumflat(ishandle(p_blocknumflat)), 'top')
+                        set([p_block(ishandle(p_block)) p_blocknum(ishandle(p_blocknum))], 'visible', 'off')
                 end
             else
-                if any(ishandle(p_block))
-                    set(p_block(ishandle(p_block)), 'visible', 'off')
-                end
-                if any(ishandle(p_blocknum))
-                    set(p_blocknum(ishandle(p_blocknum)), 'visible', 'off')
-                end
-                if any(ishandle(p_blockflat))
-                    set(p_blockflat(ishandle(p_blockflat)), 'visible', 'off')
-                end
-                if any(ishandle(p_blocknumflat))
-                    set(p_blocknumflat(ishandle(p_blocknumflat)), 'visible', 'off')
-                end
+                set([p_block(ishandle(p_block)) p_blocknum(ishandle(p_blocknum)) p_blockflat(ishandle(p_blockflat)) p_blocknumflat(ishandle(p_blocknumflat))], 'visible', 'off')
             end
         elseif get(block_check, 'value')
             set(block_check, 'value', 0)
@@ -3683,49 +3563,18 @@ set(cb_group, 'selectedobject', cb_check(1))
             if get(core_check, 'value')
                 switch disp_type
                     case 'elev.'
-                        if any(ishandle(p_core))
-                            set(p_core(ishandle(p_core)), 'visible', 'on')
-                            uistack(p_core(ishandle(p_core)), 'top')
-                        end
-                        if any(ishandle(p_corename))
-                            set(p_corename(ishandle(p_corename)), 'visible', 'on')
-                            uistack(p_corename(ishandle(p_corename)), 'top')
-                        end
-                        if any(ishandle(p_coreflat))
-                            set(p_coreflat(ishandle(p_coreflat)), 'visible', 'off')
-                        end
-                        if any(ishandle(p_corenameflat))
-                            set(p_corenameflat(ishandle(p_corenameflat)), 'visible', 'off')
-                        end
+                        set([p_core(ishandle(p_core)) p_corename(ishandle(p_corename))], 'visible', 'on')
+                        uistack(p_core(ishandle(p_core)), 'top')
+                        uistack(p_corename(ishandle(p_corename)), 'top')
+                        set([p_coreflat(ishandle(p_coreflat)) p_corenameflat(ishandle(p_corenameflat))], 'visible', 'off')
                     case {'depth' 'flat'}
-                        if any(ishandle(p_coreflat))
-                            set(p_coreflat(ishandle(p_coreflat)), 'visible', 'on')
-                            uistack(p_coreflat(ishandle(p_coreflat)), 'top')
-                        end
-                        if any(ishandle(p_corenameflat))
-                            set(p_corenameflat(ishandle(p_corenameflat)), 'visible', 'on')
-                            uistack(p_corenameflat(ishandle(p_corenameflat)), 'top')
-                        end
-                        if any(ishandle(p_core))
-                            set(p_core(ishandle(p_core)), 'visible', 'off')
-                        end
-                        if any(ishandle(p_corename))
-                            set(p_corename(ishandle(p_corename)), 'visible', 'off')
-                        end
+                        set([p_coreflat(ishandle(p_coreflat)) p_corenameflat(ishandle(p_corenameflat))], 'visible', 'on')
+                        uistack(p_coreflat(ishandle(p_coreflat)), 'top')
+                        uistack(p_corenameflat(ishandle(p_corenameflat)), 'top')
+                        set([p_core(ishandle(p_core)) p_corename(ishandle(p_corename))], 'visible', 'off')
                 end
             else
-                if any(ishandle(p_core))
-                    set(p_core(ishandle(p_core)), 'visible', 'off')
-                end
-                if any(ishandle(p_corename))
-                    set(p_corename(ishandle(p_corename)), 'visible', 'off')
-                end
-                if any(ishandle(p_coreflat))
-                    set(p_coreflat(ishandle(p_coreflat)), 'visible', 'off')
-                end
-                if any(ishandle(p_corenameflat))
-                    set(p_corenameflat(ishandle(p_corenameflat)), 'visible', 'off')
-                end
+                set([p_core(ishandle(p_core)) p_corename(ishandle(p_corename)) p_coreflat(ishandle(p_coreflat)) p_corenameflat(ishandle(p_corenameflat))], 'visible', 'off')
             end
         elseif get(core_check, 'value')
             set(core_check, 'value', 0)
@@ -3743,7 +3592,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             xlim(pk.dist_lin([1 end]))
         end
         tmp1                = get(ax_radar, 'xlim');
-        [dist_min, dist_max] = deal(tmp1(1), tmp1(2));
+        [dist_min, dist_max]= deal(tmp1(1), tmp1(2));
         set(dist_min_slide, 'value', dist_min)
         set(dist_max_slide, 'value', dist_max)
         set(dist_min_edit, 'string', sprintf('%3.1f', dist_min))
@@ -3767,12 +3616,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             if ishandle(p_beddepth)
                 delete(p_beddepth)
             end
-            if any(ishandle(p_pk))
-                delete(p_pk(ishandle(p_pk)))
-            end
-            if any(ishandle(p_pkdepth))
-                delete(p_pkdepth(ishandle(p_pkdepth)))
-            end
+            delete([p_pk(ishandle(p_pk)) p_pkdepth(ishandle(p_pkdepth))])
             if ishandle(p_surf)
                 delete(p_surf)
             end

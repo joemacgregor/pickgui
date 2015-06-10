@@ -1,4 +1,4 @@
-function fencegui
+function fencegui(varargin)
 % FENCEGUI Interactive comparison of layer picks between intersecting radar transects.
 %   
 %   FENCEGUI loads a pair of GUIs (3D and 2D) for interactive comparison of
@@ -11,7 +11,7 @@ function fencegui
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 05/07/15
+% Last updated: 06/10/15
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -413,47 +413,19 @@ linkaxes(ax(2:3), 'y')
 %% Clear plots
 
     function clear_plots(source, eventdata)
-        if any(ishandle(p_bed(:, curr_rad)))
-            delete(p_bed(ishandle(p_bed(:, curr_rad)), curr_rad))
-        end
+        delete([p_bed(ishandle(p_bed(:, curr_rad)), curr_rad) p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})) p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad})) p_data(ishandle(p_data(:, curr_rad)), curr_rad) p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})) ...
+                p_surf(ishandle(p_surf(:, curr_rad)), curr_rad)])
         if ishandle(p_beddepth(curr_rad))
             delete(p_beddepth(curr_rad))
         end
-        if any(ishandle(p_coredepth{curr_rad}))
-            delete(p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})))
-        end
-        if any(ishandle(p_corenamedepth{curr_rad}))
-            delete(p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad})))
-        end
-        if any(ishandle(p_data(:, curr_rad)))
-            delete(p_data(ishandle(p_data(:, curr_rad)), curr_rad))
-        end
-        if any(ishandle(p_pkdepth{curr_rad}))
-            delete(p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})))
-        end
         for ii = 1:2
             for jj = 1:3
-                if any(ishandle(p_int1{ii, jj}))
-                    delete(p_int1{ii, jj}(ishandle(p_int1{ii, jj})))
-                end
+                delete(p_int1{ii, jj}(ishandle(p_int1{ii, jj})))
             end
             for jj = 1:2
-                if any(ishandle(p_int2{ii, jj}))
-                    delete(p_int2{ii, jj}(ishandle(p_int2{ii, jj})))
-                end
+                delete(p_int2{ii, jj}(ishandle(p_int2{ii, jj})))
             end
-            if any(ishandle(p_core{ii, curr_rad}))
-                delete(p_core{ii, curr_rad}(ishandle(p_core{ii, curr_rad})))
-            end
-            if any(ishandle(p_corename{ii, curr_rad}))
-                delete(p_corename{ii, curr_rad}(ishandle(p_corename{ii, curr_rad})))
-            end
-            if any(ishandle(p_pk{ii, curr_rad}))
-                delete(p_pk{ii, curr_rad}(ishandle(p_pk{ii, curr_rad})))
-            end
-        end
-        if any(ishandle(p_surf(:, curr_rad)))
-            delete(p_surf(ishandle(p_surf(:, curr_rad)), curr_rad))
+            delete([p_core{ii, curr_rad}(ishandle(p_core{ii, curr_rad})) p_corename{ii, curr_rad}(ishandle(p_corename{ii, curr_rad})) p_pk{ii, curr_rad}(ishandle(p_pk{ii, curr_rad}))])
         end
         set(file_box(1 + curr_rad), 'string', '')
         if (curr_rad == 1)
@@ -619,19 +591,10 @@ linkaxes(ax(2:3), 'y')
         
         for ii = 1:2
             for jj = 1:2
-                if any(ishandle(p_core{jj, ii}))
-                    delete(p_core{jj, ii}(ishandle(p_core{jj, ii})))
-                end
-                if any(ishandle(p_corename{jj, ii}))
-                    delete(p_corename{jj, ii}(ishandle(p_corename{jj, ii})))
-                end
+                delete([p_core{jj, ii}(ishandle(p_core{jj, ii})) p_corename{jj, ii}(ishandle(p_corename{jj, ii}))])
+                delete()
             end
-            if any(ishandle(p_coredepth{ii}))
-                delete(p_coredepth{ii}(ishandle(p_coredepth{ii})))
-            end
-            if any(ishandle(p_corenamedepth{ii}))
-                delete(p_corenamedepth{ii}(ishandle(p_corenamedepth{ii})))
-            end
+            delete([p_coredepth{ii}(ishandle(p_coredepth{ii})) p_corenamedepth{ii}(ishandle(p_corenamedepth{ii}))])
         end
         
         for ii = 1:2
@@ -665,27 +628,32 @@ linkaxes(ax(2:3), 'y')
                 for kk = 1:num_int_core(ii)
                     if (jj == 1)
                         axes(ax(1))
-                        p_core{jj, ii}(kk) = plot3(repmat(x_core(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)), 1, 2), repmat(y_core(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)), 1, 2), ...
-                                                   [elev_min_ref elev_max_ref], 'color', 'k', 'linewidth', 2, 'visible', 'off');
-                        p_corename{jj, ii}(kk) = text(double(x_core(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)) + 1), double(y_core(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)) + 1), ...
-                                                      double(elev_max_ref - 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)}, 'color', 'k', 'fontsize', size_font, 'visible', 'off');
+                        p_core{jj, ii}(kk) ...
+                            = plot3(repmat(x_core(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)), 1, 2), repmat(y_core(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)), 1, 2), [elev_min_ref elev_max_ref], 'color', 'k', 'linewidth', 2, 'visible', 'off');
+                        p_corename{jj, ii}(kk) ...
+                            = text(double(x_core(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)) + 1), double(y_core(int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)) + 1), ...
+                                   double(elev_max_ref - 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)}, 'color', 'k', 'fontsize', size_font, 'visible', 'off');
                     else
                         axes(ax(ii + 1))
-                        p_core{jj, ii}(kk) = plot(repmat(double(pk{ii}.dist_lin(ind_int_core{ii}(kk))), 1, 2), [elev_min_ref elev_max_ref], 'color', [0.5 0.5 0.5], 'linewidth', 2, 'visible', 'off');
-                        p_corename{jj, ii}(kk) = text(double(pk{ii}.dist_lin(ind_int_core{ii}(kk)) + 1), double(elev_max_ref - 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)}, 'color', [0.5 0.5 0.5], 'fontsize', size_font, 'visible', 'off');
+                        p_core{jj, ii}(kk) ...
+                            = plot(repmat(double(pk{ii}.dist_lin(ind_int_core{ii}(kk))), 1, 2), [elev_min_ref elev_max_ref], 'color', [0.5 0.5 0.5], 'linewidth', 2, 'visible', 'off');
+                        p_corename{jj, ii}(kk) ...
+                            = text(double(pk{ii}.dist_lin(ind_int_core{ii}(kk)) + 1), double(elev_max_ref - 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(kk, 3)}, 'color', [0.5 0.5 0.5], 'fontsize', size_font, 'visible', 'off');
                     end
                 end
             end
             [p_coredepth{ii}, p_corenamedepth{ii}] ...
                             = deal(NaN(1, num_int_core(ii)));
             for jj = 1:num_int_core(ii)
-                p_coredepth{ii}(jj) = plot(repmat(double(pk{ii}.dist_lin(ind_int_core{ii}(jj))), 1, 2), [depth_min_ref depth_max_ref], 'color', [0.5 0.5 0.5], 'linewidth', 2, 'visible', 'off');
-                p_corenamedepth{ii}(jj) = text(double(pk{ii}.dist_lin(ind_int_core{ii}(jj)) + 1), double(depth_min_ref + 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(jj, 3)}, 'color', [0.5 0.5 0.5], 'fontsize', size_font, 'visible', 'off');
+                p_coredepth{ii}(jj) ...
+                            = plot(repmat(double(pk{ii}.dist_lin(ind_int_core{ii}(jj))), 1, 2), [depth_min_ref depth_max_ref], 'color', [0.5 0.5 0.5], 'linewidth', 2, 'visible', 'off');
+                p_corenamedepth{ii}(jj) ...
+                            = text(double(pk{ii}.dist_lin(ind_int_core{ii}(jj)) + 1), double(depth_min_ref + 50), name_core{int_core{curr_year(ii)}{curr_trans(ii)}(jj, 3)}, 'color', [0.5 0.5 0.5], 'fontsize', size_font, 'visible', 'off');
             end
         end
         
         set(status_box, 'string', ['Core intersections loaded. ' num2str(num_int_core(1)) '/' num2str(num_int_core(2)) ' for these transects within ' num2str(rad_threshold) ' km.'])
-        core_done       = true;
+        core_done           = true;
         set(core_check, 'value', 1)
         show_core3
         show_core2
@@ -898,7 +866,8 @@ linkaxes(ax(2:3), 'y')
                     tmp1   = dir([path_pk{1} tmp1{get(int_list, 'value')} '*.mat']);
                     tmp2   = cell(length(tmp1), 1);
                     for ii = 1:length(tmp1)
-                        tmp2{ii}= tmp1(ii).name(12);
+                        tmp2{ii} ...
+                            = tmp1(ii).name(12);
                     end
                     set(status_box(1), 'string', ['Multiple sub-transects (' num2str(length(tmp1)) ' present for this transect.'])
                 end
@@ -1038,7 +1007,8 @@ linkaxes(ax(2:3), 'y')
         
         switch curr_rad
             case 1
-                curr_year   = ii;
+                curr_year(curr_rad) ...
+                            = ii;
             case 2
                 curr_year(curr_rad) ...
                             = int_year(get(int_list, 'value'));
@@ -1053,43 +1023,47 @@ linkaxes(ax(2:3), 'y')
         end
         
         % find intersections for primary transect
-        if (curr_rad == 1)
-            tmp1            = find(ismember(int_all(:, 1:3), [curr_year(1) curr_trans(1) curr_subtrans(1)], 'rows'));
-            tmp2            = find(ismember(int_all(:, 6:8), [curr_year(1) curr_trans(1) curr_subtrans(1)], 'rows'));
-            tmp3            = cell((length(tmp1) + length(tmp2)), 1);
-            if ~isempty(tmp1)
-                for ii = 1:length(tmp1)
-                    if ~int_all(tmp1(ii), 8)
-                        tmp3{ii}= [name_trans{int_all(tmp1(ii), 6)}{int_all(tmp1(ii), 7)}];
-                    else
-                        tmp3{ii}= [name_trans{int_all(tmp1(ii), 6)}{int_all(tmp1(ii), 7)} letters(int_all(tmp1(ii), 8))];
+        switch curr_rad
+            
+            case 1 % master
+                
+                tmp1        = find(ismember(int_all(:, 1:3), [curr_year(1) curr_trans(1) curr_subtrans(1)], 'rows'));
+                tmp2        = find(ismember(int_all(:, 6:8), [curr_year(1) curr_trans(1) curr_subtrans(1)], 'rows'));
+                tmp3        = cell((length(tmp1) + length(tmp2)), 1);
+                if ~isempty(tmp1)
+                    for ii = 1:length(tmp1)
+                        if ~int_all(tmp1(ii), 8)
+                            tmp3{ii} ...
+                            = [name_trans{int_all(tmp1(ii), 6)}{int_all(tmp1(ii), 7)}];
+                        else
+                            tmp3{ii} ...
+                            = [name_trans{int_all(tmp1(ii), 6)}{int_all(tmp1(ii), 7)} letters(int_all(tmp1(ii), 8))];
+                        end
                     end
                 end
-            end
-            if ~isempty(tmp2)
-                for ii = 1:length(tmp2)
-                    if ~int_all(tmp2(ii), 3)
-                        tmp3{ii + length(tmp1)} ...
-                                = [name_trans{int_all(tmp2(ii), 1)}{int_all(tmp2(ii), 2)}];
-                    else
-                        tmp3{ii + length(tmp1)} ...
-                                = [name_trans{int_all(tmp2(ii), 1)}{int_all(tmp2(ii), 2)} letters(int_all(tmp2(ii), 3))];
+                if ~isempty(tmp2)
+                    for ii = 1:length(tmp2)
+                        if ~int_all(tmp2(ii), 3)
+                            tmp3{ii + length(tmp1)} ...
+                            = [name_trans{int_all(tmp2(ii), 1)}{int_all(tmp2(ii), 2)}];
+                        else
+                            tmp3{ii + length(tmp1)} ...
+                            = [name_trans{int_all(tmp2(ii), 1)}{int_all(tmp2(ii), 2)} letters(int_all(tmp2(ii), 3))];
+                        end
                     end
                 end
-            end
-            [tmp3, tmp4]    = unique(tmp3);
-            int_year        = [int_all(tmp1, 6); int_all(tmp2, 1)];
-            int_year        = int_year(tmp4);
-            set(int_list, 'string', tmp3, 'value', 1)
-        end
-        
-        % figure out intersections
-        if (curr_rad == 2)
-            tmp1            = find(ismember(int_all(:, [1:3 6:8]), [curr_year(1) curr_trans(1) curr_subtrans(1) curr_year(2) curr_trans(2) curr_subtrans(2)], 'rows'));
-            tmp2            = find(ismember(int_all(:, [6:8 1:3]), [curr_year(1) curr_trans(1) curr_subtrans(1) curr_year(2) curr_trans(2) curr_subtrans(2)], 'rows'));            
-            curr_ind_int    = [int_all(tmp1, 4) int_all(tmp1, 9); int_all(tmp2, 9) int_all(tmp2, 4)];
-            num_int         = size(curr_ind_int, 1);
-            set(intnum_list, 'string', num2cell(1:num_int), 'value', 1)
+                [tmp3, tmp4]= unique(tmp3);
+                int_year    = [int_all(tmp1, 6); int_all(tmp2, 1)];
+                int_year    = int_year(tmp4);
+                set(int_list, 'string', tmp3, 'value', 1)
+                
+            case 2 % figure out intersections
+                
+                tmp1        = find(ismember(int_all(:, [1:3 6:8]), [curr_year(1) curr_trans(1) curr_subtrans(1) curr_year(2) curr_trans(2) curr_subtrans(2)], 'rows'));
+                tmp2        = find(ismember(int_all(:, [6:8 1:3]), [curr_year(1) curr_trans(1) curr_subtrans(1) curr_year(2) curr_trans(2) curr_subtrans(2)], 'rows'));
+                curr_ind_int= [int_all(tmp1, 4) int_all(tmp1, 9); int_all(tmp2, 9) int_all(tmp2, 4)];
+                num_int     = size(curr_ind_int, 1);
+                set(intnum_list, 'string', num2cell(1:num_int), 'value', 1)
         end
         
         set(data_list(curr_rad), 'string', pk{curr_rad}.file_block, 'value', 1)
@@ -1122,12 +1096,12 @@ linkaxes(ax(2:3), 'y')
         if surf_avail(curr_rad)
             p_surf(curr_gui, curr_rad) ...
                             = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), ...
-                                    elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
+                                    elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), 'm.', 'markersize', 12, 'visible', 'off');
         end
         if bed_avail(curr_rad)
             p_bed(curr_gui, curr_rad) ...
                             = plot3(x{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), y{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), ...
-                                    elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'g.', 'markersize', 12, 'visible', 'off');
+                                    elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'm.', 'markersize', 12, 'visible', 'off');
         end
         
         % display picks, surface and bed in 2D GUI
@@ -1147,21 +1121,21 @@ linkaxes(ax(2:3), 'y')
         end
         if surf_avail(curr_rad)
             p_surf(2, curr_rad) ...
-                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
+                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})))), 'm--', 'linewidth', 2, 'visible', 'off');
             if any(isnan(elev_surf{curr_rad}(ind_decim{curr_rad}(~isnan(elev_surf{curr_rad}(ind_decim{curr_rad}))))))
                 set(p_surf(2, curr_rad), 'marker', '.', 'linestyle', 'none', 'markersize', 12)
             end
         end
         if bed_avail(curr_rad)
             p_bed(2, curr_rad) ...
-                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'g--', 'linewidth', 2, 'visible', 'off');
+                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})))), 'm--', 'linewidth', 2, 'visible', 'off');
             if any(isnan(elev_bed{curr_rad}(ind_decim{curr_rad}(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad}))))))
                 set(p_bed(2, curr_rad), 'marker', '.', 'linestyle', 'none', 'markersize', 12)
             end
             if surf_avail(curr_rad)
                 tmp1        = find(~isnan(elev_bed{curr_rad}(ind_decim{curr_rad})) & ~isnan(elev_surf{curr_rad}(ind_decim{curr_rad})));
                 p_beddepth(curr_rad) ...
-                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(tmp1)), (elev_bed{curr_rad}(ind_decim{curr_rad}(tmp1)) - elev_surf{curr_rad}(ind_decim{curr_rad}(tmp1))), 'g--', 'linewidth', 2, 'visible', 'off');
+                            = plot(dist_lin{curr_rad}(ind_decim{curr_rad}(tmp1)), (elev_bed{curr_rad}(ind_decim{curr_rad}(tmp1)) - elev_surf{curr_rad}(ind_decim{curr_rad}(tmp1))), 'm--', 'linewidth', 2, 'visible', 'off');
                 if (length(tmp1) < length(ind_decim{curr_rad}))
                     set(p_beddepth(curr_rad), 'marker', '.', 'linestyle', 'none', 'markersize', 12)
                 end
@@ -1377,51 +1351,58 @@ linkaxes(ax(2:3), 'y')
         if ispc
             if ~strcmp(tmp1, tmp2)
                 if (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '..\block\' tmp2 '\' tmp1(end) '\'], 'dir'))
-                    path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '\merge')) 'block\' tmp2 '\' tmp1(end) '\'];
+                    path_data{curr_rad} ...
+                            = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '\merge')) 'block\' tmp2 '\' tmp1(end) '\'];
                 elseif (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '..\block\' tmp2 '\'], 'dir'))
-                    path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '\merge')) 'block\' tmp2 '\'];
+                    path_data{curr_rad} ...
+                            = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '\merge')) 'block\' tmp2 '\'];
                 end
             elseif (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '..\block\' tmp2 '\'], 'dir'))
-                path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '\merge')) 'block\' tmp2 '\'];
+                path_data{curr_rad} ...
+                            = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '\merge')) 'block\' tmp2 '\'];
             end
         else
             if ~strcmp(tmp1, tmp2)
                 if (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '../block/' tmp2 '/' tmp1(end) '/'], 'dir'))
-                    path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '/merge')) 'block/' tmp2 '/' tmp1(end) '/'];
+                    path_data{curr_rad} ...
+                            = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '/merge')) 'block/' tmp2 '/' tmp1(end) '/'];
                 elseif (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '../block/' tmp2 '/'], 'dir'))
-                    path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '/merge')) 'block/' tmp2 '/'];
+                    path_data{curr_rad} ...
+                            = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '/merge')) 'block/' tmp2 '/'];
                 end
             elseif (~isempty(path_pk{curr_rad}) && exist([path_pk{curr_rad} '../block/' tmp2 '/'], 'dir'))
-                path_data{curr_rad} = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '/merge')) 'block/' tmp2 '/'];
+                path_data{curr_rad} ...
+                            = [path_pk{curr_rad}(1:strfind(path_pk{curr_rad}, '/merge')) 'block/' tmp2 '/'];
             end
         end
         
         if (~isempty(path_data{curr_rad}) && exist([path_data{curr_rad} pk{curr_rad}.file_block{1} '.mat'], 'file'))
-            file_data{curr_rad} = pk{curr_rad}.file_block;
+            file_data{curr_rad} ...
+                            = pk{curr_rad}.file_block;
             for ii = 1:length(file_data{curr_rad})
                 file_data{curr_rad}{ii} ...
-                                = [file_data{curr_rad}{ii} '.mat'];
+                            = [file_data{curr_rad}{ii} '.mat'];
             end
         elseif ~isempty(path_data{curr_rad}) % Dialog box to choose radar data file to load
             [file_data{curr_rad}, path_data{curr_rad}] ...
-                                = uigetfile('*.mat', 'Load radar data:', path_data{curr_rad}, 'multiselect', 'on');
+                            = uigetfile('*.mat', 'Load radar data:', path_data{curr_rad}, 'multiselect', 'on');
         elseif ~isempty(path_data{curr_rad_alt})
             [file_data{curr_rad}, path_data{curr_rad}] ...
-                                = uigetfile('*.mat', 'Load radar data:', path_data{curr_rad_alt}, 'multiselect', 'on');
+                            = uigetfile('*.mat', 'Load radar data:', path_data{curr_rad_alt}, 'multiselect', 'on');
         elseif ~isempty(path_pk{curr_rad})
             [file_data{curr_rad}, path_data{curr_rad}] ...
-                                = uigetfile('*.mat', 'Load radar data:', path_pk{curr_rad}, 'multiselect', 'on');
+                            = uigetfile('*.mat', 'Load radar data:', path_pk{curr_rad}, 'multiselect', 'on');
         elseif ~isempty(path_pk{curr_rad_alt})
             [file_data{curr_rad}, path_data{curr_rad}] ...
-                                = uigetfile('*.mat', 'Load radar data:', path_pk{curr_rad_alt}, 'multiselect', 'on');
+                            = uigetfile('*.mat', 'Load radar data:', path_pk{curr_rad_alt}, 'multiselect', 'on');
         else
             [file_data{curr_rad}, path_data{curr_rad}] ...
-                                = uigetfile('*.mat', 'Load radar data:', 'multiselect', 'on');
+                            = uigetfile('*.mat', 'Load radar data:', 'multiselect', 'on');
         end
         
         if isnumeric(file_data{curr_rad})
             [file_data{curr_rad}, path_data{curr_rad}] ...
-                                = deal('');
+                            = deal('');
         end
         
         if isempty(file_data{curr_rad})
@@ -1567,7 +1548,7 @@ linkaxes(ax(2:3), 'y')
                             = topocorr(amp_depth{curr_rad}, depth{curr_rad}, tmp3); % topographically correct data
 
 %%%
-amp_depth{curr_rad}=0;
+amp_depth{curr_rad} = 0;
 %%%
                         
         amp_elev{curr_rad}  = flipud(amp_elev{curr_rad}); % flip for axes
@@ -1595,29 +1576,23 @@ amp_depth{curr_rad}=0;
         
         if all(pk_done)
             for ii = 1:3
-                if any(ishandle(p_int1{1, ii}))
-                    if (ii == 1)
-                        set(p_int1{1, ii}(ishandle(p_int1{1, ii})), 'zdata', [elev_min_ref elev_max_ref])
-                    else
-                        set(p_int1{1, ii}(ishandle(p_int1{1, ii})), 'ydata', [elev_min_ref elev_max_ref])
-                    end
+                if (ii == 1)
+                    set(p_int1{1, ii}(ishandle(p_int1{1, ii})), 'zdata', [elev_min_ref elev_max_ref])
+                else
+                    set(p_int1{1, ii}(ishandle(p_int1{1, ii})), 'ydata', [elev_min_ref elev_max_ref])
                 end
             end
             for ii = 2:3
-                if any(ishandle(p_int1{2, ii}))
-                    set(p_int1{2, ii}(ishandle(p_int1{2, ii})), 'ydata', [depth_min_ref depth_max_ref])
-                end
+                set(p_int1{2, ii}(ishandle(p_int1{2, ii})), 'ydata', [depth_min_ref depth_max_ref])
             end
         end
         
         if core_done
             for ii = 1:2
-                if any(ishandle(p_core{ii, curr_rad}))
-                    if (ii == 1)
-                        set(p_core{ii, curr_rad}(ishandle(p_core{ii, curr_rad})), 'zdata', [elev_min_ref elev_max_ref])
-                    else
-                        set(p_core{ii, curr_rad}(ishandle(p_core{ii, curr_rad})), 'ydata', [elev_min_ref elev_max_ref])
-                    end
+                if (ii == 1)
+                    set(p_core{ii, curr_rad}(ishandle(p_core{ii, curr_rad})), 'zdata', [elev_min_ref elev_max_ref])
+                else
+                    set(p_core{ii, curr_rad}(ishandle(p_core{ii, curr_rad})), 'ydata', [elev_min_ref elev_max_ref])
                 end
                 for jj = 1:length(p_corename{ii, curr_rad})
                     if ishandle(p_corename{ii, curr_rad}(jj))
@@ -1626,9 +1601,7 @@ amp_depth{curr_rad}=0;
                     end
                 end
             end
-            if any(ishandle(p_coredepth{curr_rad}))
-                set(p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})), 'ydata', [depth_min_ref depth_max_ref])
-            end
+            set(p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})), 'ydata', [depth_min_ref depth_max_ref])
             for ii = 1:length(p_corenamedepth{curr_rad})
                 if ishandle(p_corenamedepth{curr_rad}(ii))
                     tmp1    = get(p_corenamedepth{curr_rad}(ii), 'position');
@@ -1685,12 +1658,8 @@ amp_depth{curr_rad}=0;
         if pk_done(curr_rad)
             set(layer_list(:, curr_rad), 'value', curr_layer(curr_rad))
             for ii = 1:2
-                if any(ishandle(p_pk{ii, curr_rad}))
-                    set(p_pk{ii, curr_rad}(ishandle(p_pk{ii, curr_rad})), 'markersize', 12)
-                end
-                if any(ishandle(p_int2{ii, curr_rad_alt}))
-                    set(p_int2{ii, curr_rad_alt}(ishandle(p_int2{ii, curr_rad_alt})), 'markersize', 8)
-                end
+                set(p_pk{ii, curr_rad}(ishandle(p_pk{ii, curr_rad})), 'markersize', 12)
+                set(p_int2{ii, curr_rad_alt}(ishandle(p_int2{ii, curr_rad_alt})), 'markersize', 8)
                 if ishandle(p_pk{ii, curr_rad}(curr_layer(curr_rad)))
                     set(p_pk{ii, curr_rad}(curr_layer(curr_rad)), 'markersize', 24)
                 end
@@ -1700,12 +1669,8 @@ amp_depth{curr_rad}=0;
                     end
                 end
             end
-            if any(ishandle(p_pkdepth{curr_rad}))
-                set(p_pkdepth{curr_rad}(ishandle(p_pk{ii, curr_rad})), 'markersize', 12)
-            end
-            if ishandle(p_pkdepth{curr_rad}(curr_layer(curr_rad)))
-                set(p_pkdepth{curr_rad}(curr_layer(curr_rad)), 'markersize', 24)
-            end
+            set(p_pkdepth{curr_rad}(ishandle(p_pk{ii, curr_rad})), 'markersize', 12)
+            set(p_pkdepth{curr_rad}(curr_layer(curr_rad)), 'markersize', 24)
         end
         if ischar(tmp1)
             if strcmp(tmp1, 'reselect')
@@ -1719,16 +1684,10 @@ amp_depth{curr_rad}=0;
                     if ~isempty(find(((pk{2}.ind_layer(:, 5) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1))
                         curr_layer(2) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 5) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1), 1);
                         for ii = 1:2
-                            if any(ishandle(p_pk{ii, 2}))
-                                set(p_pk{ii, 2}(ishandle(p_pk{ii, 2})), 'markersize', 12)
-                            end
-                            if ishandle(p_pk{ii, 2}(curr_layer(2)))
-                                set(p_pk{ii, 2}(curr_layer(2)), 'markersize', 24)
-                            end
+                            set(p_pk{ii, 2}(ishandle(p_pk{ii, 2})), 'markersize', 12)
+                            set(p_pk{ii, 2}(curr_layer(2)), 'markersize', 24)
                             for jj = 1:2
-                                if any(ishandle(p_int2{ii, jj}))
-                                    set(p_int2{ii, jj}(ishandle(p_int2{ii, jj})), 'markersize', 8)
-                                end
+                                set(p_int2{ii, jj}(ishandle(p_int2{ii, jj})), 'markersize', 8)
                             end
                             if ishandle(p_int2{ii, 1}(curr_layer(2)))
                                 set(p_int2{ii, 1}(curr_layer(2)), 'markersize', 16)
@@ -1737,9 +1696,7 @@ amp_depth{curr_rad}=0;
                                 set(p_int2{ii, 2}(curr_layer(1)), 'markersize', 16)
                             end
                         end
-                        if any(ishandle(p_pkdepth{2}))
-                            set(p_pkdepth{2}(ishandle(p_pkdepth{2})), 'markersize', 12)
-                        end
+                        set(p_pkdepth{2}(ishandle(p_pkdepth{2})), 'markersize', 12)
                         if ishandle(p_pkdepth{2}(curr_layer(2)))
                             set(p_pkdepth{2}(curr_layer(2)), 'markersize', 24)
                         end
@@ -1750,16 +1707,12 @@ amp_depth{curr_rad}=0;
                     if ~isempty(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1))
                         curr_layer(1) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1), 5);
                         for ii = 1:2
-                            if any(ishandle(p_pk{ii, 1}))
-                                set(p_pk{ii, 1}(ishandle(p_pk{ii, 1})), 'markersize', 12)
-                            end
+                            set(p_pk{ii, 1}(ishandle(p_pk{ii, 1})), 'markersize', 12)
                             if ishandle(p_pk{ii, 1}(curr_layer(1)))
                                 set(p_pk{ii, 1}(curr_layer(1)), 'markersize', 24)
                             end
                             for jj = 1:2
-                                if any(ishandle(p_int2{ii, jj}))
-                                    set(p_int2{ii, jj}(ishandle(p_int2{ii, jj})), 'markersize', 8)
-                                end
+                                set(p_int2{ii, jj}(ishandle(p_int2{ii, jj})), 'markersize', 8)
                             end
                             if ishandle(p_int2{ii, 1}(curr_layer(2)))
                                 set(p_int2{ii, 1}(curr_layer(2)), 'markersize', 16)
@@ -1768,9 +1721,7 @@ amp_depth{curr_rad}=0;
                                 set(p_int2{ii, 2}(curr_layer(1)), 'markersize', 16)
                             end
                         end
-                        if any(ishandle(p_pkdepth{1}))
-                            set(p_pkdepth{1}(ishandle(p_pkdepth{1})), 'markersize', 12)
-                        end
+                        set(p_pkdepth{1}(ishandle(p_pkdepth{1})), 'markersize', 12)
                         if ishandle(p_pkdepth{1}(curr_layer(1)))
                             set(p_pkdepth{1}(curr_layer(1)), 'markersize', 24)
                         end
@@ -2054,9 +2005,9 @@ amp_depth{curr_rad}=0;
             tmp2            = colors{1}(curr_layer(1), :);
         end
         
+        % check for existing match
         if ~isempty(pk{2}.ind_layer)
-            if ~isempty(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1)) & ...
-                              (pk{2}.ind_layer(:, 5) == curr_layer(1))), 1))
+            if ~isempty(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1)) & (pk{2}.ind_layer(:, 5) == curr_layer(1))), 1))
                 set(status_box(2), 'string', 'This layer pair is already matched.')
                 return
             end
@@ -2079,26 +2030,23 @@ amp_depth{curr_rad}=0;
         end
         
         set(status_box(2), 'string', ['Matching master transect layer #' num2str(curr_layer(1)) ' with intersecting transect layer #' num2str(curr_layer(2)) '...'])
+        
         pause(0.1)
+        
         % reassign master color to first master color if a master layer is matched to multiple intersecting transects
         if ~isempty(pk{1}.ind_layer)
             if ~isempty(find(((pk{1}.ind_layer(:, 2) == curr_year(2)) & (pk{1}.ind_layer(:, 3) == curr_trans(2)) & (pk{1}.ind_layer(:, 4) == curr_subtrans(2)) & (pk{1}.ind_layer(:, 5) == curr_layer(2))), 1))
                 colors{1}(pk{1}.ind_layer(tmp1, 1), :) ...
                             = repmat(tmp2, length(tmp1), 1);
                 for ii = 1:2
-                    if any(ishandle(p_pk{ii, 1}(pk{1}.ind_layer(tmp1, 1))))
-                        set(p_pk{ii, 1}(pk{1}.ind_layer(tmp1, 1)), 'color', tmp2)
-                    end
-                    if any(ishandle(p_pkdepth{1}(pk{1}.ind_layer(tmp1, 1))))
-                        set(p_pkdepth{1}(pk{1}.ind_layer(tmp1, 1)), 'color', tmp2)
-                    end
-                    if any(ishandle(p_int2{ii, 2}(pk{1}.ind_layer(tmp1, 1))))
-                        set(p_int2{ii, 2}(pk{1}.ind_layer(tmp1, 1)), 'markerfacecolor', tmp2)
-                    end
+                    set(p_pk{ii, 1}(pk{1}.ind_layer(tmp1, 1)), 'color', tmp2)
+                    set(p_pkdepth{1}(pk{1}.ind_layer(tmp1, 1)), 'color', tmp2)
+                    set(p_int2{ii, 2}(pk{1}.ind_layer(tmp1, 1)), 'markerfacecolor', tmp2)
                 end
             end
         end
         
+        % add each layer to the other's list
         pk{1}.ind_layer     = [pk{1}.ind_layer; [curr_layer(1) curr_year(2) curr_trans(2) curr_subtrans(2) curr_layer(2)]];
         pk{2}.ind_layer     = [pk{2}.ind_layer; [curr_layer(2) curr_year(1) curr_trans(1) curr_subtrans(1) curr_layer(1)]];
         
@@ -2626,7 +2574,7 @@ amp_depth{curr_rad}=0;
             end
         elseif((depth_max_ref - (get(z_min_slide(curr_gui), 'value') - depth_min_ref)) > depth_min)
             if get(zfix_check(curr_gui), 'value')
-                tmp1            = depth_max - depth_min;
+                tmp1        = depth_max - depth_min;
             end
             depth_max = depth_max_ref - (get(z_min_slide(curr_gui), 'value') - depth_min_ref);
             if get(zfix_check(curr_gui), 'value')
@@ -3060,8 +3008,7 @@ amp_depth{curr_rad}=0;
                 end
                 set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_min_ref))
             case 2
-                depth_max ...
-                            = depth_max_ref;
+                depth_max   = depth_max_ref;
                 switch disp_type
                     case 'elev.'
                         elev_min(curr_gui) ...
@@ -3186,8 +3133,7 @@ amp_depth{curr_rad}=0;
                 end
                 set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_max_ref))
             case 2
-                depth_min ...
-                            = depth_min_ref;
+                depth_min   = depth_min_ref;
                 switch disp_type
                     case 'elev.'
                         if (elev_max_ref > get(z_max_slide(curr_gui), 'max'))
@@ -3259,11 +3205,13 @@ amp_depth{curr_rad}=0;
     function update_x_range(source, eventdata)
         axes(ax(curr_ax))
         xlim([x_min x_max])
+        narrow_cb
     end
 
     function update_y_range(source, eventdata)
         axes(ax(curr_ax))
         ylim([y_min y_max])
+        narrow_cb
     end
 
     function update_z_range(source, eventdata)
@@ -3322,7 +3270,8 @@ amp_depth{curr_rad}=0;
                 set(dist_min_slide(curr_rad), 'value', tmp1(1))
             end
             set(dist_min_edit(curr_rad), 'string', sprintf('%3.1f', tmp1(1)))
-            dist_min(curr_rad) = tmp1(1);
+            dist_min(curr_rad) ...
+                            = tmp1(1);
         end
         if (tmp1(2) > dist_max_ref(curr_rad))
             reset_dist_max
@@ -3333,7 +3282,8 @@ amp_depth{curr_rad}=0;
                 set(dist_max_slide(curr_rad), 'value', tmp1(2))
             end
             set(dist_max_edit(curr_rad), 'string', sprintf('%3.1f', tmp1(2)))
-            dist_max(curr_rad) = tmp1(2);
+            dist_max(curr_rad) ...
+                            = tmp1(2);
         end
         tmp1                = get(ax(curr_ax), 'ylim');
         switch disp_type
@@ -3466,9 +3416,7 @@ amp_depth{curr_rad}=0;
             return
         end
         set(status_box(curr_gui), 'string', 'Plotting data in terms of depth...')
-        if any(ishandle(p_data(curr_gui, :)))
-            delete(p_data(curr_gui, ishandle(p_data(curr_gui, :))))
-        end
+        delete(p_data(curr_gui, ishandle(p_data(curr_gui, :))))
         for ii = 2:3
             [curr_ax, curr_rad] ...
                             = deal(ii, (ii - 1));
@@ -3563,10 +3511,8 @@ amp_depth{curr_rad}=0;
         if pk_done(curr_rad)
             if get(pk_check(curr_gui, curr_rad), 'value')
                 if ((curr_gui == 1) || strcmp(disp_type, 'elev.'))
-                    if any(ishandle(p_pk{curr_gui, curr_rad}))
                         set(p_pk{curr_gui, curr_rad}(ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'on')
                         uistack(p_pk{curr_gui, curr_rad}(ishandle(p_pk{curr_gui, curr_rad})), 'top')
-                    end
                     if ishandle(p_surf(curr_gui, curr_rad))
                         set(p_surf(curr_gui, curr_rad), 'visible', 'on')
                         uistack(p_surf(curr_gui, curr_rad), 'top')
@@ -3575,23 +3521,17 @@ amp_depth{curr_rad}=0;
                         set(p_bed(curr_gui, curr_rad), 'visible', 'on')
                         uistack(p_bed(curr_gui, curr_rad), 'top')
                     end
-                    if any(ishandle(p_pkdepth{curr_rad}))
-                        set(p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})), 'visible', 'off')
-                    end
+                    set(p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})), 'visible', 'off')
                     if ishandle(p_beddepth(curr_rad))
                         set(p_beddepth(curr_rad), 'visible', 'off')
                     end
                 else
-                    if any(ishandle(p_pkdepth{curr_rad}))
-                        set(p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})), 'visible', 'on')
-                        uistack(p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})), 'top')
-                    end
+                    set(p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})), 'visible', 'on')
+                    uistack(p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})), 'top')
                     if ishandle(p_beddepth(curr_rad))
                         set(p_beddepth(curr_rad), 'visible', 'on')
                     end
-                    if any(ishandle(p_pk{curr_gui, curr_rad}))
                         set(p_pk{curr_gui, curr_rad}(ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'off')
-                    end
                     if ishandle(p_surf(curr_gui, curr_rad))
                         set(p_surf(curr_gui, curr_rad), 'visible', 'off')
                     end
@@ -3601,17 +3541,12 @@ amp_depth{curr_rad}=0;
                 end
                 show_int
             else
-                if any(ishandle(p_pk{curr_gui, curr_rad}))
-                    set(p_pk{curr_gui, curr_rad}(ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'off')
-                end
+                set([p_pk{curr_gui, curr_rad}(ishandle(p_pk{curr_gui, curr_rad})) p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad}))], 'visible', 'off')
                 if ishandle(p_surf(curr_gui, curr_rad))
                     set(p_surf(curr_gui, curr_rad), 'visible', 'off')
                 end
                 if ishandle(p_bed(curr_gui, curr_rad))
                     set(p_bed(curr_gui, curr_rad), 'visible', 'off')
-                end
-                if any(ishandle(p_pkdepth{curr_rad}))
-                    set(p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})), 'visible', 'off')
                 end
                 if ishandle(p_beddepth(curr_rad))
                     set(p_beddepth(curr_rad), 'visible', 'off')
@@ -3647,46 +3582,22 @@ amp_depth{curr_rad}=0;
         if all(pk_done)
             if get(int_check(curr_ax), 'value')
                 if ((curr_gui == 1) || strcmp(disp_type, 'elev.'))
-                    if any(ishandle(p_int1{1, curr_ax}))
-                        set(p_int1{1, curr_ax}(ishandle(p_int1{1, curr_ax})), 'visible', 'on')
-                        uistack(p_int1{1, curr_ax}(ishandle(p_int1{1, curr_ax})), 'top')
-                    end
+                    set(p_int1{1, curr_ax}(ishandle(p_int1{1, curr_ax})), 'visible', 'on')
+                    uistack(p_int1{1, curr_ax}(ishandle(p_int1{1, curr_ax})), 'top')
                     if (curr_gui == 2)
-                        if any(ishandle(p_int2{1, curr_rad}))
-                            set(p_int2{1, curr_rad}(ishandle(p_int2{1, curr_rad})), 'visible', 'on')
-                            uistack(p_int2{1, curr_rad}(ishandle(p_int2{1, curr_rad})), 'top')
-                        end
-                        if any(ishandle(p_int1{2, curr_ax}))
-                            set(p_int1{2, curr_ax}(ishandle(p_int1{2, curr_ax})), 'visible', 'off')
-                        end
-                        if any(ishandle(p_int2{2, curr_rad}))
-                            set(p_int2{2, curr_rad}(ishandle(p_int2{2, curr_rad})), 'visible', 'off')
-                        end
+                        set(p_int2{1, curr_rad}(ishandle(p_int2{1, curr_rad})), 'visible', 'on')
+                        uistack(p_int2{1, curr_rad}(ishandle(p_int2{1, curr_rad})), 'top')
+                        set([p_int1{2, curr_ax}(ishandle(p_int1{2, curr_ax})) p_int2{2, curr_rad}(ishandle(p_int2{2, curr_rad}))], 'visible', 'off')
                     end
                 else
-                    if any(ishandle(p_int1{2, curr_ax}))
-                        set(p_int1{2, curr_ax}(ishandle(p_int1{2, curr_ax})), 'visible', 'on')
-                        uistack(p_int1{2, curr_ax}(ishandle(p_int1{2, curr_ax})), 'top')
-                    end
-                    if any(ishandle(p_int2{2, curr_rad}))
-                        set(p_int2{2, curr_rad}(ishandle(p_int2{2, curr_rad})), 'visible', 'on')
-                        uistack(p_int2{2, curr_rad}(ishandle(p_int2{2, curr_rad})), 'top')
-                    end
-                    if any(ishandle(p_int1{1, curr_ax}))
-                        set(p_int1{1, curr_ax}(ishandle(p_int1{1, curr_ax})), 'visible', 'off')
-                    end
-                    if any(ishandle(p_int2{1, curr_rad}))
-                        set(p_int2{1, curr_rad}(ishandle(p_int2{1, curr_rad})), 'visible', 'off')
-                    end
+                    set([p_int1{2, curr_ax}(ishandle(p_int1{2, curr_ax})) p_int2{2, curr_rad}(ishandle(p_int2{2, curr_rad}))], 'visible', 'on')
+                    uistack(p_int1{2, curr_ax}(ishandle(p_int1{2, curr_ax})), 'top')
+                    uistack(p_int2{2, curr_rad}(ishandle(p_int2{2, curr_rad})), 'top')
+                    set([p_int1{1, curr_ax}(ishandle(p_int1{1, curr_ax})) p_int2{1, curr_rad}(ishandle(p_int2{1, curr_rad}))], 'visible', 'off')
                 end
             else
                 for ii = 1:2
-                    if any(ishandle(p_int1{ii, curr_ax}))
-                        set(p_int1{ii, curr_ax}(ishandle(p_int1{ii, curr_ax})), 'visible', 'off')
-                    end
-                    if any(ishandle(p_int2{ii, curr_rad}))
-                        set(p_int2{ii, curr_rad}(ishandle(p_int2{ii, curr_rad})), 'visible', 'off')
-                    end
+                    set([p_int1{ii, curr_ax}(ishandle(p_int1{ii, curr_ax})) p_int2{ii, curr_rad}(ishandle(p_int2{ii, curr_rad}))], 'visible', 'off')
                 end
             end
         elseif get(int_check(curr_ax), 'value')
@@ -3720,62 +3631,27 @@ amp_depth{curr_rad}=0;
             if get(core_check(curr_ax), 'value')
                 switch curr_gui
                     case 1
-                        if any(ishandle(p_core{curr_gui, curr_rad}))
-                            set(p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})), 'visible', 'on')
-                            uistack(p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})), 'top')
-                        end
-                        if any(ishandle(p_corename{curr_gui, curr_rad}))
-                            set(p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'on')
-                            uistack(p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad})), 'top')
-                        end
+                        set([p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})) p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad}))], 'visible', 'on')
+                        uistack(p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})), 'top')
+                        uistack(p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad})), 'top')
                     case 2
                         switch disp_type
                             case 'elev.'
-                                if any(ishandle(p_core{curr_gui, curr_rad}))
-                                    set(p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})), 'visible', 'on')
-                                    uistack(p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})), 'top')
-                                end
-                                if any(ishandle(p_corename{curr_gui, curr_rad}))
-                                    set(p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'on')
-                                    uistack(p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad})), 'top')
-                                end
-                                if any(ishandle(p_coredepth{curr_rad}))
-                                    set(p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})), 'visible', 'off')
-                                end
-                                if any(ishandle(p_corenamedepth{curr_rad}))
-                                    set(p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad})), 'visible', 'off')
-                                end
+                                set([p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})) p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad}))], 'visible', 'on')
+                                uistack(p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})), 'top')
+                                uistack(p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad})), 'top')
+                                set([p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})) p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad}))], 'visible', 'off')
                             case 'depth'
-                                if any(ishandle(p_coredepth{curr_rad}))
-                                    set(p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})), 'visible', 'off')
-                                    uistack(p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})), 'top')
-                                end
-                                if any(ishandle(p_corenamedepth{curr_rad}))
-                                    set(p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad})), 'visible', 'off')
-                                    uistack(p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad})), 'top')
-                                end
-                                if any(ishandle(p_core{curr_gui, curr_rad}))
-                                    set(p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})), 'visible', 'off')
-                                end
-                                if any(ishandle(p_corename{curr_gui, curr_rad}))
-                                    set(p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'off')
-                                end
+                                set([p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})) p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad}))], 'visible', 'off')
+                                uistack(p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})), 'top')
+                                uistack(p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad})), 'top')
+                                set([p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})) p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad}))], 'visible', 'off')
                         end
                 end
             else
-                if any(ishandle(p_core{curr_gui, curr_rad}))
-                    set(p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})), 'visible', 'off')
-                end
-                if any(ishandle(p_corename{curr_gui, curr_rad}))
-                    set(p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad})), 'visible', 'off')
-                end
+                set([p_core{curr_gui, curr_rad}(ishandle(p_core{curr_gui, curr_rad})) p_corename{curr_gui, curr_rad}(ishandle(p_corename{curr_gui, curr_rad}))], 'visible', 'off')
                 if (curr_gui == 2)
-                    if any(ishandle(p_coredepth{curr_rad}))
-                        set(p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})), 'visible', 'off')
-                    end
-                    if any(ishandle(p_corenamedepth{curr_rad}))
-                        set(p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad})), 'visible', 'off')
-                    end
+                    set([p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})) p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad}))], 'visible', 'off')
                 end
             end
         elseif get(core_check(curr_ax), 'value')
@@ -3824,22 +3700,9 @@ amp_depth{curr_rad}=0;
             end
                 num_decim(curr_rad) ...
                             = length(ind_decim{curr_rad});
-            if any(ishandle(p_bed(:, curr_rad)))
-                delete(p_bed(ishandle(p_bed(:, curr_rad)), curr_rad))
-            end
-            if any(ishandle(p_beddepth))
-                delete(p_beddepth(ishandle(p_beddepth)))
-            end
+            delete([p_bed(ishandle(p_bed(:, curr_rad)), curr_rad) p_beddepth(ishandle(p_beddepth)) p_surf(ishandle(p_surf(:, curr_rad)), curr_rad)])
             for ii = 1:2
-                if any(ishandle(p_pk{ii, curr_rad}))
-                    delete(p_pk{ii, curr_rad}(ishandle(p_pk{ii, curr_rad})))
-                end
-                if any(ishandle(p_pkdepth{curr_rad}))
-                    delete(p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})))
-                end
-            end
-            if any(ishandle(p_surf(:, curr_rad)))
-                delete(p_surf(ishandle(p_surf(:, curr_rad)), curr_rad))
+                delete([p_pk{ii, curr_rad}(ishandle(p_pk{ii, curr_rad})) p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad}))])
             end
             layer_str{curr_rad} ...
                             = num2cell(1:pk{curr_rad}.num_layer);
@@ -3976,16 +3839,12 @@ amp_depth{curr_rad}=0;
         tmp3                = [curr_ax curr_rad curr_rad_alt];
         for ii = 1:2
             for jj = 1:3
-                if any(ishandle(p_int1{ii, jj}))
-                    set(p_int1{ii, jj}(ishandle(p_int1{ii, jj})), 'linewidth', 2)
-                end
-                if ishandle(p_int1{ii, jj}(curr_int))
-                    set(p_int1{ii, jj}(curr_int), 'linewidth', 4)
-                end
+                set(p_int1{ii, jj}(ishandle(p_int1{ii, jj})), 'linewidth', 2)
+                set(p_int1{ii, jj}(curr_int), 'linewidth', 4)
             end
         end
         [dist_min(1), dist_max(1), dist_min(2), dist_max(2)] ...
-            = deal((dist_lin{1}(curr_ind_int(curr_int, 1)) - 10), (dist_lin{1}(curr_ind_int(curr_int, 1)) + 10), (dist_lin{2}(curr_ind_int(curr_int, 2)) - 10), (dist_lin{2}(curr_ind_int(curr_int, 2)) + 10));
+                            = deal((dist_lin{1}(curr_ind_int(curr_int, 1)) - 10), (dist_lin{1}(curr_ind_int(curr_int, 1)) + 10), (dist_lin{2}(curr_ind_int(curr_int, 2)) - 10), (dist_lin{2}(curr_ind_int(curr_int, 2)) + 10));
         if (dist_min(1) < dist_min_ref(1))
             dist_min(1) = dist_min_ref(1);
         end
@@ -4599,7 +4458,6 @@ amp_depth{curr_rad}=0;
                                     set(z_max_slide(curr_gui), 'value', elev_max(curr_gui))
                                 end
                             case 'depth'
-
                                 tmp1 = depth_max - depth_min;
                                 tmp2 = depth_max + (0.25 * tmp1);
                                 if (tmp2 > depth_max_ref)
@@ -4626,7 +4484,7 @@ amp_depth{curr_rad}=0;
                                     set(z_max_slide(curr_gui), 'value', get(z_max_slide(curr_gui), 'max'))
                                 else
                                     set(z_max_slide(curr_gui), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
-                                end                                
+                                end
                         end
                         [curr_ax, curr_rad] = deal(3, 2);
                 end
@@ -4660,13 +4518,17 @@ amp_depth{curr_rad}=0;
                 tmp1        = dist_max(curr_rad) - dist_min(curr_rad);
                 tmp2        = dist_max(curr_rad) + (0.25 * tmp1);
                 if (tmp2 > dist_max_ref(curr_rad));
-                    dist_max(curr_rad) = dist_max_ref(curr_rad);
+                    dist_max(curr_rad) ...
+                            = dist_max_ref(curr_rad);
                 else
-                    dist_max(curr_rad) = tmp2;
+                    dist_max(curr_rad) ...
+                            = tmp2;
                 end
-                dist_min(curr_rad) = dist_max(curr_rad) - tmp1;
+                dist_min(curr_rad) ...
+                            = dist_max(curr_rad) - tmp1;
                 if (dist_min(curr_rad) < dist_min_ref(curr_rad))
-                    dist_min(curr_rad) = dist_min_ref(curr_rad);
+                    dist_min(curr_rad) ...
+                            = dist_min_ref(curr_rad);
                 end
                 set(dist_min_edit(curr_rad), 'string', sprintf('%3.1f', dist_min(curr_rad)))
                 set(dist_max_edit(curr_rad), 'string', sprintf('%3.1f', dist_max(curr_rad)))
@@ -4852,22 +4714,24 @@ amp_depth{curr_rad}=0;
 %% Mouse wheel shortcut
 
     function wheel_zoom(~, eventdata)
-%         switch eventdata.VerticalScrollCount
-%             case -1
-%                 tmp1        = dist_max(curr_rad) - dist_min(curr_rad);
-%                 tmp2        = [(dist_min(curr_rad) + (0.25 * tmp1)) (dist_max(curr_rad) - (0.25 * tmp1))];
-%                 tmp3        = elev_max(curr_gui) - elev_min(curr_gui);
-%                 tmp4        = [(elev_min(curr_gui) + (0.25 * tmp3)) (elev_max(curr_gui) - (0.25 * tmp3))];
-%                 set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
-%                 panzoom
-%             case 1
-%                 tmp1        = dist_max(curr_rad) - dist_min(curr_rad);
-%                 tmp2        = [(dist_min(curr_rad) - (0.25 * tmp1)) (dist_max(curr_rad) + (0.25 * tmp1))];
-%                 tmp3        = elev_max(curr_gui) - elev_min(curr_gui);
-%                 tmp4        = [(elev_min(curr_gui) - (0.25 * tmp3)) (elev_max(curr_gui) + (0.25 * tmp3))];
-%                 set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
-%                 panzoom
-%         end
+        if nargin
+            switch eventdata.VerticalScrollCount
+                case -1
+                    tmp1    = dist_max(curr_rad) - dist_min(curr_rad);
+                    tmp2    = [(dist_min(curr_rad) + (0.25 * tmp1)) (dist_max(curr_rad) - (0.25 * tmp1))];
+                    tmp3    = elev_max(curr_gui) - elev_min(curr_gui);
+                    tmp4    = [(elev_min(curr_gui) + (0.25 * tmp3)) (elev_max(curr_gui) - (0.25 * tmp3))];
+                    set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
+                    panzoom
+                case 1
+                    tmp1    = dist_max(curr_rad) - dist_min(curr_rad);
+                    tmp2    = [(dist_min(curr_rad) - (0.25 * tmp1)) (dist_max(curr_rad) + (0.25 * tmp1))];
+                    tmp3    = elev_max(curr_gui) - elev_min(curr_gui);
+                    tmp4    = [(elev_min(curr_gui) - (0.25 * tmp3)) (elev_max(curr_gui) + (0.25 * tmp3))];
+                    set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
+                    panzoom
+            end
+        end
     end
 
 %% Mouse click
@@ -4911,6 +4775,7 @@ amp_depth{curr_rad}=0;
 
     function misctest(source, eventdata)
         
+        set(status_box, 'string', 'Test done.')
     end
 %%
 end
