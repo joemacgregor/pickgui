@@ -261,7 +261,7 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Clear plots
 
     function clear_plots(source, eventdata)
-        delete([p_aresp(ishandle(p_aresp)) p_man(ishandle(p_man)) p_mandepth(ishandle(p_mandepth)) p_phase(ishandle(p_phase)) p_pk(ishandle(p_pk)) p_pkdepth(ishandle(p_pkdepth)) p_pkflat(ishandle(p_pkflat)) p_pksmooth(ishandle(p_pksmooth)) p_pksmoothdepth(ishandle(p_pksmoothdepth)) ...
+        delete([p_aresp(ishandle(p_aresp)) p_man(ishandle(p_man))' p_mandepth(ishandle(p_mandepth))' p_phase(ishandle(p_phase)) p_pk(ishandle(p_pk)) p_pkdepth(ishandle(p_pkdepth)) p_pkflat(ishandle(p_pkflat)) p_pksmooth(ishandle(p_pksmooth)) p_pksmoothdepth(ishandle(p_pksmoothdepth)) ...
                 p_pksmoothflat(ishandle(p_pksmoothflat))])
         if ishandle(p_startphase)
             delete(p_startphase)
@@ -288,9 +288,9 @@ set(disp_group, 'selectedobject', disp_check(1))
     function clear_data(source, eventdata)
         [pk, pk_ref]        = deal(struct);
         pk.layer            = struct;
-        [pk.num_layer, pk.ind_trim_start, pk.num_man, pk.ind_y_man, pk.num_keep_phase, pk.num_keep_aresp, pk.num_aresp, pk.num_phase, pk.ind_keep_phase, pk.ind_keep_aresp, ...
-         pk.ind_x_start_phase, pk.ind_x_start_aresp, pk.ind_y_start_phase, pk.ind_y_start_aresp, pk.ind_y_phase_max, pk.ind_y_aresp_max, amp_depth, amp_flat_mean, amp_mean, button, curr_chunk, curr_layer, dist_chunk, ii, ind_bed, ind_bed_flat, ind_decim, ind_surf, ind_surf_flat, ...
-         ind_decim_flat_old, ind_x_pk, ind_y_aresp, ind_y_curr, ind_y_flat, ind_y_mat, ind_y_phase, ind_y_pk, jj, num_chunk, num_decim, num_decim_flat, num_sample_trim, pkfig, rad_sample, tmp1, tmp2, tmp3, tmp4, tmp5] ...
+        [pk.num_layer, pk.ind_trim_start, pk.num_man, pk.ind_y_man, pk.num_keep_phase, pk.num_keep_aresp, pk.num_aresp, pk.num_phase, pk.ind_keep_phase, pk.ind_keep_aresp, pk.ind_x_start_phase, pk.ind_x_start_aresp, pk.ind_y_start_phase, pk.ind_y_start_aresp, pk.ind_y_phase_max, ...
+         pk.ind_y_aresp_max, amp_depth, amp_flat_mean, amp_mean, button, curr_chunk, curr_layer, dist_chunk, ii, ind_bed, ind_bed_flat, ind_decim, ind_surf, ind_surf_flat, ind_decim_flat_old, ind_x_pk, ind_y_aresp, ind_y_curr, ind_y_flat, ind_y_mat, ind_y_phase, ind_y_pk, jj, num_chunk, ...
+         num_decim, num_decim_flat, num_sample_trim, pkfig, rad_sample, tmp1, tmp2, tmp3, tmp4, tmp5] ...
                             = deal(0);
         pk.predict_or_pk    = 'predict';
         [aresp_avail, aresp_done, bed_avail, depth_avail, do_surfbed, pk_done, flat_done, keep_phase_done, keep_aresp_done, load_done, load_flat, match_done, phase_avail, phase_done, ref_done, smooth_done, surf_avail, trim_done] ...
@@ -6280,16 +6280,16 @@ set(disp_group, 'selectedobject', disp_check(1))
             if (get(man_check, 'value') && any(strcmp(disp_type, {'twtt' '~depth'})))
                 switch disp_type
                     case 'twtt'
-                        set(p_man(ishandle(p_man(:))), 'visible', 'on')
-                        uistack(p_man(ishandle(p_man(:))), 'top')
-                        set(p_mandepth(ishandle(p_mandepth(:))), 'visible', 'off')
+                        set(p_man(ishandle(p_man)), 'visible', 'on')
+                        uistack(p_man(ishandle(p_man)), 'top')
+                        set(p_mandepth(ishandle(p_mandepth)), 'visible', 'off')
                     case '~depth'
-                        set(p_mandepth(ishandle(p_mandepth(:))), 'visible', 'on')
-                        uistack(p_mandepth(ishandle(p_mandepth(:))), 'top')
-                        set(p_man(ishandle(p_man(:))), 'visible', 'off')
+                        set(p_mandepth(ishandle(p_mandepth)), 'visible', 'on')
+                        uistack(p_mandepth(ishandle(p_mandepth)), 'top')
+                        set(p_man(ishandle(p_man)), 'visible', 'off')
                 end
             else
-                set([p_man(ishandle(p_man(:))) p_mandepth(ishandle(p_mandepth(:)))], 'visible', 'off')
+                set([p_man(ishandle(p_man))' p_mandepth(ishandle(p_mandepth))'], 'visible', 'off')
             end
         elseif get(man_check, 'value')
             set(man_check, 'value', 0)
