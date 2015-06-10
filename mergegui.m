@@ -2072,7 +2072,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             for ii = 1:pk.num_layer
                 plot(pk.dist_lin(ind_decim), pk.elev_smooth_gimp(ii, ind_decim), '.', 'color', colors(ii, :), 'markersize', 12)
             end
-            if do_core
+            if core_done
                 tmp1            = find(~isnan(ind_int));
                 for ii = 1:num_int
                     plot(pk.dist_lin(ind_int(tmp1(ii))), get(gca, 'ylim'), 'm', 'linewidth', 2)
