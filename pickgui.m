@@ -1,6 +1,6 @@
 function pickgui(varargin)
 % PICKGUI Interactive radar-layer picker.
-%
+%   
 %   PICKGUI loads a GUI for tracing layers in CReSIS radar data, either the
 %   original data files or those that have been pre-processed by
 %   RADBLOCKPROC. This GUI includes semi-automatic tracing of layers and
@@ -9,21 +9,21 @@ function pickgui(varargin)
 %   PHASEINTERP or ARESP, respectively. Layers from separate data blocks
 %   can be merged later using MERGEGUI and matched between transects using
 %   FENCEGUI.
-%
+%   
 %   Refer to manual for operation (pickgui_man.pdf).
-%
+%   
 %   PICKGUI requires that the function SMOOTH_LOWESS be available within
 %   the user's path. If original CReSIS data blocks are to be loaded, then
-%   it also requires that either the function LL2PS be available within the
-%   user's path or the Mapping Toolbox be licensed and available. If the
-%   Parallel Computing Toolbox is licensed and available, then several
+%   the user's path or the Mapping Toolbox be licensed and available. If
+%   the Parallel Computing Toolbox is licensed and available, then several
 %   calculations related to data flattening will be parallelized.
-%
-%   The value of any input into the PICKGUI call will be ignored, but the
-%   input will be assumed to mean that no parallelization is desired.
-% 
+%   
+%   The value of any argument into the PICKGUI call will be ignored, but
+%   the input will be assumed to mean that parallelization is not to be
+%   initiated.
+%   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 06/10/15
+% Last updated: 06/14/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')

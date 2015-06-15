@@ -8,14 +8,13 @@ function mergegui(varargin)
 %   MERGEGUI requires that the functions TOPOCORR and SMOOTH_LOWESS be
 %   available within the user's path. If the Parallel Computing Toolbox is
 %   licensed and available, then several calculations related to data
-%   flattening will be parallelized. The Mapping Toolbox is necessary to
-%   plot a map of the transect location.
+%   flattening will be parallelized.
 %   
 %   The value of any input into the MERGEGUI call will be ignored, but the
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 06/10/15
+% Last updated: 06/14/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -447,9 +446,8 @@ set(cb_group, 'selectedobject', cb_check(1))
             for ii = 1:num_zero
                 eval(['pk.' var_zero{ii} ' = zeros(num_pk, 1);'])
             end
-            pk.ind_overlap  ...
-                        = NaN(num_pk, 2);
-            tmp1        = cell(1, num_pk);
+            pk.ind_overlap  = NaN(num_pk, 2);
+            tmp1            = cell(1, num_pk);
             
             % loop through pk files and assign values
             for ii = 1:num_pk
@@ -523,12 +521,12 @@ set(cb_group, 'selectedobject', cb_check(1))
                         else
                             for kk = 1:num_var_layer
                                 eval(['pk.' var_layer{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1))) = mean([pk_all{ii}.layer(tmp2).' var_layer{kk} '(1:pk.ind_overlap(ii, 1)); pk.' var_layer{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1)))], ''omitnan'');'])
-                                tmp3                = pk_all{ii}.layer(tmp2); % intermediate step because of some variable assignment restriction
+                                tmp3 = pk_all{ii}.layer(tmp2); % intermediate step because of some variable assignment restriction
                                 eval(['pk.' var_layer{kk} '(jj, tmp1((pk.ind_overlap(ii, 1) + 1):end)) = tmp3.' var_layer{kk} '((pk.ind_overlap(ii, 1) + 1):end);'])
                             end
                             for kk = 1:num_var_layer_gimp
                                 eval(['pk.' var_layer_gimp{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1))) = mean([pk_all{ii}.layer(tmp2).' var_layer_gimp{kk} '(1:pk.ind_overlap(ii, 1)); pk.' var_layer_gimp{kk} '(jj, tmp1(1:pk.ind_overlap(ii, 1)))], ''omitnan'');'])
-                                tmp3            = pk_all{ii}.layer(tmp2); % intermediate step because of some variable assignment restriction
+                                tmp3 = pk_all{ii}.layer(tmp2); % intermediate step because of some variable assignment restriction
                                 eval(['pk.' var_layer_gimp{kk} '(jj, tmp1((pk.ind_overlap(ii, 1) + 1):end)) = tmp3.' var_layer_gimp{kk} '((pk.ind_overlap(ii, 1) + 1):end);'])
                             end
                         end
@@ -3810,10 +3808,6 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Pop out map
 
     function pop_map(source, eventdata)
-        if (~license('checkout', 'map_toolbox') || ~exist('num_coast', 'var'))
-            set(status_box, 'string', 'Cannot make map without Mapping Toolbox.')
-            return
-        end
         set(0, 'DefaultFigureWindowStyle', 'default')
         figure('position', [200 200 800 600]);
         hold on
@@ -4354,7 +4348,7 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Test something
 
     function misctest(source, eventdata)
-        
+       
         set(status_box, 'string', 'Test complete.')
     end
 
