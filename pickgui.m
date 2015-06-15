@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 06/14/15
+% Last updated: 06/15/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -95,7 +95,7 @@ else
 end
 
 % pre-allocate a bunch of variables
-[aresp_avail, aresp_done, bed_avail, depth_avail, do_surfbed, flat_done, keep_phase_done, keep_aresp_done, load_done, load_flat, match_done, phase_avail, phase_done, pk_done, ref_done, smooth_done, surf_avail, trim_done] ...
+[aresp_avail, aresp_done, bed_avail, depth_avail, do_keep_pk, do_surfbed, flat_done, keep_phase_done, keep_aresp_done, load_done, load_flat, match_done, phase_avail, phase_done, pk_done, ref_done, smooth_done, surf_avail, trim_done] ...
                             = deal(false);
 [amp_depth, amp_flat_mean, amp_mean, block, button, curr_chunk, curr_layer, dist_chunk, elev_surf_gimp, ii, ind_bed, ind_bed_flat, ind_decim, ind_decim_flat, ind_surf, ind_surf_flat, ind_decim_flat_old, ind_x_pk, ind_y_aresp, ind_y_curr, ind_y_flat, ind_y_mat, ind_y_phase, ind_y_pk, jj, kk, ...
  num_chunk, num_decim, num_decim_flat, num_sample_trim, p_aresp, p_arespdepth, p_bed, p_beddepth, p_bedflat, p_data, p_man, p_mandepth, p_phase, p_phasedepth, p_pk, p_pkdepth, p_pkflat, p_ref, p_refdepth, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, p_startphase, p_startphasedepth, ...
@@ -317,6 +317,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         set(pkgui, 'windowbuttondownfcn', '')
         
         tmp1                = file_data;
+        do_keep_pk          = false;
         
         % see if user just wants to move on to next data block
         if ~isempty(file_data)
@@ -333,6 +334,10 @@ set(disp_group, 'selectedobject', disp_check(1))
                     if strcmpi(get(pkgui, 'currentcharacter'), 'Y')
                         file_data ...
                             = [file_data(1:(end - 6)) tmp2 '.mat'];
+                        if pk_done
+                            do_keep_pk ...
+                                = true;
+                        end
                     end
                 end
             end
@@ -605,6 +610,9 @@ set(disp_group, 'selectedobject', disp_check(1))
         load_done           = true;
         plot_twtt
         set(status_box, 'string', 'Block loaded.')
+        if do_keep_pk
+            load_ref
+        end
     end
 
 %% Trim excess data (e.g., before surface reflection and after deepest bed reflection)
@@ -741,7 +749,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             plot_twtt
         end
         
-        tmp1                = file_data(1:11);
+        set(pkgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
+        
+        tmp1                = file_data(1:11); % transect code
         tmp2                = path_data(end - 1);
         if (isnan(str2double(tmp2)) || ~isreal(str2double(tmp2))) % check for a/b/c/etc in file_pk_short
             if ispc
@@ -751,9 +761,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
         else
             if ispc
-                tmp3        = '..\..\pk\';
+                tmp3        = ['..\..\pk\' tmp2 '\'];
             else
-                tmp3        = '../../pk/';
+                tmp3        = ['../../pk/' tmp2 '/'];
             end
         end
         
@@ -791,6 +801,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         if isempty(file_pk)
             file_pk         = tmp1;
             set(status_box, 'string', 'No picks loaded.')
+            set(pkgui, 'windowbuttondownfcn', @mouse_click)
             return
         end
         
@@ -800,6 +811,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 set(status_box, 'string', ['Selected picks file (' file_pk(1:(end - 4)) ') might not match data file. Continue loading? Y: yes; otherwise: no...'])
                 waitforbuttonpress
                 if ~strcmpi(get(pkgui, 'currentcharacter'), 'Y')
+                    set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                     set(status_box, 'string', 'Loading of picks file cancelled.')
                     return
                 end
@@ -817,6 +829,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         
         if ~pk.num_layer
+            set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             set(status_box, 'string', 'Picks file has no picks.')
             return
         end
@@ -1276,6 +1289,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         show_man
         show_pk
         show_smooth
+        set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
         if load_flat
             set(status_box, 'string', ['Picks loaded from ' file_pk(1:(end - 4)) '.'])
         else
@@ -1378,18 +1392,25 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = deal('');
                     end
                 elseif (exist([path_pk file_pk(1:(end - 9 - tmp3)) tmp1 '_pk.mat'], 'file') && exist([path_pk file_pk(1:(end - 9 - tmp3)) tmp2 '_pk.mat'], 'file'))
-                    set(status_box, 'string', 'Left (L) or right (R) reference picks?')
-                    waitforbuttonpress
-                    if strcmpi(get(pkgui, 'currentcharacter'), 'L')
+                    if do_keep_pk
                         file_ref ...
                             = [file_pk(1:(end - 9 - tmp3)) tmp1 '_pk.mat'];
                         ref_start_or_end ...
                             = 'start';
-                    elseif strcmpi(get(pkgui, 'currentcharacter'), 'R')
-                        file_ref ...
-                            = [file_pk(1:(end - 9 - tmp3)) tmp2 '_pk.mat'];
-                        ref_start_or_end ...
-                            = 'end';
+                    else
+                        set(status_box, 'string', 'Left (L) or right (R) reference picks?')
+                        waitforbuttonpress
+                        if strcmpi(get(pkgui, 'currentcharacter'), 'L')
+                            file_ref ...
+                                = [file_pk(1:(end - 9 - tmp3)) tmp1 '_pk.mat'];
+                            ref_start_or_end ...
+                                = 'start';
+                        elseif strcmpi(get(pkgui, 'currentcharacter'), 'R')
+                            file_ref ...
+                                = [file_pk(1:(end - 9 - tmp3)) tmp2 '_pk.mat'];
+                            ref_start_or_end ...
+                                = 'end';
+                        end
                     end
                 end
             end
@@ -1489,7 +1510,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         set(ref_check, 'value', 1)
         ref_done        = true;
         show_ref
-        set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)        
+        set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
         set(status_box, 'string', ['Reference picks loaded from ' file_ref(1:(end - 4)) '.'])
     end
 
