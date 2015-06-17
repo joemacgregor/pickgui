@@ -14,7 +14,7 @@ function mergegui(varargin)
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 06/14/15
+% Last updated: 06/16/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -3935,7 +3935,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                                     set(tmp3, 'color', colors_age(ii, :))
                                 end
                                 if (ii == curr_layer)
-                                    set(tmp1, 'markersize', 24)
+                                    set(tmp3, 'markersize', 24)
                                 end
                             end
                         else
@@ -4348,7 +4348,7 @@ set(cb_group, 'selectedobject', cb_check(1))
 %% Test something
 
     function misctest(source, eventdata)
-       
+        
         set(status_box, 'string', 'Test complete.')
     end
 
