@@ -14,7 +14,7 @@ function mergegui(varargin)
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 06/16/15
+% Last updated: 06/19/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -642,7 +642,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         [p_pk, p_pkdepth]   = deal(NaN(1, pk.num_layer));
         layer_str           = num2cell(1:pk.num_layer);
         for ii = 1:pk.num_layer
-            if all(isnan(pk.elev_smooth(ii, ind_decim)))
+            if all(isnan(pk.elev_smooth_gimp(ii, ind_decim)))
                 p_pk(ii)    = plot(0, 0, 'w.', 'markersize', 1, 'visible', 'off');
                 layer_str{ii} ...
                             = [num2str(layer_str{ii}) ' H'];

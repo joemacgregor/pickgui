@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 06/15/15
+% Last updated: 06/19/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -2140,19 +2140,22 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 if (ii > 1)
                     delete(p_man((pk.num_man + 1), 1))
-                    if depth_avail
+                    if (depth_avail && ishandle(p_mandepth((pk.num_man + 1), 1)))
                         delete(p_mandepth((pk.num_man + 1), 1))
                     end
                 end
                 p_man((pk.num_man + 1), 1) ...
-                            = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'wx', 'markersize', 12, 'visible', 'off'); % original picks
+                            = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'rx', 'markersize', 12, 'visible', 'off'); % original picks
                 p_man((pk.num_man + 1), 2) ...
                             = NaN;
-                if depth_avail
+                if (depth_avail && ~isempty(find(~isnan(ind_surf(ind_x_pk)), 1)))
                     p_mandepth((pk.num_man + 1), 1) ...
-                            = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk - ind_surf(ind_x_pk) + 1)), 'wx', 'markersize', 12, 'visible', 'off');
+                            = plot(block.dist_lin(ind_x_pk(~isnan(ind_surf(ind_x_pk))), (1e6 .* block.twtt(ind_y_pk - ind_surf(ind_x_pk(~isnan(ind_surf(ind_x_pk))))) + 1)), 'rx', 'markersize', 12, 'visible', 'off');
                     p_mandepth((pk.num_man + 1), 2) ...
                             = NaN;
+                elseif depth_avail
+                    p_mandepth((pk.num_man + 1), :) ...
+                            = NaN(1, 2);
                 end
                 switch disp_type
                     case 'twtt'
@@ -2168,7 +2171,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 [ind_x_pk, ind_y_pk] ...
                             = deal(ind_x_pk(1:(end - 1)), ind_y_pk(1:(end - 1)));
                 delete(p_man((pk.num_man + 1), 1))
-                if depth_avail
+                if (depth_avail && ishandle(p_mandepth((pk.num_man + 1), 1)))
                     delete(p_mandepth((pk.num_man + 1), 1))
                 end
                 if (ii > 2)
@@ -2176,7 +2179,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'wx', 'markersize', 12, 'visible', 'off');
                     p_man((pk.num_man + 1), 2) ...
                             = NaN;
-                    if depth_avail
+                    if (depth_avail && ~isempty(find(~isnan(ind_surf(ind_x_pk)), 1)))
                         p_mandepth((pk.num_man + 1), 1) ...
                             = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk - ind_surf(ind_x_pk) + 1)), 'wx', 'markersize', 12, 'visible', 'off');
                         p_mandepth((pk.num_man + 1), 2) ...
@@ -2220,14 +2223,12 @@ set(disp_group, 'selectedobject', disp_check(1))
                     pk.ind_y_man ...
                             = pk.ind_y_man(setdiff(1:pk.num_man, tmp3), :);
                     delete(p_man(tmp3, :))
-                    if depth_avail
-                        delete(p_mandepth(tmp3, :))
-                    end
                     p_man   = p_man(setdiff(1:pk.num_man, tmp3), :);
-                    if depth_avail
-                        p_mandepth ...
-                            = p_mandepth(setdiff(1:pk.num_man, tmp3), :);
+                    if (depth_avail && ishandle(p_mandepth(tmp3, :)))
+                        delete(p_mandepth(tmp3, :))                        
                     end
+                    p_mandepth ...
+                            = p_mandepth(setdiff(1:pk.num_man, tmp3), :);                    
                     pk.num_man ...
                             = pk.num_man - 1;
                     set(status_box, 'string', ['Deleted manual layer #' num2str(tmp3) '.'])
@@ -2280,7 +2281,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 
                 p_man(pk.num_man, 2) ...
                             = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(pk.ind_y_man(pk.num_man, ind_decim)))), 'linewidth', 2, 'color', [0.85 0.85 0.85], 'visible', 'off'); % max-picking spline
-                if depth_avail
+                if (depth_avail && ~isempty(find((~isnan(pk.ind_y_man(pk.num_man, ind_decim)) & ~isnan(ind_surf(ind_decim))), 1)))
                     tmp1    = ind_decim(~isnan(pk.ind_y_man(pk.num_man, ind_decim)) & ~isnan(ind_surf(ind_decim)));
                     tmp2    = round(pk.ind_y_man(pk.num_man, tmp1) - ind_surf(tmp1) + 1);
                     tmp2((tmp2 < 1) | (tmp2 > num_sample_trim)) ...
@@ -4208,7 +4209,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
             if ishandle(p_beddepth)
                 delete(p_beddepth)
-                if (bed_avail && depth_avail)
+                if (bed_avail && depth_avail && ~isempty(find((~isnan(ind_bed(ind_decim)) & ~isnan(ind_surf(ind_decim))), 1)))
                     tmp1    = ind_decim(~isnan(ind_bed(ind_decim)) & ~isnan(ind_surf(ind_decim)));
                     p_beddepth ...
                             = plot(block.dist_lin(tmp1), (1e6 .* (block.twtt_bed(tmp1) - block.twtt_surf(tmp1) + block.twtt(1))), 'm.', 'markersize', 12, 'visible', 'off');
@@ -4232,7 +4233,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
             if ishandle(p_pkdepth(curr_layer))
                 delete(p_pkdepth(curr_layer))
-                if depth_avail
+                if (depth_avail && ~isempty(find((~isnan(pk.layer(curr_layer).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim))), 1)))
                     tmp1    = ind_decim(~isnan(pk.layer(curr_layer).ind_y(ind_decim)) & ~isnan(ind_surf(ind_decim)));
                     tmp2    = pk.layer(curr_layer).ind_y(tmp1) - ind_surf(tmp1) + 1;
                     tmp2((tmp2 < 1) | (tmp2 > num_sample_trim)) ...
@@ -4262,7 +4263,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 tmp1        = ind_decim(~isnan(pk.layer(curr_layer).ind_y_smooth(ind_decim)));
                 p_pksmooth(curr_layer) ...
                             = plot(block.dist_lin(tmp1), (1e6 .* block.twtt(round(pk.layer(curr_layer).ind_y_smooth(tmp1)))), 'g.', 'markersize', 24, 'visible', 'off');
-                if depth_avail
+                if (depth_avail && ~isempty(find((~isnan(pk.layer(curr_layer).ind_y_smooth(ind_decim)) & ~isnan(ind_surf(ind_decim))), 1)))
                     tmp1    = ind_decim(~isnan(pk.layer(curr_layer).ind_y_smooth(ind_decim)) & ~isnan(ind_surf(ind_decim)));
                     tmp2    = pk.layer(curr_layer).ind_y_smooth(tmp1) - ind_surf(tmp1) + 1;
                     tmp2((tmp2 < 1) | (tmp2 > num_sample_trim)) ...
@@ -5121,30 +5122,28 @@ set(disp_group, 'selectedobject', disp_check(1))
         % save many variables in pk structure for easy reference independent of data later on
         [pk.lat, pk.lon, pk.x, pk.y, pk.num_sample, pk.num_trace, pk.file_in, pk.file_block, pk.twtt_min_ref, pk.twtt_max_ref, pk.dist, pk.dist_lin, pk.ind_overlap, pk.elev_air, pk.time] ...
                             = deal(block.lat, block.lon, block.x, block.y, block.num_sample, block.num_trace, block.file_in, file_data(1:(end - 4)), twtt_min_ref, twtt_max_ref, block.dist, block.dist_lin, block.ind_overlap, block.elev_air, block.time);
-        if isfield(block, 'elev_air_gimp')
-            if do_surfbed
-                try
-                    if (isnan(x_gimp)) % only reload if necessary
-                        %load mat/gimp_90m elev_surf_gimp x_gimp y_gimp
-                        tmp2= load('mat/gimp_90m', 'x_gimp', 'y_gimp', 'elev_surf_gimp');
-                        [elev_surf_gimp, x_gimp, y_gimp] ...
-                            = deal(single(tmp2.elev_surf_gimp(1:5:end, 1:5:end)), tmp2.x_gimp(1:5:end), tmp2.y_gimp(1:5:end));
-                        [x_gimp, y_gimp] ...
-                            = meshgrid((1e-3 .* x_gimp), (1e-3 .* y_gimp));
-                    end
-                catch
-                    set(status_box, 'string', 'File mat/gimp_90m.mat unavailable but necessary to fix surface.')
-                    return
+        if (~isfield(block, 'elev_air_gimp') || do_surfbed)
+            try
+                if (isnan(x_gimp)) % only reload if necessary
+                    %load mat/gimp_90m elev_surf_gimp x_gimp y_gimp
+                    tmp2= load('mat/gimp_90m', 'x_gimp', 'y_gimp', 'elev_surf_gimp');
+                    [elev_surf_gimp, x_gimp, y_gimp] ...
+                        = deal(single(tmp2.elev_surf_gimp(1:5:end, 1:5:end)), tmp2.x_gimp(1:5:end), tmp2.y_gimp(1:5:end));
+                    [x_gimp, y_gimp] ...
+                        = meshgrid((1e-3 .* x_gimp), (1e-3 .* y_gimp));
                 end
-                
-                tmp3        = find((x_gimp(1, :) >= (min(block.x) - 2.5)) & (x_gimp(1, :) <= (max(block.x) + 2.5)));
-                tmp4        = find((y_gimp(:, 1) >= (min(block.y) - 2.5)) & (y_gimp(:, 1) <= (max(block.y) + 2.5)));
-                block.elev_air_gimp(~isnan(ind_surf)) ...
-                            = block.elev_air + (interp2(x_gimp(tmp4, tmp3), y_gimp(tmp4, tmp3), elev_surf_gimp(tmp4, tmp3), block.x, block.y, 'spline') - (block.elev_air(~isnan(ind_surf)) - (block.twtt_surf(~isnan(ind_surf)) .* (speed_vacuum / 2)))); % fix GIMP-corrected aircraft elevation
+            catch
+                set(status_box, 'string', 'File mat/gimp_90m.mat unavailable but necessary to fix surface.')
+                return
             end
+            tmp3            = find((x_gimp(1, :) >= (min(block.x) - 2.5)) & (x_gimp(1, :) <= (max(block.x) + 2.5)));
+            tmp4            = find((y_gimp(:, 1) >= (min(block.y) - 2.5)) & (y_gimp(:, 1) <= (max(block.y) + 2.5)));
+            block.elev_air_gimp ...
+                            = NaN(1, block.num_trace);
+            block.elev_air_gimp(~isnan(ind_surf)) ...
+                            = block.elev_air + (interp2(x_gimp(tmp4, tmp3), y_gimp(tmp4, tmp3), elev_surf_gimp(tmp4, tmp3), block.x, block.y, 'spline') - (block.elev_air(~isnan(ind_surf)) - (block.twtt_surf(~isnan(ind_surf)) .* (speed_vacuum / 2)))); % fix GIMP-corrected aircraft elevation
             pk.elev_air_gimp= block.elev_air_gimp;
-        else
-            pk.elev_air_gimp= NaN(1, block.num_trace);
+            do_surfbed      = true;
         end
         pk.twtt_surf        = block.twtt_surf;
         pk.twtt_bed         = block.twtt_bed;
