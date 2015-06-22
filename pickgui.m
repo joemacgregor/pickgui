@@ -4933,25 +4933,28 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(status_box, 'string', 'No picked layers to assign to surface or bed.')
             return
         end
-        set(status_box, 'string', 'Assign current layer? S: surface; B: bed; otherwise: no.')
+        
+        set(pkgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
+        set(status_box, 'string', 'Assign current layer? S: surface; B: bed; otherwise: no...')
         waitforbuttonpress
         
         if strcmpi(get(pkgui, 'currentcharacter'), 'S')
-            
             try
-                if (isnan(x_gimp)) % only reload if necessary
-                    load mat/gimp_90m elev_surf_gimp x_gimp y_gimp
+                if all(isnan(x_gimp)) % only reload if necessary
+                    disp('doh')
+                    tmp1    = load('mat/gimp_90m', 'elev_surf_gimp', 'x_gimp', 'y_gimp');
                     [elev_surf_gimp, x_gimp, y_gimp] ...
-                            = deal(single(elev_surf_gimp(1:5:end, 1:5:end)), x_gimp(1:5:end), y_gimp(1:5:end));
+                            = deal(single(tmp1.elev_surf_gimp(1:5:end, 1:5:end)), tmp1.x_gimp(1:5:end), tmp1.y_gimp(1:5:end));
                     [x_gimp, y_gimp] ...
                             = meshgrid((1e-3 .* x_gimp), (1e-3 .* y_gimp));
                 end
-                tmp1        = find((x_gimp(1, :) >= (min(block.x) - 2.5)) & (x_gimp(1, :) <= (max(block.x) + 2.5)));
-                tmp2        = find((y_gimp(:, 1) >= (min(block.y) - 2.5)) & (y_gimp(:, 1) <= (max(block.y) + 2.5)));
             catch
+                set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                 set(status_box, 'string', 'File mat/gimp_90m.mat unavailable but necessary to fix surface.')
                 return
             end
+            
+            set(status_box, 'string', 'Assigning layer to surface...')
             
             ind_surf        = round(pk.layer(curr_layer).ind_y_smooth);
             block.twtt_surf = NaN(1, block.num_trace);
@@ -4969,7 +4972,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
             p_surf          = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_surf(ind_decim)), 'm.', 'markersize', 12, 'visible', 'off');
             if flat_done
-                if (surf_avail  && ~all(isnan(ind_surf_flat(ind_decim))))
+                if ~all(isnan(ind_surf_flat(ind_decim)))
                     tmp1    = ind_surf_flat(ind_decim_flat);
                     p_surfflat ...
                             = plot(block.dist_lin(ind_decim_flat(~isnan(tmp1))), (1e6 .* block.twtt(tmp1(~isnan(tmp1)))), 'm.', 'markersize', 12, 'visible', 'off');
@@ -5022,9 +5025,12 @@ set(disp_group, 'selectedobject', disp_check(1))
             curr_layer      = pk.num_layer + 1;
             set(layer_list, 'string', [num2cell(1:pk.num_layer) 'surface' 'bed'], 'value', (pk.num_layer + 1))
             show_surfbed
+            set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             set(status_box, 'string', 'Layer assigned to surface.')
             
         elseif strcmpi(get(pkgui, 'currentcharacter'), 'B')
+            
+            set(status_box, 'string', 'Assigning layer to bed...')
             
             ind_bed         = round(pk.layer(curr_layer).ind_y_smooth);
             block.twtt_bed  = NaN(1, block.num_trace);
@@ -5046,7 +5052,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 delete(p_bedflat)
             end
             p_bed           = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_bed(ind_decim)), 'm.', 'markersize', 12, 'visible', 'off');
-            if (bed_avail && depth_avail)
+            if depth_avail
                 tmp1        = ind_decim(~isnan(ind_bed(ind_decim)) & ~isnan(ind_surf(ind_decim)));
                 p_beddepth  = plot(block.dist_lin(tmp1), (1e6 .* (block.twtt_bed(tmp1) - block.twtt_surf(tmp1) + block.twtt(1))), 'm.', 'markersize', 12, 'visible', 'off');
             end
@@ -5061,9 +5067,11 @@ set(disp_group, 'selectedobject', disp_check(1))
             do_surfbed      = true;
             set(layer_list, 'string', [num2cell(1:pk.num_layer) 'surface' 'bed'], 'value', (pk.num_layer + 2))
             show_surfbed
+            set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             set(status_box, 'string', 'Layer assigned to bed.')
             
         else
+            set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             set(status_box, 'string', 'Layer not assigned.')
         end
     end
@@ -5124,7 +5132,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = deal(block.lat, block.lon, block.x, block.y, block.num_sample, block.num_trace, block.file_in, file_data(1:(end - 4)), twtt_min_ref, twtt_max_ref, block.dist, block.dist_lin, block.ind_overlap, block.elev_air, block.time);
         if (~isfield(block, 'elev_air_gimp') || do_surfbed)
             try
-                if (isnan(x_gimp)) % only reload if necessary
+                if all(isnan(x_gimp)) % only reload if necessary
                     %load mat/gimp_90m elev_surf_gimp x_gimp y_gimp
                     tmp2    = load('mat/gimp_90m', 'x_gimp', 'y_gimp', 'elev_surf_gimp');
                     [elev_surf_gimp, x_gimp, y_gimp] ...
