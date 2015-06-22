@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 06/19/15
+% Last updated: 06/22/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -5198,6 +5198,12 @@ set(disp_group, 'selectedobject', disp_check(1))
         imagesc(block.dist_lin((1 + decim):decim:(block.num_trace - decim)), (1e6 .* block.twtt), amp_mean, [db_min db_max])
         hold on
         colormap(bone)
+        if surf_avail
+            plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_surf(ind_decim)), 'm.', 'markersize', 12)
+        end
+        if bed_avail
+            plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_bed(ind_decim)), 'm.', 'markersize', 12)
+        end
         for ii = 1:pk.num_layer
             plot(block.dist_lin(ind_decim), (1e6 .* pk.layer(ii).twtt_smooth(ind_decim)), 'g.', 'markersize', 12)
         end
@@ -6591,13 +6597,10 @@ set(disp_group, 'selectedobject', disp_check(1))
                 caxis([db_min db_max])
                 if get(surfbed_check, 'value')
                     if surf_avail
-                        tmp1= plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_surf(ind_decim)), 'm.', 'markersize', 12);
+                        plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_surf(ind_decim)), 'm.', 'markersize', 12)
                     end
                     if bed_avail
-                        tmp1= plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_bed(ind_decim)), 'm.', 'markersize', 12);
-                        if any(isnan(ind_bed))
-                            set(tmp1, 'marker', '.', 'linestyle', 'none', 'markersize', 12)
-                        end
+                        plot(block.dist_lin(ind_decim), (1e6 .* block.twtt_bed(ind_decim)), 'm.', 'markersize', 12)
                     end
                 end
                 if get(ref_check, 'value')
@@ -6662,7 +6665,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 if get(surfbed_check, 'value')
                     if bed_avail
                         tmp1= ind_decim(~isnan(ind_bed) & ~isnan(ind_surf));
-                        tmp2= plot(block.dist_lin(tmp1), (1e6 .* (block.twtt_bed(tmp1) - block.twtt_surf(tmp1))), 'm.', 'markersize', 12);
+                        plot(block.dist_lin(tmp1), (1e6 .* (block.twtt_bed(tmp1) - block.twtt_surf(tmp1))), 'm.', 'markersize', 12)
                     end
                 end
                 if get(ref_check, 'value')
@@ -6750,11 +6753,11 @@ set(disp_group, 'selectedobject', disp_check(1))
                 imagesc(block.dist_lin(ind_decim_flat), (1e6 .* block.twtt), amp_flat_mean, [db_min db_max])
                 if get(surfbed_check, 'value')
                     if surf_avail
-                        tmp1        = ind_surf_flat(ind_decim_flat);
+                        tmp1= ind_surf_flat(ind_decim_flat);
                         plot(block.dist_lin(ind_decim_flat(~isnan(tmp1))), (1e6 .* block.twtt(tmp1(~isnan(tmp1)))), 'g.', 'markersize', 12)
                     end
                     if bed_avail
-                        tmp1        = ind_bed_flat(ind_decim_flat);
+                        tmp1= ind_bed_flat(ind_decim_flat);
                         plot(block.dist_lin(ind_decim_flat(~isnan(tmp1))), (1e6 .* block.twtt(tmp1(~isnan(tmp1)))), 'g.', 'markersize', 12)
                     end
                 end
