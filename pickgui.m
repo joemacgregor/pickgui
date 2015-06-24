@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 06/22/15
+% Last updated: 06/24/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -5133,7 +5133,6 @@ set(disp_group, 'selectedobject', disp_check(1))
         if (~isfield(block, 'elev_air_gimp') || do_surfbed)
             try
                 if all(isnan(x_gimp)) % only reload if necessary
-                    %load mat/gimp_90m elev_surf_gimp x_gimp y_gimp
                     tmp2    = load('mat/gimp_90m', 'x_gimp', 'y_gimp', 'elev_surf_gimp');
                     [elev_surf_gimp, x_gimp, y_gimp] ...
                             = deal(single(tmp2.elev_surf_gimp(1:5:end, 1:5:end)), tmp2.x_gimp(1:5:end), tmp2.y_gimp(1:5:end));
