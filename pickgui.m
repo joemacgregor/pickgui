@@ -839,6 +839,21 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(surfbed_check, 'value', 1)
         end
         
+        if (isfield(block, 'twtt_surf') && isfield(pk, 'twtt_surf'))
+            if ~isequal(block.twtt_surf, pk.twtt_surf)
+                block.twtt_surf ...
+                            = pk.twtt_surf;
+                do_surfbed  = true;
+            end
+        end
+        if (isfield(block, 'twtt_bed') && isfield(pk, 'twtt_bed'))
+            if ~isequal(block.twtt_bed, pk.twtt_bed)
+                block.twtt_bed...
+                            = pk.twtt_bed;
+                do_surfbed  = true;
+            end
+        end
+        
         [aresp_done, flat_done, keep_aresp_done, keep_phase_done, load_flat, match_done, phase_done, pk_done] ...
                             = deal(false);
         
@@ -4059,7 +4074,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 
                 if (strcmpi(char(tmp2), 'L') || strcmpi(char(tmp2), 'R') || strcmpi(char(tmp2), 'C'))
                     
-                    tmp1        = cell(1, 2);
+                    tmp1    = cell(1, 2);
                     switch char(tmp2)
                         case {'l' 'L'}
                             [tmp1{1}, tmp1{2}] ...
@@ -4106,8 +4121,12 @@ set(disp_group, 'selectedobject', disp_check(1))
             elseif strcmpi(char(button), 'Q')
                 
                 if (curr_layer == (pk.num_layer + 1))
+                    do_surfbed ...
+                            = true;
                     set(status_box, 'string', 'Done adjusting surface.')
                 elseif (curr_layer == (pk.num_layer + 2))
+                    do_surfbed ...
+                            = true;
                     set(status_box, 'string', 'Done adjusting bed.')
                 else
                     pk_sort
@@ -5130,6 +5149,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         % save many variables in pk structure for easy reference independent of data later on
         [pk.lat, pk.lon, pk.x, pk.y, pk.num_sample, pk.num_trace, pk.file_in, pk.file_block, pk.twtt_min_ref, pk.twtt_max_ref, pk.dist, pk.dist_lin, pk.ind_overlap, pk.elev_air, pk.time] ...
                             = deal(block.lat, block.lon, block.x, block.y, block.num_sample, block.num_trace, block.file_in, file_data(1:(end - 4)), twtt_min_ref, twtt_max_ref, block.dist, block.dist_lin, block.ind_overlap, block.elev_air, block.time);
+        
         if (~isfield(block, 'elev_air_gimp') || do_surfbed)
             try
                 if all(isnan(x_gimp)) % only reload if necessary
@@ -5149,11 +5169,13 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = NaN(1, block.num_trace);
             if (~isempty(tmp3) && ~isempty(tmp4))
                 block.elev_air_gimp(~isnan(ind_surf)) ...
-                            = block.elev_air + (interp2(x_gimp(tmp4, tmp3), y_gimp(tmp4, tmp3), elev_surf_gimp(tmp4, tmp3), block.x, block.y, 'spline') - (block.elev_air(~isnan(ind_surf)) - (block.twtt_surf(~isnan(ind_surf)) .* (speed_vacuum / 2)))); % fix GIMP-corrected aircraft elevation
+                            = block.elev_air(~isnan(ind_surf)) + (interp2(x_gimp(tmp4, tmp3), y_gimp(tmp4, tmp3), elev_surf_gimp(tmp4, tmp3), block.x(~isnan(ind_surf)), block.y(~isnan(ind_surf)), 'spline') - ...
+                              (block.elev_air(~isnan(ind_surf)) - (block.twtt_surf(~isnan(ind_surf)) .* (speed_vacuum / 2)))); % fix GIMP-corrected aircraft elevation
             end
             pk.elev_air_gimp= block.elev_air_gimp;
             do_surfbed      = true;
         end
+        
         pk.twtt_surf        = block.twtt_surf;
         pk.twtt_bed         = block.twtt_bed;
         
