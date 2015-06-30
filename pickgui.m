@@ -112,7 +112,7 @@ amp_flat                    = NaN;
 set(0, 'DefaultFigureWindowStyle', 'docked')
 if ispc % windows switch
     pkgui                   = figure('toolbar', 'figure', 'name', 'PICKGUI', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress, 'windowscrollwheelfcn', @wheel_zoom, 'windowbuttondownfcn', @mouse_click);
-    ax_radar                = subplot('position', [0.065 0.06 1.42 0.81]);
+    ax_radar                = subplot('position', [0.065 0.06 0.86 0.81]);
     size_font               = 14;
     width_slide             = 0.01;
 else
