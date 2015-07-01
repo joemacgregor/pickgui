@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 06/24/15
+% Last updated: 07/01/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -110,14 +110,15 @@ amp_flat                    = NaN;
 %% Draw the GUI
 
 set(0, 'DefaultFigureWindowStyle', 'docked')
+pkgui                       = figure('toolbar', 'figure', 'name', 'PICKGUI', 'menubar', 'none', 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click);
+if ~nargin
+    set(pkgui, 'windowscrollwheelfcn', @wheel_zoom)
+end
+ax_radar                    = subplot('position', [0.065 0.06 0.86 0.81]);
 if ispc % windows switch
-    pkgui                   = figure('toolbar', 'figure', 'name', 'PICKGUI', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress, 'windowscrollwheelfcn', @wheel_zoom, 'windowbuttondownfcn', @mouse_click);
-    ax_radar                = subplot('position', [0.065 0.06 0.86 0.81]);
     size_font               = 14;
     width_slide             = 0.01;
 else
-    pkgui                   = figure('toolbar', 'figure', 'name', 'PICKGUI', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress, 'windowscrollwheelfcn', @wheel_zoom, 'windowbuttondownfcn', @mouse_click);
-    ax_radar                = subplot('position', [0.065 0.06 0.86 0.81]);
     size_font               = 18;
     width_slide             = 0.02;
 end
@@ -314,7 +315,7 @@ set(disp_group, 'selectedobject', disp_check(1))
 
     function load_data(source, eventdata) %#ok<*INUSD>
         
-        set(pkgui, 'windowbuttondownfcn', '')
+        set(pkgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         
         tmp1                = file_data;
         do_keep_pk          = false;
@@ -329,6 +330,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     tmp2    = num2str(tmp2);
                 end
                 if exist([path_data file_data(1:(end - 6)) tmp2 '.mat'], 'file')
+                    set(pkgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
                     set(status_box, 'string', 'Load next block in transect? Y: yes; otherwise: no...')
                     waitforbuttonpress
                     if strcmpi(get(pkgui, 'currentcharacter'), 'Y')
@@ -339,11 +341,12 @@ set(disp_group, 'selectedobject', disp_check(1))
                                 = true;
                         end
                     end
+                    set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                 end
             end
         end
         
-        set(pkgui, 'windowbuttondownfcn', @mouse_click)
+        set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
         
         % dialog box to choose radar data file to load
         if (isempty(file_data) || strcmp(tmp1, file_data))
@@ -801,13 +804,14 @@ set(disp_group, 'selectedobject', disp_check(1))
         if isempty(file_pk)
             file_pk         = tmp1;
             set(status_box, 'string', 'No picks loaded.')
-            set(pkgui, 'windowbuttondownfcn', @mouse_click)
+            set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             return
         end
         
         % check against data file
         try %#ok<TRYNC>
             if ~strcmp(file_data(1:(end - 4)), file_pk(1:(end - 7)))
+                set(pkgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
                 set(status_box, 'string', ['Selected picks file (' file_pk(1:(end - 4)) ') might not match data file. Continue loading? Y: yes; otherwise: no...'])
                 waitforbuttonpress
                 if ~strcmpi(get(pkgui, 'currentcharacter'), 'Y')
@@ -815,6 +819,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     set(status_box, 'string', 'Loading of picks file cancelled.')
                     return
                 end
+                set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             end
         end
         
@@ -1395,6 +1400,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     ref_start_or_end ...
                             = 'start';
                 elseif (~exist([path_pk file_pk(1:(end - 9 - tmp3)) tmp1 '_pk.mat'], 'file') && exist([path_pk file_pk(1:(end - 9 - tmp3)) tmp2 '_pk.mat'], 'file'))
+                    set(pkgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
                     set(status_box, 'string', 'Only right-hand-side reference picks available. Load these? Y: yes; otherwise: no...')
                     waitforbuttonpress
                     if strcmpi(get(pkgui, 'currentcharacter'), 'Y')
@@ -1406,6 +1412,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                         [file_ref, ref_start_or_end] ...
                             = deal('');
                     end
+                    set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                 elseif (exist([path_pk file_pk(1:(end - 9 - tmp3)) tmp1 '_pk.mat'], 'file') && exist([path_pk file_pk(1:(end - 9 - tmp3)) tmp2 '_pk.mat'], 'file'))
                     if do_keep_pk
                         file_ref ...
@@ -1413,6 +1420,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                         ref_start_or_end ...
                             = 'start';
                     else
+                        set(pkgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
                         set(status_box, 'string', 'Left (L) or right (R) reference picks?')
                         waitforbuttonpress
                         if strcmpi(get(pkgui, 'currentcharacter'), 'L')
@@ -1426,6 +1434,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                             ref_start_or_end ...
                                 = 'end';
                         end
+                        set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                     end
                 end
             end
@@ -1783,6 +1792,8 @@ set(disp_group, 'selectedobject', disp_check(1))
                 if depth_avail
                     set(p_phasedepth(ind_y_pk), 'color', 'w')
                 end
+                
+                set(pkgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
                 waitforbuttonpress
                 
                 if (double(get(pkgui, 'currentcharacter')) == 13)
@@ -1799,6 +1810,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     end
                     set(status_box, 'string', 'Then pick again...')
                 end
+                set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             end
         end
         
@@ -2069,6 +2081,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     set(p_arespdepth(ind_y_pk), 'color', 'w')
                 end
                 
+                set(pkgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
                 waitforbuttonpress
                 
                 if (double(get(pkgui, 'currentcharacter')) == 13)
@@ -2087,6 +2100,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     end
                     set(status_box, 'string', 'Then pick again...')
                 end
+                set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             end
         end
         
@@ -3861,10 +3875,12 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(status_box, 'string', 'No picked layers to delete yet.')
             return
         end
+        set(pkgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         set(status_box, 'string', 'Delete current layer? Y: yes; otherwise: no.')
         waitforbuttonpress
         if ~strcmpi(get(pkgui, 'currentcharacter'), 'Y')
             set(status_box, 'string', 'Layer deletion cancelled.')
+            set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             return
         end
         pk_del_breakout
@@ -3878,6 +3894,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         pause(0.1)
         pk_select
+        set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
     end
 
     function pk_del_breakout(source, eventdata)
@@ -4325,6 +4342,8 @@ set(disp_group, 'selectedobject', disp_check(1))
             pk_merge
         end
         
+        set(pkgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
+        
         if (curr_layer == (pk.num_layer + 1))
             set(status_box, 'string', 'Pick layer to merge with surface (Q: cancel)...')
         elseif (curr_layer == (pk.num_layer + 2))
@@ -4339,6 +4358,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         [ind_x_pk, ind_y_pk, button] ...
                             = ginput(1);
         if strcmpi(char(button), 'Q')
+            set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             set(status_box, 'string', 'Layer merging cancelled.')
             return
         end
@@ -4399,14 +4419,17 @@ set(disp_group, 'selectedobject', disp_check(1))
             tmp1            = tmp2;
         end
         if (tmp1 == curr_layer)
+            set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             set(status_box, 'string', 'Aborted merging because picked layer is the same as current layer.')
             return
         end
         if isempty(tmp1)
+            set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             set(status_box, 'string', 'No layer picked to be merged. Pick more precisely.')
             return
         end
         if (((tmp1 == (pk.num_layer + 1)) && (curr_layer == (pk.num_layer + 2))) || ((tmp1 == (pk.num_layer + 2)) && (curr_layer == (pk.num_layer + 1))))
+            set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             set(status_box, 'string', 'Cannot merge surface and bed.')
             return
         end
@@ -4705,6 +4728,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         show_surfbed
         show_pk
         show_smooth
+        set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
     end
 
 %% Smooth picked layers
@@ -4836,6 +4860,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             plot_twtt
         end
         if ~ref_done
+            set(pkgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
             set(status_box, 'string', 'First picked block of the sub-transect? Y: yes; otherwise: no.')
             waitforbuttonpress
             if strcmpi(get(pkgui, 'currentcharacter'), 'Y')
@@ -4844,9 +4869,11 @@ set(disp_group, 'selectedobject', disp_check(1))
                 set(status_box, 'string', 'Layer numbers set.')
                 pk.ind_match_max ...
                             = pk.num_layer;
+                        set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                 return
             else
                 set(status_box, 'string', 'No reference layers loaded to match to.')
+                set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                 return
             end
         end
@@ -7102,13 +7129,11 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Mouse wheel shortcut
 
     function wheel_zoom(~, eventdata)
-        if ~nargin
-            switch eventdata.VerticalScrollCount
-                case -1
-                    zoom_in
-                case 1
-                    zoom_out
-            end
+        switch eventdata.VerticalScrollCount
+            case -1
+                zoom_in
+            case 1
+                zoom_out
         end
     end
 

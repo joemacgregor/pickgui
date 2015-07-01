@@ -11,7 +11,7 @@ function fencegui(varargin)
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 06/10/15
+% Last updated: 07/01/15
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -96,14 +96,12 @@ letters                     = 'a':'z';
 %% draw first GUI
 
 set(0, 'DefaultFigureWindowStyle', 'docked')
+fgui(1)                     = figure('toolbar', 'figure', 'name', 'FENCEGUI 3D', 'menubar', 'none', 'keypressfcn', @keypress1);
+ax(1)                       = subplot('position', [0.08 0.10 0.84 0.81]);
 if ispc % windows switch
-    fgui(1)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 3D', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress1);
-    ax(1)                   = subplot('position', [0.08 0.10 1.38 0.81]);
     size_font               = 14;
     width_slide             = 0.01;
 else
-    fgui(1)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 3D', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress1);
-    ax(1)                   = subplot('position', [0.08 0.10 0.84 0.81]);
     size_font               = 18;
     width_slide             = 0.02;
 end
@@ -229,15 +227,12 @@ master_check                = uicontrol(fgui(1), 'style', 'checkbox', 'units', '
 
 %% draw second GUI
 
-if ispc % windows switch
-    fgui(2)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress2, 'windowscrollwheelfcn', @wheel_zoom, 'windowbuttondownfcn', @mouse_click);
-    ax(2)                   = subplot('position', [0.065 0.06 0.41 0.81]);
-    ax(3)                   = subplot('position', [0.55 0.06 0.41 0.81]);
-else
-    fgui(2)                 = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress2, 'windowscrollwheelfcn', @wheel_zoom, 'windowbuttondownfcn', @mouse_click);
-    ax(2)                   = subplot('position', [0.065 0.06 0.41 0.81]);
-    ax(3)                   = subplot('position', [0.55 0.06 0.41 0.81]);
+fgui(2)                     = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'menubar', 'none', 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click);
+if nargin
+    set(fgui(2), 'windowscrollwheelfcn', @wheel_zoom)
 end
+ax(2)                       = subplot('position', [0.065 0.06 0.41 0.81]);
+ax(3)                       = subplot('position', [0.55 0.06 0.41 0.81]);
 
 set(ax(2:3), 'fontsize', size_font, 'layer', 'top')
 
@@ -461,6 +456,7 @@ linkaxes(ax(2:3), 'y')
             return
         end
         if isempty(radar_type)
+            set(fgui(1), 'keypressfcn', '')
             set(status_box(1), 'string', 'Deep (D) or accumulation (A) radar?...')
             waitforbuttonpress
             switch get(fgui(1), 'currentcharacter')
@@ -471,9 +467,11 @@ linkaxes(ax(2:3), 'y')
                     radar_type ...
                             = 'accum';
                 otherwise
+                    set(fgui(1), 'keypressfcn', @keypress1)
                     set(status_box(1), 'string', 'Choice unclear. Try again.')
                     return
             end
+            set(fgui(1), 'keypressfcn', @keypress1)
         end
         if ispc
             if exist('\\melt\icebridge\data\mat\', 'dir')
@@ -854,12 +852,15 @@ linkaxes(ax(2:3), 'y')
             if ((curr_rad == 1) && pk_done(1))
                 tmp1        = get(int_list, 'string');
                 if ~strcmp(tmp1{get(int_list, 'value')}, file_pk{1}(1:11))
+                    set(fgui(1), 'keypressfcn', '')
                     set(status_box(1), 'string', 'Chosen picks filename does not match selected transect. Continue loading? Y: yes; otherwise: no...')
                     waitforbuttonpress
                     if ~strcmpi(get(fgui(1), 'currentcharacter'), 'Y')
                         set(status_box(1), 'string', 'Loading of picks file cancelled.')
+                        set(fgui(1), 'keypressfcn', @keypress1)
                         return
                     end
+                    set(fgui(1), 'keypressfcn', @keypress1)
                 end
                 % check for sub-transects, populate list if present
                 if (length(dir([path_pk{1} tmp1{get(int_list, 'value')} '*.mat'])) > 1)
@@ -986,6 +987,7 @@ linkaxes(ax(2:3), 'y')
         
         % fix for 2011 P3/TO ambiguity
         if (strcmp(radar_type, 'deep') && (ii == 17))
+            set(fgui(1), 'keypressfcn', '')
             set(status_box(1), 'string', '2011 TO (press T)?')
             waitforbuttonpress
             if strcmpi(get(fgui(1), 'currentcharacter'), 'T')
@@ -998,11 +1000,13 @@ linkaxes(ax(2:3), 'y')
                     end
                 end
                 if strcmp(tmp2, 'fail')
+                    set(fgui(1), 'keypressfcn', @keypress1)
                     set(status_box(1), 'string', 'Transect incorrectly identified as 2011 TO. Try again.')
                     clear_data
                     return
                 end
             end
+            set(fgui(1), 'keypressfcn', @keypress1)
         end
         
         switch curr_rad
@@ -2072,12 +2076,13 @@ amp_depth{curr_rad} = 0;
             set(status_box(2), 'string', 'Picks must be loaded for both master and intersecting transects.')
             return
         end
-        
+
+        set(fgui(2), 'keypressfcn', '', 'windowbuttondownfcn', '')
         set(status_box(2), 'string', 'Unmatch current pair? (Y: yes; otherwise: cancel)...')
-        
         waitforbuttonpress
         
         if ~strcmpi(get(fgui(2), 'currentcharacter'), 'Y')
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             set(status_box(2), 'string', 'Unmatching cancelled.')
             return
         end
@@ -2089,6 +2094,7 @@ amp_depth{curr_rad} = 0;
             pk{1}.ind_layer = pk{1}.ind_layer(setdiff(1:size(pk{1}.ind_layer, 1), find(((pk{1}.ind_layer(:, 1) == curr_layer(1)) & (pk{1}.ind_layer(:, 5) == curr_layer(2))))), :);
             pk{2}.ind_layer = pk{2}.ind_layer(setdiff(1:size(pk{2}.ind_layer, 1), find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 5) == curr_layer(1))))), :);
         else
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             set(status_box(2), 'string', 'Current layer pair not matched. Unmatching cancelled.')
             return
         end
@@ -2149,6 +2155,7 @@ amp_depth{curr_rad} = 0;
             end
         end
         
+        set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
         set(status_box(2), 'string', ['Intersecting layer # ' num2str(curr_layer(2)) ' unmatched from master layer #' num2str(curr_layer(1)) '.'])
     end
 
@@ -4714,23 +4721,21 @@ amp_depth{curr_rad} = 0;
 %% Mouse wheel shortcut
 
     function wheel_zoom(~, eventdata)
-        if nargin
-            switch eventdata.VerticalScrollCount
-                case -1
-                    tmp1    = dist_max(curr_rad) - dist_min(curr_rad);
-                    tmp2    = [(dist_min(curr_rad) + (0.25 * tmp1)) (dist_max(curr_rad) - (0.25 * tmp1))];
-                    tmp3    = elev_max(curr_gui) - elev_min(curr_gui);
-                    tmp4    = [(elev_min(curr_gui) + (0.25 * tmp3)) (elev_max(curr_gui) - (0.25 * tmp3))];
-                    set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
-                    panzoom
-                case 1
-                    tmp1    = dist_max(curr_rad) - dist_min(curr_rad);
-                    tmp2    = [(dist_min(curr_rad) - (0.25 * tmp1)) (dist_max(curr_rad) + (0.25 * tmp1))];
-                    tmp3    = elev_max(curr_gui) - elev_min(curr_gui);
-                    tmp4    = [(elev_min(curr_gui) - (0.25 * tmp3)) (elev_max(curr_gui) + (0.25 * tmp3))];
-                    set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
-                    panzoom
-            end
+        switch eventdata.VerticalScrollCount
+            case -1
+                tmp1        = dist_max(curr_rad) - dist_min(curr_rad);
+                tmp2        = [(dist_min(curr_rad) + (0.25 * tmp1)) (dist_max(curr_rad) - (0.25 * tmp1))];
+                tmp3        = elev_max(curr_gui) - elev_min(curr_gui);
+                tmp4        = [(elev_min(curr_gui) + (0.25 * tmp3)) (elev_max(curr_gui) - (0.25 * tmp3))];
+                set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
+                panzoom
+            case 1
+                tmp1        = dist_max(curr_rad) - dist_min(curr_rad);
+                tmp2        = [(dist_min(curr_rad) - (0.25 * tmp1)) (dist_max(curr_rad) + (0.25 * tmp1))];
+                tmp3    	= elev_max(curr_gui) - elev_min(curr_gui);
+                tmp4        = [(elev_min(curr_gui) - (0.25 * tmp3)) (elev_max(curr_gui) + (0.25 * tmp3))];
+                set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
+                panzoom
         end
     end
 

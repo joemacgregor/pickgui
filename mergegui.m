@@ -14,7 +14,7 @@ function mergegui(varargin)
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 06/19/15
+% Last updated: 07/01/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -117,14 +117,15 @@ end
 %% draw GUI
 
 set(0, 'DefaultFigureWindowStyle', 'docked')
+mgui                        = figure('toolbar', 'figure', 'name', 'MERGEGUI', 'menubar', 'none', 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click);
+if ~nargin
+    set(mgui, 'windowscrollwheelfcn', @wheel_zoom)
+end
+ax_radar                    = subplot('position', [0.065 0.06 0.86 0.81]);
 if ispc % windows switch
-    mgui                    = figure('toolbar', 'figure', 'name', 'MERGEGUI', 'position', [1920 940 1 1], 'menubar', 'none', 'keypressfcn', @keypress, 'windowscrollwheelfcn', @wheel_zoom, 'windowbuttondownfcn', @mouse_click);
-    ax_radar                = subplot('position', [0.065 0.06 1.42 0.81]);
     size_font               = 14;
     width_slide             = 0.01;
 else
-    mgui                    = figure('toolbar', 'figure', 'name', 'MERGEGUI', 'position', [1864 1100 1 1], 'menubar', 'none', 'keypressfcn', @keypress, 'windowscrollwheelfcn', @wheel_zoom, 'windowbuttondownfcn', @mouse_click);
-    ax_radar                = subplot('position', [0.065 0.06 0.86 0.81]);
     size_font               = 18;
     width_slide             = 0.02;
 end
@@ -314,7 +315,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         
         % Dialog box to choose picks file to load
-        set(mgui, 'keypressfcn', [])
+        set(mgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         set(status_box, 'string', 'Load pick files (F) or directory (D)?')
         waitforbuttonpress
         if strcmpi(get(mgui, 'currentcharacter'), 'F')
@@ -352,11 +353,11 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
         else
             set(status_box, 'string', 'Choice unclear. Try again.')
-            set(mgui, 'keypressfcn', @keypress)
+            set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             return
         end
         
-        set(mgui, 'keypressfcn', @keypress)
+        set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
         
         if isempty(file_pk)
             file_pk         = tmp1;
@@ -870,7 +871,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         if data_done
             data_done       = false;
         end
-        
+                
         load_data_breakout
     end
 
@@ -1038,9 +1039,10 @@ set(cb_group, 'selectedobject', cb_check(1))
         for ii = 1:num_decim
             amp_depth(1:(num_sample - ind_surf(ii) + 1), ii) ...
                             = amp_elev(ind_surf(ii):num_sample, ii); % shift data up to surface
+            amp_elev        = topocorr(amp_depth, depth, tmp3); % topographically correct data
         end
-        amp_elev            = topocorr(amp_depth, depth, tmp3); % topographically correct data
         amp_elev            = flipud(amp_elev); % flip for axes
+        
         depth               = (speed_ice / 2) .* (0:dt:((num_sample - 1) * dt))'; % simple monotonically increasing depth vector
         elev                = flipud(max(pk.elev_surf_gimp(ind_decim)) - depth); % elevation vector
         
@@ -1142,6 +1144,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         depth_curr          = [zeros(1, num_decim); pk.depth_smooth(:, ind_decim)];
         
         % keep the maximum number of layers or user-selected trace for first go
+        set(mgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         set(status_box, 'string', 'Select trace to flatten (Y) or let MERGEGUI select automatically...')
         waitforbuttonpress
         if strcmpi(get(mgui, 'currentcharacter'), 'Y')
@@ -1165,8 +1168,6 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         set(status_box, 'string', ['Starting polynomial fits using ' num2str(length(tmp2)) ' / ' num2str(pk.num_layer) ' layers...'])
         pause(0.1)
-        
-        set(mgui, 'keypressfcn', [])
         
         if parallel_check
             pctRunOnAll warning('off', 'MATLAB:polyfit:RepeatedPointsOrRescale')
@@ -1332,7 +1333,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         flatten_breakout
         
-        set(mgui, 'keypressfcn', @keypress)
+        set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
         
     end
 
@@ -1643,9 +1644,11 @@ set(cb_group, 'selectedobject', cb_check(1))
             set(status_box, 'string', 'No layers to delete yet. Load picks first.')
             return
         end
+        set(mgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         set(status_box, 'string', 'Delete current layer? Y: yes; otherwise: no.')
         waitforbuttonpress
         if ~strcmpi(get(mgui, 'currentcharacter'), 'Y')
+            set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             set(status_box, 'string', 'Layer deletion cancelled.')
             return
         end
@@ -1691,6 +1694,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         set(status_box, 'string', ['Layer #' num2str(curr_layer) ' deleted.'])
         pk_select
+        set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
     end
 
 %% Switch to previous/next layer in list
@@ -1718,6 +1722,9 @@ set(cb_group, 'selectedobject', cb_check(1))
             return
         end
         
+        
+        set(mgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
+        
         set(status_box, 'string', ['Pick layer to merge with layer #' num2str(curr_layer) ' (Q: cancel)...'])
         pause(0.1)
         
@@ -1728,6 +1735,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                             = ginput(1);
         
         if strcmpi(char(button), 'Q')
+            set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             set(status_box, 'string', 'Layer merging cancelled.')
             return
         end
@@ -1782,9 +1790,10 @@ set(cb_group, 'selectedobject', cb_check(1))
                 set(p_pkflat(tmp1), 'color', colors(tmp1, :))
             end
             set(status_box, 'string', 'Layer merging cancelled.')
+            set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             return
         end
-        
+                
         % assign layer variables in tmp1 that aren't nan to the same layer variable in curr_layer
         for ii = 1:num_var_layer
             eval(['pk.' var_layer{ii} '(curr_layer, ~isnan(pk.' var_layer{ii} '(tmp1, :))) = pk.' var_layer{ii} '(tmp1, ~isnan(pk. ' var_layer{ii} '(tmp1, :)));']);
@@ -1870,6 +1879,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         set(layer_list, 'value', curr_layer)
         pk_select
+        set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
     end
 
 %% Split layer
@@ -1881,6 +1891,8 @@ set(cb_group, 'selectedobject', cb_check(1))
             return
         end
         
+        set(mgui, 'keypressfcn', '', 'windowbuttondownfcn', '')        
+        
         set(status_box, 'string', ['Pick location to split layer #' num2str(curr_layer) ' (Q: cancel)...'])
         pause(0.1)
         
@@ -1891,6 +1903,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                             = ginput(1);
         
         if strcmpi(char(button), 'Q')
+            set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             set(status_box, 'string', 'Layer splitting cancelled.')
             return
         end
@@ -1991,6 +2004,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         set(layer_list, 'value', curr_layer)
         pk_select
+        set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
     end
 
 %% Save merged picks
@@ -2011,14 +2025,17 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         % didn't get to flatten :(
         if ~flat_done
+            set(mgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
             set(status_box, 'string', 'Merged layers not flattened...continue saving? Y: yes; otherwise: no.')
             waitforbuttonpress
             if ~strcmpi(get(mgui, 'currentcharacter'), 'Y')
                 set(status_box, 'string', 'Saving cancelled.')
+                set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                 return
             end
             pk.poly_flat_merge ...
                             = [];
+            set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
         end
         
         pk.merge_flag       = true; % will help when merged picks are loaded later
@@ -2060,33 +2077,33 @@ set(cb_group, 'selectedobject', cb_check(1))
             
             save([path_save file_save], '-v7.3', 'pk')
             
-            % make a simple figure that also gets saved
-            set(0, 'DefaultFigureWindowStyle', 'default')
-            pkfig           = figure('position', [10 10 1600 1000]);
-            imagesc(pk.dist_lin(ind_decim), elev, amp_elev, [db_min db_max])
-            hold on
-            axis xy tight
-            colormap(bone)
-            for ii = 1:pk.num_layer
-                plot(pk.dist_lin(ind_decim), pk.elev_smooth_gimp(ii, ind_decim), '.', 'color', colors(ii, :), 'markersize', 12)
-            end
-            if core_done
-                tmp1            = find(~isnan(ind_int));
-                for ii = 1:num_int
-                    plot(pk.dist_lin(ind_int(tmp1(ii))), get(gca, 'ylim'), 'm', 'linewidth', 2)
-                    text(double(pk.dist_lin(ind_int(tmp1(ii))) + 1), double(elev_max_ref - 250), name_core{int_core{curr_year}{curr_trans}(tmp1(ii), 3)}, 'color', 'm', 'fontsize', size_font)
+            if data_done
+                % make a simple figure that also gets saved
+                set(0, 'DefaultFigureWindowStyle', 'default')
+                pkfig       = figure('position', [10 10 1600 1000]);
+                imagesc(pk.dist_lin(ind_decim), elev, amp_elev, [db_min db_max])
+                hold on
+                axis xy tight
+                colormap(bone)
+                for ii = 1:pk.num_layer
+                    plot(pk.dist_lin(ind_decim), pk.elev_smooth_gimp(ii, ind_decim), '.', 'color', colors(ii, :), 'markersize', 12)
                 end
+                if core_done
+                    tmp1    = find(~isnan(ind_int));
+                    for ii = 1:num_int
+                        plot(pk.dist_lin(ind_int(tmp1(ii))), get(gca, 'ylim'), 'm', 'linewidth', 2)
+                        text(double(pk.dist_lin(ind_int(tmp1(ii))) + 1), double(elev_max_ref - 250), name_core{int_core{curr_year}{curr_trans}(tmp1(ii), 3)}, 'color', 'm', 'fontsize', size_font)
+                    end
+                end
+                set(gca, 'fontsize', 18)
+                xlabel('Distance (km)')
+                ylabel('Elevation (m)')
+                title(file_pk_short, 'fontweight', 'bold', 'interpreter', 'none')
+                grid on
+                box on
+                print(pkfig, '-dpng', [path_save file_save(1:(end - 4)) '.png'])
             end
-            set(gca, 'fontsize', 18)
-            xlabel('Distance (km)')
-            ylabel('Elevation (m)')
-            title(file_pk_short, 'fontweight', 'bold', 'interpreter', 'none')
-            grid on
-            box on
-            print(pkfig, '-dpng', [path_save file_save(1:(end - 4)) '.png'])
-            
             set(status_box, 'string', ['Merged picks saved as ' file_save(1:(end - 4)) ' in ' path_save '.'])
-            
         end
     end
 
@@ -2100,6 +2117,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         
         if isempty(radar_type)
+            set(mgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
             set(status_box, 'string', 'Deep (D) or accumulation (A) radar?...')
             waitforbuttonpress
             switch get(mgui, 'currentcharacter')
@@ -2110,9 +2128,11 @@ set(cb_group, 'selectedobject', cb_check(1))
                     radar_type ...
                             = 'accum';
                 otherwise
+                    set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                     set(status_box, 'string', 'Choice unclear. Try again.')
                     return
             end
+            set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
         end
         
         if merge_file
@@ -2224,6 +2244,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             
             % fix for 2011 P3/TO ambiguity
             if (strcmp(radar_type, 'deep') && (ii == 17))
+                set(mgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
                 set(status_box, 'string', '2011 TO (press T)?')
                 waitforbuttonpress
                 if strcmpi(get(mgui, 'currentcharacter'), 'T')
@@ -2237,10 +2258,12 @@ set(cb_group, 'selectedobject', cb_check(1))
                         end
                     end
                     if strcmp(tmp2, 'fail')
+                        set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                         set(status_box, 'string', 'Transect incorrectly identified as 2011 TO. Try again.')
                         return
                     end
                 end
+                set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             end
             
             [curr_year, curr_trans] ...
@@ -2438,6 +2461,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             
             % fix for 2011 P3/TO ambiguity
             if (strcmp(radar_type, 'deep') && (ii == 17))
+                set(mgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
                 set(status_box, 'string', '2011 TO (press T)?')
                 waitforbuttonpress
                 if strcmpi(get(mgui, 'currentcharacter'), 'T')
@@ -2451,10 +2475,12 @@ set(cb_group, 'selectedobject', cb_check(1))
                         end
                     end
                     if strcmp(tmp2, 'fail')
+                        set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                         set(status_box, 'string', 'Transect incorrectly identified as 2011 TO. Try again.')
                         return
                     end
                 end
+                set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             end
             
             [curr_year, curr_trans] ...
