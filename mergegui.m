@@ -14,7 +14,7 @@ function mergegui(varargin)
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 07/01/15
+% Last updated: 07/02/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -1038,9 +1038,9 @@ set(cb_group, 'selectedobject', cb_check(1))
         amp_depth           = NaN(size(amp_elev), 'single');
         for ii = 1:num_decim
             amp_depth(1:(num_sample - ind_surf(ii) + 1), ii) ...
-                            = amp_elev(ind_surf(ii):num_sample, ii); % shift data up to surface
-            amp_elev        = topocorr(amp_depth, depth, tmp3); % topographically correct data
+                            = amp_elev(ind_surf(ii):num_sample, ii); % shift data up to surface            
         end
+        amp_elev            = topocorr(amp_depth, depth, tmp3); % topographically correct data
         amp_elev            = flipud(amp_elev); % flip for axes
         
         depth               = (speed_ice / 2) .* (0:dt:((num_sample - 1) * dt))'; % simple monotonically increasing depth vector
