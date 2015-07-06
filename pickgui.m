@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 07/01/15
+% Last updated: 07/06/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -71,7 +71,7 @@ decim_flat                  = 5;
 pk.num_win                  = 1; % +/- number of vertical indices in window within which to search for peak/trough in flattened layers
 pk.length_smooth            = 1; % km length over which layers will be smoothed
 pk.freq                     = 195e6; % radar center frequency
-pk.twtt_match               = 0.01e-6; % traveltime range about which to search for matching layers
+pk.twtt_match               = 0.05e-6; % traveltime range about which to search for matching layers
 ord_poly                    = 3; % order of polynomial fit
 
 [num_win_ref, length_smooth_ref, freq_ref, twtt_match_ref] ...
@@ -845,14 +845,14 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         
         if (isfield(block, 'twtt_surf') && isfield(pk, 'twtt_surf'))
-            if ~isequal(block.twtt_surf, pk.twtt_surf)
+            if (~isequal(block.twtt_surf, pk.twtt_surf) && ~isempty(find(~isnan(pk.twtt_surf), 1)))
                 block.twtt_surf ...
                             = pk.twtt_surf;
                 do_surfbed  = true;
             end
         end
         if (isfield(block, 'twtt_bed') && isfield(pk, 'twtt_bed'))
-            if ~isequal(block.twtt_bed, pk.twtt_bed)
+            if (~isequal(block.twtt_bed, pk.twtt_bed) && ~isempty(find(~isnan(pk.twtt_bed), 1)))
                 block.twtt_bed...
                             = pk.twtt_bed;
                 do_surfbed  = true;
