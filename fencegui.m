@@ -11,7 +11,7 @@ function fencegui(varargin)
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 07/01/15
+% Last updated: 07/07/15
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -228,7 +228,7 @@ master_check                = uicontrol(fgui(1), 'style', 'checkbox', 'units', '
 %% draw second GUI
 
 fgui(2)                     = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'menubar', 'none', 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click);
-if nargin
+if ~nargin
     set(fgui(2), 'windowscrollwheelfcn', @wheel_zoom)
 end
 ax(2)                       = subplot('position', [0.065 0.06 0.41 0.81]);
@@ -590,7 +590,6 @@ linkaxes(ax(2:3), 'y')
         for ii = 1:2
             for jj = 1:2
                 delete([p_core{jj, ii}(ishandle(p_core{jj, ii})) p_corename{jj, ii}(ishandle(p_corename{jj, ii}))])
-                delete()
             end
             delete([p_coredepth{ii}(ishandle(p_coredepth{ii})) p_corenamedepth{ii}(ishandle(p_corenamedepth{ii}))])
         end
