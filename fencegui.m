@@ -408,7 +408,7 @@ linkaxes(ax(2:3), 'y')
 %% Clear plots
 
     function clear_plots(source, eventdata)
-        delete([p_bed(ishandle(p_bed(:, curr_rad)), curr_rad) p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})) p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad})) p_data(ishandle(p_data(:, curr_rad)), curr_rad) p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad})) ...
+        delete([p_bed(ishandle(p_bed(:, curr_rad)), curr_rad); p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})); p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad})); p_data(ishandle(p_data(:, curr_rad)), curr_rad); p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad}))'; ...
                 p_surf(ishandle(p_surf(:, curr_rad)), curr_rad)])
         if ishandle(p_beddepth(curr_rad))
             delete(p_beddepth(curr_rad))
@@ -2326,6 +2326,7 @@ amp_depth{curr_rad} = 0;
             return
         end
         
+        % move on to next intersecting file
         if (get(int_list, 'value') < length(get(int_list, 'string')))
             set(int_list, 'value', (get(int_list, 'value') + 1))
             load_pk2
