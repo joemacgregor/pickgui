@@ -11,7 +11,7 @@ function fencegui(varargin)
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 07/07/15
+% Last updated: 07/10/15
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -3382,7 +3382,7 @@ amp_depth{curr_rad} = 0;
         set(z_max_slide(curr_gui), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min(curr_gui))
         set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_max(curr_gui)))
         set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_min(curr_gui)))
-        if (data_done(curr_rad) && data_check(curr_gui, curr_rad))
+        if (data_done(curr_rad) && get(data_check(curr_gui, curr_rad), 'value'))
             switch curr_gui
                 case 1
                     set(status_box(1), 'string', 'Displaying radargram in 3D GUI...')
