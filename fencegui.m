@@ -3846,7 +3846,9 @@ amp_depth{curr_rad} = 0;
         for ii = 1:2
             for jj = 1:3
                 set(p_int1{ii, jj}(ishandle(p_int1{ii, jj})), 'linewidth', 2)
-                set(p_int1{ii, jj}(curr_int), 'linewidth', 4)
+                if any(ishandle(p_int1{ii, jj}(curr_int)))
+                    set(p_int1{ii, jj}(curr_int), 'linewidth', 4)
+                end
             end
         end
         [dist_min(1), dist_max(1), dist_min(2), dist_max(2)] ...
