@@ -11,7 +11,7 @@ function fencegui(varargin)
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 07/10/15
+% Last updated: 07/13/15
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -408,7 +408,7 @@ linkaxes(ax(2:3), 'y')
 %% Clear plots
 
     function clear_plots(source, eventdata)
-        delete([p_bed(ishandle(p_bed(:, curr_rad)), curr_rad); p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad})); p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad})); p_data(ishandle(p_data(:, curr_rad)), curr_rad); p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad}))'; ...
+        delete([p_bed(ishandle(p_bed(:, curr_rad)), curr_rad); p_coredepth{curr_rad}(ishandle(p_coredepth{curr_rad}))'; p_corenamedepth{curr_rad}(ishandle(p_corenamedepth{curr_rad}))'; p_data(ishandle(p_data(:, curr_rad)), curr_rad); p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad}))'; ...
                 p_surf(ishandle(p_surf(:, curr_rad)), curr_rad)])
         if ishandle(p_beddepth(curr_rad))
             delete(p_beddepth(curr_rad))
@@ -3707,7 +3707,7 @@ amp_depth{curr_rad} = 0;
             end
                 num_decim(curr_rad) ...
                             = length(ind_decim{curr_rad});
-            delete([p_bed(ishandle(p_bed(:, curr_rad)), curr_rad) p_beddepth(ishandle(p_beddepth)) p_surf(ishandle(p_surf(:, curr_rad)), curr_rad)])
+            delete([p_bed(ishandle(p_bed(:, curr_rad)), curr_rad); p_beddepth(ishandle(p_beddepth))'; p_surf(ishandle(p_surf(:, curr_rad)), curr_rad)])
             for ii = 1:2
                 delete([p_pk{ii, curr_rad}(ishandle(p_pk{ii, curr_rad})) p_pkdepth{curr_rad}(ishandle(p_pkdepth{curr_rad}))])
             end
