@@ -2171,7 +2171,7 @@ amp_depth{curr_rad} = 0;
             return
         end
         
-        if (isempty(pk{1}.ind_layer) || isempty(pk{2}.ind_layer))
+        if (isempty(find(ismember(pk{1}.ind_layer(:, 2:4), [curr_year(2) curr_trans(2) curr_subtrans(2)], 'rows'), 1)) || isempty(find(ismember(pk{2}.ind_layer(:, 2:4), [curr_year(1) curr_trans(1) curr_subtrans(1)], 'rows'), 1)))
             set(status_box(1), 'string', 'No new layers matched. No need to save intersecting picks.')
             return
         end
