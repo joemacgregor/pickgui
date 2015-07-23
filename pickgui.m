@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 07/06/15
+% Last updated: 07/23/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -5199,12 +5199,12 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = block.elev_air(~isnan(ind_surf)) + (interp2(x_gimp(tmp4, tmp3), y_gimp(tmp4, tmp3), elev_surf_gimp(tmp4, tmp3), block.x(~isnan(ind_surf)), block.y(~isnan(ind_surf)), 'spline') - ...
                               (block.elev_air(~isnan(ind_surf)) - (block.twtt_surf(~isnan(ind_surf)) .* (speed_vacuum / 2)))); % fix GIMP-corrected aircraft elevation
             end
-            pk.elev_air_gimp= block.elev_air_gimp;
             do_surfbed      = true;
         end
         
         pk.twtt_surf        = block.twtt_surf;
         pk.twtt_bed         = block.twtt_bed;
+        pk.elev_air_gimp    = block.elev_air_gimp;
         
         % get traveltimes and echo intensities from indices, and adjust indices as appropriate assuming trimming has occurred
         pk.elev_surf        = block.elev_air - (block.twtt_surf .* (speed_vacuum / 2)); % ice-sheet surface elevation (used to calculate layer elevations)
