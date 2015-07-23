@@ -11,7 +11,7 @@ function fencegui(varargin)
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 07/13/15
+% Last updated: 07/23/15
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -1549,11 +1549,12 @@ linkaxes(ax(2:3), 'y')
         end
         [amp_elev{curr_rad}, ind_corr{curr_rad}] ...
                             = topocorr(amp_depth{curr_rad}, depth{curr_rad}, tmp3); % topographically correct data
-
-%%%
-amp_depth{curr_rad} = 0;
-%%%
-                        
+        
+        if strcmp(radar_type, 'deep')
+            amp_depth{curr_rad} ...
+                            = 0;
+        end
+        
         amp_elev{curr_rad}  = flipud(amp_elev{curr_rad}); % flip for axes
         ind_corr{curr_rad}  = max(ind_corr{curr_rad}) - ind_corr{curr_rad} + 1;
         depth{curr_rad}     = (speed_ice / 2) .* (0:dt(curr_rad):((num_sample(curr_rad) - 1) * dt(curr_rad)))'; % simple monotonically increasing depth vector
@@ -3393,24 +3394,33 @@ amp_depth{curr_rad} = 0;
                                    'facecolor', 'flat', 'edgecolor', 'none', 'facelighting', 'none');
                     set(status_box(1), 'string', 'Displayed. Changing view will be slower.')
                     reset_xyz
+                    narrow_cb
+                    show_data
+                    show_core
+                    show_pk
+                    show_int
                 case 2
-                    set(data_check(curr_gui, curr_rad), 'value', 1)
-                    axes(ax(curr_ax))
-                    set(z_min_slide(curr_gui), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max(curr_gui))
-                    set(z_max_slide(curr_gui), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min(curr_gui))
-                    set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_max(curr_gui)))
-                    set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_min(curr_gui)))
-                    axis xy
-                    ylim([elev_min(curr_gui) elev_max(curr_gui)])
-                    p_data(curr_gui, curr_rad) ...
-                        = imagesc(dist_lin{curr_rad}(ind_decim{curr_rad}), elev{curr_rad}, amp_elev{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
-                    reset_xz
+                    for ii = 2:3
+                        [curr_ax, curr_rad] ...
+                            = deal(ii, (ii - 1));
+                        set(data_check(curr_gui, curr_rad), 'value', 1)
+                        axes(ax(curr_ax))
+                        set(z_min_slide(curr_gui), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_max(curr_gui))
+                        set(z_max_slide(curr_gui), 'min', elev_min_ref, 'max', elev_max_ref, 'value', elev_min(curr_gui))
+                        set(z_min_edit(curr_gui), 'string', sprintf('%4.0f', elev_max(curr_gui)))
+                        set(z_max_edit(curr_gui), 'string', sprintf('%4.0f', elev_min(curr_gui)))
+                        axis xy
+                        ylim([elev_min(curr_gui) elev_max(curr_gui)])
+                        p_data(curr_gui, curr_rad) ...
+                            = imagesc(dist_lin{curr_rad}(ind_decim{curr_rad}), elev{curr_rad}, amp_elev{curr_rad}, [db_min(curr_ax) db_max(curr_ax)]);
+                        reset_xz
+                        narrow_cb
+                        show_data
+                        show_core
+                        show_pk
+                        show_int
+                    end
             end
-            narrow_cb
-            show_data
-            show_core
-            show_pk
-            show_int
         end
     end
 
@@ -3518,8 +3528,8 @@ amp_depth{curr_rad} = 0;
         if pk_done(curr_rad)
             if get(pk_check(curr_gui, curr_rad), 'value')
                 if ((curr_gui == 1) || strcmp(disp_type, 'elev.'))
-                        set(p_pk{curr_gui, curr_rad}(ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'on')
-                        uistack(p_pk{curr_gui, curr_rad}(ishandle(p_pk{curr_gui, curr_rad})), 'top')
+                    set(p_pk{curr_gui, curr_rad}(ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'on')
+                    uistack(p_pk{curr_gui, curr_rad}(ishandle(p_pk{curr_gui, curr_rad})), 'top')
                     if ishandle(p_surf(curr_gui, curr_rad))
                         set(p_surf(curr_gui, curr_rad), 'visible', 'on')
                         uistack(p_surf(curr_gui, curr_rad), 'top')
@@ -3538,7 +3548,7 @@ amp_depth{curr_rad} = 0;
                     if ishandle(p_beddepth(curr_rad))
                         set(p_beddepth(curr_rad), 'visible', 'on')
                     end
-                        set(p_pk{curr_gui, curr_rad}(ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'off')
+                    set(p_pk{curr_gui, curr_rad}(ishandle(p_pk{curr_gui, curr_rad})), 'visible', 'off')
                     if ishandle(p_surf(curr_gui, curr_rad))
                         set(p_surf(curr_gui, curr_rad), 'visible', 'off')
                     end
