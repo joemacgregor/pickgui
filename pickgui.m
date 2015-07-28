@@ -262,8 +262,9 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Clear plots
 
     function clear_plots(source, eventdata)
-        delete([p_aresp(ishandle(p_aresp)) p_man(ishandle(p_man))' p_mandepth(ishandle(p_mandepth))' p_phase(ishandle(p_phase)) p_pk(ishandle(p_pk)) p_pkdepth(ishandle(p_pkdepth)) p_pkflat(ishandle(p_pkflat)) p_pksmooth(ishandle(p_pksmooth)) p_pksmoothdepth(ishandle(p_pksmoothdepth)) ...
-                p_pksmoothflat(ishandle(p_pksmoothflat))])
+        delete([p_aresp(ishandle(p_aresp)) p_phase(ishandle(p_phase)) p_pk(ishandle(p_pk)) p_pkdepth(ishandle(p_pkdepth)) p_pkflat(ishandle(p_pkflat)) p_pksmooth(ishandle(p_pksmooth)) p_pksmoothdepth(ishandle(p_pksmoothdepth)) p_pksmoothflat(ishandle(p_pksmoothflat))])
+        delete(p_man(ishandle(p_man)))
+        delete(p_mandepth(ishandle(p_mandepth)))
         if ishandle(p_startphase)
             delete(p_startphase)
         end
