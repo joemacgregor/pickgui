@@ -2175,12 +2175,12 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 
                 p_man((pk.num_man + 1), 1) ...
-                            = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'rx', 'markersize', 12, 'visible', 'off'); % original picks
+                            = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'wx', 'markersize', 12, 'visible', 'off'); % original picks
                 p_man((pk.num_man + 1), 2) ...
                             = NaN;
                 if (depth_avail && ~isempty(find(~isnan(ind_surf(ind_x_pk)), 1)))
                     p_mandepth((pk.num_man + 1), 1) ...
-                            = plot(block.dist_lin(ind_x_pk(~isnan(ind_surf(ind_x_pk)))), (1e6 .* block.twtt(ind_y_pk - ind_surf(ind_x_pk(~isnan(ind_surf(ind_x_pk)))) + 1)), 'rx', 'markersize', 12, 'visible', 'off');
+                            = plot(block.dist_lin(ind_x_pk(~isnan(ind_surf(ind_x_pk)))), (1e6 .* block.twtt(ind_y_pk - ind_surf(ind_x_pk(~isnan(ind_surf(ind_x_pk)))) + 1)), 'wx', 'markersize', 12, 'visible', 'off');
                     p_mandepth((pk.num_man + 1), 2) ...
                             = NaN;
                 elseif depth_avail
@@ -2313,8 +2313,9 @@ set(disp_group, 'selectedobject', disp_check(1))
                 pk.ind_y_man(pk.num_man, ((pk.ind_y_man(pk.num_man, :) < 1) | (pk.ind_y_man(pk.num_man, :) > num_sample_trim))) ...
                             = NaN;
                 
+                tmp1        = ind_decim(~isnan(pk.ind_y_man(pk.num_man, ind_decim)));
                 p_man(pk.num_man, 2) ...
-                            = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(pk.ind_y_man(pk.num_man, ind_decim)))), 'linewidth', 2, 'color', [0.85 0.85 0.85], 'visible', 'off'); % max-picking spline
+                            = plot(block.dist_lin(tmp1), (1e6 .* block.twtt(round(pk.ind_y_man(pk.num_man, tmp1)))), 'linewidth', 2, 'color', [0.85 0.85 0.85], 'visible', 'off'); % max-picking spline
                 if (depth_avail && ~isempty(find((~isnan(pk.ind_y_man(pk.num_man, ind_decim)) & ~isnan(ind_surf(ind_decim))), 1)))
                     tmp1    = ind_decim(~isnan(pk.ind_y_man(pk.num_man, ind_decim)) & ~isnan(ind_surf(ind_decim)));
                     tmp2    = round(pk.ind_y_man(pk.num_man, tmp1) - ind_surf(tmp1) + 1);
