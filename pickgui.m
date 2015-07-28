@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 07/23/15
+% Last updated: 07/28/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -72,7 +72,7 @@ pk.num_win                  = 1; % +/- number of vertical indices in window with
 pk.length_smooth            = 1; % km length over which layers will be smoothed
 pk.freq                     = 195e6; % radar center frequency
 pk.twtt_match               = 0.05e-6; % traveltime range about which to search for matching layers
-ord_poly                    = 3; % order of polynomial fit
+ord_poly                    = 2; % order of polynomial fit
 
 [num_win_ref, length_smooth_ref, freq_ref, twtt_match_ref] ...
                             = deal(pk.num_win, pk.length_smooth, pk.freq, pk.twtt_match);
@@ -2169,17 +2169,18 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 if (ii > 1)
                     delete(p_man((pk.num_man + 1), 1))
-                    if (depth_avail && ishandle(p_mandepth((pk.num_man + 1), 1)))
+                    if depth_avail
                         delete(p_mandepth((pk.num_man + 1), 1))
                     end
                 end
+                
                 p_man((pk.num_man + 1), 1) ...
                             = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'rx', 'markersize', 12, 'visible', 'off'); % original picks
                 p_man((pk.num_man + 1), 2) ...
                             = NaN;
                 if (depth_avail && ~isempty(find(~isnan(ind_surf(ind_x_pk)), 1)))
                     p_mandepth((pk.num_man + 1), 1) ...
-                            = plot(block.dist_lin(ind_x_pk(~isnan(ind_surf(ind_x_pk))), (1e6 .* block.twtt(ind_y_pk - ind_surf(ind_x_pk(~isnan(ind_surf(ind_x_pk))))) + 1)), 'rx', 'markersize', 12, 'visible', 'off');
+                            = plot(block.dist_lin(ind_x_pk(~isnan(ind_surf(ind_x_pk)))), (1e6 .* block.twtt(ind_y_pk - ind_surf(ind_x_pk(~isnan(ind_surf(ind_x_pk)))) + 1)), 'rx', 'markersize', 12, 'visible', 'off');
                     p_mandepth((pk.num_man + 1), 2) ...
                             = NaN;
                 elseif depth_avail
@@ -2200,7 +2201,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 [ind_x_pk, ind_y_pk] ...
                             = deal(ind_x_pk(1:(end - 1)), ind_y_pk(1:(end - 1)));
                 delete(p_man((pk.num_man + 1), 1))
-                if (depth_avail && ishandle(p_mandepth((pk.num_man + 1), 1)))
+                if depth_avail
                     delete(p_mandepth((pk.num_man + 1), 1))
                 end
                 if (ii > 2)
@@ -2307,6 +2308,10 @@ set(disp_group, 'selectedobject', disp_check(1))
                         pk.ind_y_man(pk.num_man, 1:block.num_trace) ...
                             = spline(ind_x_pk, (ind_y_pk - ind_surf(ind_x_pk) + 1), 1:block.num_trace) + ind_surf - 1; % interpolate spline through picks
                 end
+                
+                % NaN out of bounds
+                pk.ind_y_man(pk.num_man, ((pk.ind_y_man(pk.num_man, :) < 1) | (pk.ind_y_man(pk.num_man, :) > num_sample_trim))) ...
+                            = NaN;
                 
                 p_man(pk.num_man, 2) ...
                             = plot(block.dist_lin(ind_decim), (1e6 .* block.twtt(round(pk.ind_y_man(pk.num_man, ind_decim)))), 'linewidth', 2, 'color', [0.85 0.85 0.85], 'visible', 'off'); % max-picking spline
@@ -2588,14 +2593,23 @@ set(disp_group, 'selectedobject', disp_check(1))
             case 2
                 ind_y_flat  = ((ind_y_mat .^ 2) .* pk.poly_flat(ones(num_sample_trim, 1), :)) + (ind_y_mat .* (pk.poly_flat((2 .* ones(num_sample_trim, 1)), :))) + pk.poly_flat((3 .* ones(num_sample_trim, 1)), :);
             case 3
-                ind_y_flat  = ((ind_y_mat .^ 3) .* pk.poly_flat(ones(num_sample_trim, 1), :)) + ((ind_y_mat .^ 2) .* pk.poly_flat((2 .* ones(num_sample_trim, 1)), :)) + ...
-                              (ind_y_mat .* (pk.poly_flat((3 .* ones(num_sample_trim, 1)), :))) + pk.poly_flat((4 .* ones(num_sample_trim, 1)), :);
+                ind_y_flat  = ((ind_y_mat .^ 3) .* pk.poly_flat(ones(num_sample_trim, 1), :)) + ((ind_y_mat .^ 2) .* pk.poly_flat((2 .* ones(num_sample_trim, 1)), :)) + (ind_y_mat .* (pk.poly_flat((3 .* ones(num_sample_trim, 1)), :))) + pk.poly_flat((4 .* ones(num_sample_trim, 1)), :);
         end
         ind_y_mat           = 0;
+        
+        % prevent out of bounds
         ind_y_flat(ind_y_flat < 1) ...
                             = 1;
         ind_y_flat(ind_y_flat > num_sample_trim) ...
                             = num_sample_trim;
+        
+        % prevent non-unique flattening
+        for ii = 1:block.num_trace
+            if ~isempty(find((diff(ind_y_flat(:, ii)) < 0), 1))
+                ind_y_flat(:, ii) ...
+                            = NaN;
+            end
+        end
         
         set(status_box, 'string', 'Done polynomial fitting. Now flattening radargram...')
         pause(0.1)
@@ -2785,7 +2799,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = deal([]);
         end
         
-        % layer picking callbacks
+        % switch to layer picking callbacks
         tmp3                = pk.num_layer + 1; % used to shorten real/flatten conversion loop after this while picking loop
         set(pkgui, 'keypressfcn', [], 'windowbuttondownfcn', [])
         
@@ -3185,9 +3199,8 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
         end
         
-        set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
-        
         if ~pk.num_layer
+            set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             set(status_box, 'string', 'No layers picked/left.')
             return
         end
@@ -3329,6 +3342,8 @@ set(disp_group, 'selectedobject', disp_check(1))
         match_done          = false;
         pk_smooth
         pk_select
+        set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
+        
     end
 
 %% Propagate layer from pick
