@@ -2386,6 +2386,8 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
         end
         
+        set(pkgui, 'keypressfcn', [], 'windowbuttondownfcn', [])        
+        
         if ishandle(p_surfflat)
             delete(p_surfflat)
         end
@@ -2632,15 +2634,25 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         % flattened radargram based on layer fits
         amp_flat            = NaN(size(block.amp, 1), block.num_trace, 'single');
+        tmp2                = find(sum(~isnan(ind_y_flat)) > 2);
+        if isempty(tmp2)
+            set(status_box, 'string', 'Flattening canceled because of insufficient constraints.')
+            set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
+            return
+        end
+        
         if parallel_check
             tmp1            = block.amp;
-            parfor ii = 1:block.num_trace
-                amp_flat(:, ii) ...
-                            = interp1(tmp1(:, ii), ind_y_flat(:, ii));
+            tmp3            = ind_y_flat(:, tmp2);
+            tmp4            = NaN(num_sample_trim, length(tmp2), 'single');
+            parfor ii = 1:length(tmp2)
+                tmp3(:, ii) = interp1(tmp1(:, ii), tmp3(:, ii));
             end
-            tmp1            = 0;
+            amp_flat(:, tmp2) ...
+                            = tmp4;
+            [tmp1, tmp3]    = deal(0);
         else
-            for ii = 1:block.num_trace
+            for ii = tmp2
                 amp_flat(:, ii) ...
                             = interp1(block.amp(:, ii), ind_y_flat(:, ii));
             end
@@ -2652,7 +2664,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         % flatten surface pick
         ind_surf_flat       = NaN(1, block.num_trace);
         if surf_avail
-            for ii = find(sum(~isnan(ind_y_flat)) > 2)
+            for ii = tmp2
                 ind_surf_flat(ii) ...
                             = interp1(ind_y_flat(~isnan(ind_y_flat(:, ii)), ii), find(~isnan(ind_y_flat(:, ii))), ind_surf(ii), 'nearest', 'extrap');
             end
@@ -2664,7 +2676,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         % flatten bed pick
         ind_bed_flat        = NaN(1, block.num_trace);
         if bed_avail
-            for ii = find(sum(~isnan(ind_y_flat)) > 2)
+            for ii = tmp2
                 ind_bed_flat(ii) ...
                             = interp1(ind_y_flat(~isnan(ind_y_flat(:, ii)), ii), find(~isnan(ind_y_flat(:, ii))), ind_bed(ii), 'nearest', 'extrap');
             end
@@ -2685,7 +2697,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
             [ind_y_flat_mean, ind_y_flat_smooth] ...
                             = deal(NaN(pk.num_layer, num_decim_flat));
-            for ii = find(sum(~isnan(ind_y_flat(:, ind_decim_flat))) > 2)
+            for ii = tmp2
                 ind_y_flat_mean(~isnan(ind_y_curr(:, ind_decim_flat(ii))), ii) ...
                             = interp1(ind_y_flat(~isnan(ind_y_flat(:, ind_decim_flat(ii))), ind_decim_flat(ii)), find(~isnan(ind_y_flat(:, ind_decim_flat(ii)))), ind_y_curr(~isnan(ind_y_curr(:, ind_decim_flat(ii))), ind_decim_flat(ii)), 'nearest', 'extrap');
             end
@@ -2696,6 +2708,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         mean_flat
         pk_select
         set(status_box, 'string', 'Flattened radargram and layers.')
+        set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
     end
 
 %% Horizontally average flattened data

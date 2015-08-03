@@ -14,7 +14,7 @@ function mergegui(varargin)
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 07/02/15
+% Last updated: 08/03/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -986,10 +986,10 @@ set(cb_group, 'selectedobject', cb_check(1))
             
             if (~merge_done && (ii < num_data))
                 pk.ind_trace_start(ii + 1) ...
-                    = pk.ind_trace_start(ii) + tmp1.num_trace;
+                            = pk.ind_trace_start(ii) + tmp1.num_trace;
                 if ~isnan(tmp1.ind_overlap(2))
                     pk.ind_trace_start(ii + 1) ...
-                        = pk.ind_trace_start(ii + 1) - (tmp1.num_trace - tmp1.ind_overlap(2) + 1);
+                            = pk.ind_trace_start(ii + 1) - (tmp1.num_trace - tmp1.ind_overlap(2) + 1);
                 end
             end
             
@@ -1038,7 +1038,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         amp_depth           = NaN(size(amp_elev), 'single');
         for ii = 1:num_decim
             amp_depth(1:(num_sample - ind_surf(ii) + 1), ii) ...
-                            = amp_elev(ind_surf(ii):num_sample, ii); % shift data up to surface            
+                            = amp_elev(ind_surf(ii):num_sample, ii); % shift data up to surface
         end
         amp_elev            = topocorr(amp_depth, depth, tmp3); % topographically correct data
         amp_elev            = flipud(amp_elev); % flip for axes
@@ -1241,17 +1241,29 @@ set(cb_group, 'selectedobject', cb_check(1))
                 depth_mat   = single(depth(:, ones(1, length(tmp1)))); % depth matrix
                 switch ord_poly
                     case 2
-                        depth_flat  = ((depth_mat .^ 2) .* pk.poly_flat_merge(ones(num_sample, 1), tmp1)) + (depth_mat .* (pk.poly_flat_merge((2 .* ones(num_sample, 1)), tmp1))) + pk.poly_flat_merge((3 .* ones(num_sample, 1)), tmp1);
+                        depth_flat ...
+                            = ((depth_mat .^ 2) .* pk.poly_flat_merge(ones(num_sample, 1), tmp1)) + (depth_mat .* (pk.poly_flat_merge((2 .* ones(num_sample, 1)), tmp1))) + pk.poly_flat_merge((3 .* ones(num_sample, 1)), tmp1);
                     case 3
-                        depth_flat  = ((depth_mat .^ 3) .* pk.poly_flat_merge(ones(num_sample, 1), tmp1)) + ((depth_mat .^ 2) .* pk.poly_flat_merge((2 .* ones(num_sample, 1)), tmp1)) + ...
-                                      (depth_mat .* (pk.poly_flat_merge((3 .* ones(num_sample, 1)), tmp1))) + pk.poly_flat_merge((4 .* ones(num_sample, 1)), tmp1);
+                        depth_flat ...
+                            = ((depth_mat .^ 3) .* pk.poly_flat_merge(ones(num_sample, 1), tmp1)) + ((depth_mat .^ 2) .* pk.poly_flat_merge((2 .* ones(num_sample, 1)), tmp1)) + (depth_mat .* (pk.poly_flat_merge((3 .* ones(num_sample, 1)), tmp1))) + ...
+                              pk.poly_flat_merge((4 .* ones(num_sample, 1)), tmp1);
                 end
                 depth_mat   = 0;
-                depth_flat(depth_flat < 0) ...
-                            = 0; % limit too-low depths
-                depth_flat(depth_flat > depth(end)) ...
-                            = depth(end); % limit too-high depths
-                tmp3        = find(sum(~isnan(depth_flat)));
+                depth_flat((depth_flat < 0) | (depth_flat > depth(end))) ...
+                            = NaN; % limit too-high depths
+                        
+                for jj = 1:num_decim
+                    if ~isempty(find((diff(depth_flat(:, jj)) <= 0), 1))
+                        depth_flat((1 + find(diff(depth_flat(:, jj)) <= 0)), jj) ...
+                            = NaN;
+                    end
+                    [tmp3, tmp4] ...
+                            = unique(depth_flat(:, jj));
+                    depth_flat(setdiff((1:num_sample)', tmp4(~isnan(tmp3))), jj) ...
+                            = deal(NaN); % reduce to unique values
+                end
+                
+                tmp3        = find(sum(~isnan(depth_flat)) > 2);
                 
                 % find best-fit value at original trace
                 tmp4        = NaN(1, length(tmp1));
@@ -1265,13 +1277,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 
                 % depth of current layer at reference trace for all overlapping traces
                 for jj = tmp3
-                    [~, tmp2] ...
-                            = unique(depth_flat(:, jj), 'last');
-                    tmp2    = intersect((1 + find(diff(depth_flat(:, jj)) > 0)), tmp2);
-                    if ~isempty(tmp2)
-                        tmp4(jj) ...
-                            = interp1(depth_flat(tmp2, jj), depth(tmp2), depth_curr(ii, tmp1(jj)), 'linear', NaN);
-                    end
+                    tmp4(jj)= interp1(depth_flat(~isnan(depth_flat(:, jj)), jj), depth(~isnan(depth_flat(:, jj))), depth_curr(ii, tmp1(jj)), 'linear', NaN);
                 end
                 
                 depth_layer_ref(ii) ...
@@ -1355,49 +1361,58 @@ set(cb_group, 'selectedobject', cb_check(1))
         depth_mat           = single(depth(:, ones(1, num_decim))); % depth matrix
         switch ord_poly
             case 2
-                depth_flat  = ((depth_mat .^ 2) .* pk.poly_flat_merge(ones(num_sample, 1), :)) + (depth_mat .* (pk.poly_flat_merge((2 .* ones(num_sample, 1)), :))) + pk.poly_flat_merge((3 .* ones(num_sample, 1)), :);                
+                depth_flat  = ((depth_mat .^ 2) .* pk.poly_flat_merge(ones(num_sample, 1), :)) + (depth_mat .* (pk.poly_flat_merge((2 .* ones(num_sample, 1)), :))) + pk.poly_flat_merge((3 .* ones(num_sample, 1)), :);
             case 3
                 depth_flat  = ((depth_mat .^ 3) .* pk.poly_flat_merge(ones(num_sample, 1), :)) + ((depth_mat .^ 2) .* pk.poly_flat_merge((2 .* ones(num_sample, 1)), :)) + (depth_mat .* (pk.poly_flat_merge((3 .* ones(num_sample, 1)), :))) + pk.poly_flat_merge((4 .* ones(num_sample, 1)), :);
         end
         depth_mat           = 0;
-        if any(isnan(depth_flat(:))) % fix nans
-            for ii = find(any(isnan(depth_flat)))
-                if (length(find(~isnan(depth_flat(:, ii)))) > 2)
-                    depth_flat(isnan(depth_flat(:, ii)), ii) ...
+        if any(isnan(depth_flat(:))) % fix NaNs
+            for ii = find(sum(~isnan(depth_flat)) > 2)
+                depth_flat(isnan(depth_flat(:, ii)), ii) ...
                             = interp1(find(~isnan(depth_flat(:, ii))), depth_flat(~isnan(depth_flat(:, ii)), ii), find(isnan(depth_flat(:, ii))), 'linear', 'extrap');
-                end
             end
         end
-        depth_flat(depth_flat < 0) ...
-                            = 0;
-        depth_flat(depth_flat > depth(end)) ...
-                            = depth(end);
+        depth_flat((depth_flat < 0) | (depth_flat > depth(end))) ...
+                            = NaN;
+        % prevent non-unique flattening
+        for ii = 1:num_decim
+            if ~isempty(find((diff(depth_flat(:, ii)) <= 0), 1))
+                depth_flat((1 + find(diff(depth_flat(:, ii)) <= 0)), ii) ...
+                            = NaN;
+            end
+            [tmp1, tmp2]    = unique(depth_flat(:, ii));
+            depth_flat(setdiff((1:num_sample)', tmp2(~isnan(tmp1))), ii) ...
+                            = deal(NaN); % reduce to unique values
+        end
+        
         set(status_box, 'string', 'Calculated remapping...')
         pause(0.1)
         
-        tmp1                = amp_depth;
-        tmp2                = find(sum(~isnan(depth_flat)));
+        tmp2                = find(sum(~isnan(depth_flat)) > 2);
+        if isempty(tmp2)
+            set(status_box, 'string', 'Flattening canceled because of insufficient constraints.')
+            set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
+            return
+        end
+        
         amp_flat            = NaN(num_sample, num_decim, 'single');
         if parallel_check
-            tmp1            = tmp1(:, tmp2);
+            tmp1            = amp_depth(:, tmp2);
             tmp3            = depth_flat(:, tmp2);
             tmp4            = amp_flat(:, tmp2);
-            pctRunOnAll warning('off', 'MATLAB:interp1:NaNinY')
             parfor ii = 1:length(tmp2)
                 tmp4(:, ii) = interp1(depth, tmp1(:, ii), tmp3(:, ii));
             end
-            pctRunOnAll warning('on', 'MATLAB:interp1:NaNinY')
             amp_flat(:, tmp2) ...
                             = tmp4;
+            [tmp1, tmp3, tmp4] ...
+                            = deal(0);
         else
-            warning('off', 'MATLAB:interp1:NaNinY')
-            for ii = 1:length(tmp2)
-                amp_flat(:, tmp2(ii)) ...
-                            = interp1(depth, tmp1(:, tmp2(ii)), depth_flat(:, tmp2(ii)), 'linear');
+            for ii = tmp2
+                amp_flat(:, ii) ...
+                            = interp1(depth, amp_depth(:, ii), depth_flat(:, ii), 'linear');
             end
-            warning('on', 'MATLAB:interp1:NaNinY')
         end
-        tmp1                = 0;
         
         set(status_box, 'string', 'Flattened amplitude...')
         pause(0.1)
@@ -1406,29 +1421,19 @@ set(cb_group, 'selectedobject', cb_check(1))
         if (any(bed_avail) && any(~isnan(pk.elev_bed)) && ~any(isinf(pk.elev_bed)))
             depth_bed_flat  = NaN(1, num_decim);
             for ii = tmp2
-                [~, tmp1]   = unique(depth_flat(:, ii), 'last');
-                tmp1        = intersect((1 + find(diff(depth_flat(:, ii)) > 0)), tmp1);
-                if (length(tmp1) > 1)
-                    depth_bed_flat(ii) ...
-                            = interp1(depth_flat(tmp1, ii), depth(tmp1), depth_bed(ii), 'nearest', 'extrap');
-                end
+                depth_bed_flat(ii) ...
+                            = interp1(depth_flat(~isnan(depth_flat(:, ii)), ii), depth(~isnan(depth_flat(:, ii))), depth_bed(ii), 'nearest', 'extrap');
             end
-            depth_bed_flat((depth_bed_flat < 0) | (depth_bed_flat > depth(end))) ...
-                            = NaN;
         end
         
         % flatten merged layer depths
-        warning('off', 'MATLAB:interp1:NaNinY')
         depth_layer_flat    = NaN(pk.num_layer, num_decim);
-        for ii = 1:length(tmp2)
-            [~, tmp1]       = unique(depth_flat(:, tmp2(ii)), 'last');
-            tmp1            = intersect((1 + find(diff(depth_flat(:, tmp2(ii))) > 0)), tmp1);
-            if (any(~isnan(pk.depth_smooth(:, ind_decim(tmp2(ii))))) && ~isempty(tmp1))
-                depth_layer_flat(~isnan(pk.depth_smooth(:, ind_decim(tmp2(ii)))), tmp2(ii)) ...
-                            = interp1(depth_flat(tmp1, tmp2(ii)), depth(tmp1), pk.depth_smooth(~isnan(pk.depth_smooth(:, ind_decim(tmp2(ii)))), ind_decim(tmp2(ii))), 'nearest', 'extrap');
+        for ii = tmp2
+            if ~isempty(find(~isnan(pk.depth_smooth(:, ind_decim(ii))), 1))
+                depth_layer_flat(:, ii) ...
+                            = interp1(depth_flat(~isnan(depth_flat(:, ii)), ii), depth(~isnan(depth_flat(:, ii))), pk.depth_smooth(:, ind_decim(ii)), 'nearest', 'extrap');
             end
         end
-        warning('on', 'MATLAB:interp1:NaNinY')
         
         % plot flat layers
         axes(ax_radar)
@@ -1565,13 +1570,15 @@ set(cb_group, 'selectedobject', cb_check(1))
                 ylim(tmp1)
                 [elev_min, elev_max] ...
                             = deal(tmp1(1), tmp1(2));
-                depth_min       = depth_min - (elev_max - tmp1(2));
-                depth_max       = depth_max - (elev_min - tmp1(1));
+                depth_min   = depth_min - (elev_max - tmp1(2));
+                depth_max   = depth_max - (elev_min - tmp1(1));
                 if (depth_min < depth_min_ref)
-                    depth_min   = depth_min_ref;
+                    depth_min ...
+                            = depth_min_ref;
                 end
                 if (depth_max > depth_max_ref)
-                    depth_max   = depth_max_ref;
+                    depth_max ...
+                            = depth_max_ref;
                 end
                 if (elev_min < get(z_min_slide, 'min'))
                     set(z_min_slide, 'value', get(z_min_slide, 'min'))
