@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 08/03/15
+% Last updated: 08/04/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -3893,7 +3893,7 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Delete layer
 
     function pk_del(source, eventdata)
-        if (~(pk_done && pk.num_layer && curr_layer) || ~(surf_avail && bed_avail))
+        if (~pk_done && (pk.num_layer == 0) && ~surf_avail && ~bed_avail)
             set(status_box, 'string', 'No picked layers or surface/bed to delete yet.')
             return
         end
