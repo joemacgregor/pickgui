@@ -2646,11 +2646,12 @@ set(disp_group, 'selectedobject', disp_check(1))
             tmp3            = ind_y_flat(:, tmp2);
             tmp4            = NaN(num_sample_trim, length(tmp2), 'single');
             parfor ii = 1:length(tmp2)
-                tmp3(:, ii) = interp1(tmp1(:, ii), tmp3(:, ii));
+                tmp4(:, ii) = interp1(tmp1(:, ii), tmp3(:, ii));
             end
             amp_flat(:, tmp2) ...
                             = tmp4;
-            [tmp1, tmp3]    = deal(0);
+            [tmp1, tmp3, tmp4] ...
+                            = deal(0);
         else
             for ii = tmp2
                 amp_flat(:, ii) ...
@@ -6987,6 +6988,10 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(cb_min_slide, 'value', tmp4(1))
             if (tmp4(2) > get(cb_max_slide, 'max'))
                 tmp4(2)     = db_min_ref;
+            end
+            if any(isnan(tmp4))
+                set(status_box, 'string', 'Color scale could not be changed due to NaN color values.')
+                return
             end
             set(cb_max_slide, 'value', tmp4(2))
             set(cb_min_edit, 'string', sprintf('%3.0f', tmp4(1)))
