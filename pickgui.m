@@ -3610,11 +3610,9 @@ set(disp_group, 'selectedobject', disp_check(1))
                 [ind_y_flat_mean, ind_y_flat_smooth] ...
                             = deal([ind_y_flat_mean; NaN(1, num_decim_flat)], [ind_y_flat_smooth; NaN(1, num_decim_flat)]);
                 if flat_done
-                    for ii = interp1(ind_decim_flat, 1:num_decim_flat, ind_x_pk(1), 'nearest', 'extrap'):interp1(ind_decim_flat, 1:num_decim_flat, ind_x_pk(end), 'nearest', 'extrap')
-                        if find(sum(~isnan(ind_y_flat(:, ind_decim_flat(ii)))) > 2)
-                            ind_y_flat_mean(pk.num_layer, ii) ...
+                    for ii = find(sum(~isnan(ind_y_flat(:, ind_decim_flat))) > 2)
+                        ind_y_flat_mean(pk.num_layer, ii) ...
                                 = interp1(ind_y_flat(~isnan(ind_y_flat(:, ind_decim_flat(ii))), ind_decim_flat(ii)), find(~isnan(ind_y_flat(:, ind_decim_flat(ii)))), pk.layer(pk.num_layer).ind_y(ind_decim_flat(ii)), 'nearest', 'extrap');
-                        end
                     end
                     ind_y_flat_smooth ...
                             = [ind_y_flat_smooth; NaN(1, num_decim_flat)]; %#ok<AGROW>
