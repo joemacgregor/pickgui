@@ -11,7 +11,7 @@ function fencegui(varargin)
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 07/23/15
+% Last updated: 08/14/15
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -224,6 +224,8 @@ data_check(1, 2)            = uicontrol(fgui(1), 'style', 'checkbox', 'units', '
 cbfix_check1(1)             = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.97 0.88 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
 cbfix_check2(1)             = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.985 0.88 0.01 0.02], 'callback', @narrow_cb1, 'fontsize', size_font, 'value', 1, 'backgroundcolor', get(fgui(1), 'color'));
 master_check                = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.79 0.965 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
+
+pause(0.5)
 
 %% draw second GUI
 
@@ -3890,15 +3892,33 @@ linkaxes(ax(2:3), 'y')
         set(dist_max_edit(2), 'string', sprintf('%3.0f', dist_max(2)))
         [curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(tmp3(1), tmp3(2), tmp3(3));
-        if any(~isnan([elev_surf{1}(curr_ind_int(curr_int, 1)) elev_surf{2}(curr_ind_int(curr_int, 2))]))
-            elev_max(2)     = mean([elev_surf{1}(curr_ind_int(curr_int, 1)) elev_surf{2}(curr_ind_int(curr_int, 2))], 'omitnan');
-            set(z_max_slide(2), 'value', elev_max(2))
-            set(z_max_edit(2), 'string', sprintf('%4.0f', elev_max(2)))
-        end
-        if any(~isnan([elev_bed{1}(curr_ind_int(curr_int, 1)) elev_bed{2}(curr_ind_int(curr_int, 2))]))
-            elev_min(2)     = mean([elev_bed{1}(curr_ind_int(curr_int, 1)) elev_bed{2}(curr_ind_int(curr_int, 2))], 'omitnan');
-            set(z_min_slide(2), 'value', elev_min(2))
-            set(z_min_edit(2), 'string', sprintf('%4.0f', elev_min(2)))
+        switch disp_type
+            case 'elev.'
+                if any(~isnan([elev_surf{1}(curr_ind_int(curr_int, 1)) elev_surf{2}(curr_ind_int(curr_int, 2))]))
+                    elev_max(2) ...
+                            = mean([elev_surf{1}(curr_ind_int(curr_int, 1)) elev_surf{2}(curr_ind_int(curr_int, 2))], 'omitnan');
+                    set(z_max_slide(2), 'value', elev_max(2))
+                    set(z_max_edit(2), 'string', sprintf('%4.0f', elev_max(2)))
+                end
+                if any(~isnan([elev_bed{1}(curr_ind_int(curr_int, 1)) elev_bed{2}(curr_ind_int(curr_int, 2))]))
+                    elev_min(2) ...
+                            = mean([elev_bed{1}(curr_ind_int(curr_int, 1)) elev_bed{2}(curr_ind_int(curr_int, 2))], 'omitnan');
+                    set(z_min_slide(2), 'value', elev_min(2))
+                    set(z_min_edit(2), 'string', sprintf('%4.0f', elev_min(2)))
+                end
+            case 'depth'
+                if any(~isnan([elev_surf{1}(curr_ind_int(curr_int, 1)) elev_surf{2}(curr_ind_int(curr_int, 2))]))
+                    depth_min ...
+                            = 0;
+                    set(z_max_slide(2), 'value', (depth_max_ref - (depth_min - depth_min_ref)))
+                    set(z_max_edit(2), 'string', sprintf('%4.0f', depth_min))
+                end
+                if any(~isnan([elev_bed{1}(curr_ind_int(curr_int, 1)) elev_bed{2}(curr_ind_int(curr_int, 2))]))
+                    depth_max ...
+                            = mean(([elev_bed{1}(curr_ind_int(curr_int, 1)) elev_bed{2}(curr_ind_int(curr_int, 2))] - [elev_surf{1}(curr_ind_int(curr_int, 1)) elev_surf{2}(curr_ind_int(curr_int, 2))]), 'omitnan');
+                    set(z_min_slide(2), 'value', (depth_max_ref - (depth_max - depth_min_ref)))
+                    set(z_min_edit(2), 'string', sprintf('%4.0f', depth_max))
+                end
         end
         update_z_range
     end
@@ -4012,6 +4032,7 @@ linkaxes(ax(2:3), 'y')
             case 'depth'
                 plot_depth
         end
+        change_int
     end
 
 %% Switch active transect

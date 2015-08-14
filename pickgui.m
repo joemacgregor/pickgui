@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 08/04/15
+% Last updated: 08/14/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -60,11 +60,17 @@ pk.predict_or_pk            = 'predict';
                             = deal(-20, 20);
 [aresp_min, aresp_max]      = deal(aresp_min_ref, aresp_max_ref);
 
+% clutter defaults
+[clutter_min_ref, clutter_max_ref] ...
+                            = deal(0, 1);
+[clutter_min, clutter_max]  = deal(clutter_min_ref, clutter_max_ref);
+
+
 % default values for several parameters
 speed_vacuum                = 299792458;
 permitt_ice                 = 3.15;
 speed_ice                   = speed_vacuum / sqrt(permitt_ice);
-decim                       = 5; % decimate radargram for display
+decim                       = 5; % decimate radargram for displayls
 length_chunk                = 10; % chunk length in km
 int_track                   = 10; % number of indices (vertical) to separate phase- and ARESP-tracked layers
 decim_flat                  = 5;
@@ -80,13 +86,27 @@ disp_type                   = 'twtt';
 cmaps                       = {'bone' 'jet'}';
 ref_start_or_end            = 'start';
 
+if verLessThan('matlab', '8.5.0')
+    old_check               = true;
+else
+    old_check               = false;
+end
+
 if (license('checkout', 'distrib_computing_toolbox') && ~nargin)
-    pool_check              = gcp('nocreate');
-    if isempty(pool_check)
+    if old_check
         try
-            parpool(4);
+            eval('matlabpool(4)')
         catch
-            parpool;
+            eval('matlabpool')
+        end
+    else
+        pool_check          = gcp('nocreate');
+        if isempty(pool_check)
+            try
+                parpool(4);
+            catch
+                parpool;
+            end
         end
     end
     parallel_check          = true;
@@ -99,7 +119,7 @@ end
                             = deal(false);
 [amp_depth, amp_flat_mean, amp_mean, ax_map, block, button, curr_chunk, curr_layer, dist_chunk, elev_surf_gimp, ii, ind_bed, ind_bed_flat, ind_decim, ind_decim_flat, ind_surf, ind_surf_flat, ind_decim_flat_old, ind_x_pk, ind_y_aresp, ind_y_curr, ind_y_flat, ind_y_mat, ind_y_phase, ind_y_pk, ...
  jj, kk, map_data, num_chunk, num_decim, num_decim_flat, num_sample_trim, p_aresp, p_arespdepth, p_bed, p_beddepth, p_bedflat, p_data, p_loc, p_map, p_man, p_mandepth, p_phase, p_phasedepth, p_pk, p_pkdepth, p_pkflat, p_ref, p_refdepth, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, ...
- p_startphase, p_startphasedepth, p_startaresp, p_startarespdepth, p_surf, p_surfflat, pkfig, rad_sample, x_gimp, y_gimp, tmp1, tmp2, tmp3, tmp4, tmp5] ...
+ p_startphase, p_startphasedepth, p_startaresp, p_startarespdepth, p_surf, p_surfflat, p_trans, pkfig, rad_sample, x_gimp, y_gimp, tmp1, tmp2, tmp3, tmp4, tmp5] ...
                             = deal(NaN);
 [ind_y_flat_mean, ind_y_flat_smooth] ...
                             = deal([]);
@@ -284,6 +304,9 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         if ishandle(p_loc)
             delete(p_loc)
+        end
+        if ishandle(p_trans)
+            delete(p_trans)
         end
         pause(0.1)
         set([aresp_check phase_check man_check pk_check smooth_check surfbed_check], 'value', 0)
@@ -473,9 +496,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(keep_phase_push, 'visible', 'on')
             set(disp_check(3), 'visible', 'on')
             [phase_diff_min_ref, phase_diff_min] ...
-                            = deal(min(block.phase_diff_filt(:), [], 'omitnan'));
+                            = deal(min_alt(block.phase_diff_filt(:)));
             [phase_diff_max_ref, phase_diff_max] ...
-                            = deal(max(block.phase_diff_filt(:), [], 'omitnan'));
+                            = deal(max_alt(block.phase_diff_filt(:)));
             phase_avail     = true;
         end
         
@@ -487,9 +510,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(keep_aresp_push, 'visible', 'on')
             set(disp_check(4), 'visible', 'on')
             [aresp_min_ref, aresp_min] ...
-                            = deal(atand(min(block.slope_aresp(:), [], 'omitnan')));
+                            = deal(atand(min_alt(block.slope_aresp(:))));
             [aresp_max_ref, aresp_max] ...
-                            = deal(atand(max(block.slope_aresp(:), [], 'omitnan')));
+                            = deal(atand(max_alt(block.slope_aresp(:))));
             aresp_avail     = true;
         end
         
@@ -502,7 +525,11 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = NaN;
             block.clutter(isinf(block.clutter)) ...
                             = NaN;
-            block.clutter   = 10 .* log10(abs(block.clutter));
+            block.clutter   = 10 .* log10(abs(single(block.clutter)));
+            [clutter_min_ref, clutter_min] ...
+                            = deal(min_alt(block.clutter(:)));
+            [clutter_max_ref, clutter_max] ...
+                            = deal(max_alt(block.clutter(:)));
         end
         
         % decimation vector
@@ -538,7 +565,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             tmp1            = floor(decim / 2);
             for ii = 1:num_decim
                 amp_mean(:, ii) ...
-                            = mean(block.amp(:, (ind_decim(ii) - tmp1):(ind_decim(ii) + tmp1)), 2, 'omitnan');
+                            = mean_alt(block.amp(:, (ind_decim(ii) - tmp1):(ind_decim(ii) + tmp1)), 2);
             end
         else
             amp_mean        = single(block.amp);
@@ -895,7 +922,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 pk.layer(ii).ind_y_smooth ...
                             = interp1(block.twtt, 1:num_sample_trim, pk.layer(ii).twtt_smooth, 'nearest', 'extrap');
                 tmp1(ii, :) = pk.layer(ii).twtt;
-                tmp2(ii)    = mean(pk.layer(ii).ind_y, 'omitnan');
+                tmp2(ii)    = mean_alt(pk.layer(ii).ind_y);
             end
             [~, tmp3]       = sort(tmp2);
             pk.layer        = pk.layer(tmp3);
@@ -2430,7 +2457,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     tmp1    = [tmp1; pk.ind_y_man];
                 end
                 
-                [~, tmp2]   = sort(mean(tmp1, 2, 'omitnan'));
+                [~, tmp2]   = sort(mean_alt(tmp1, 2));
                 tmp1        = tmp1(tmp2, :); % all layers sorted by mean value
                 tmp2        = tmp1(:, 1);
                 ind_x_pk    = 1;
@@ -2475,7 +2502,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         tmp4                = 0;
         
         % smooth polynomials
-        tmp1                = round((2 * pk.length_smooth) / mean(diff(block.dist_lin), 'omitnan'));
+        tmp1                = ceil((2 * pk.length_smooth) / mean_alt(diff(block.dist_lin)));
         if parallel_check
             tmp4            = pk.poly_flat;
             parfor ii = 1:(ord_poly + 1)
@@ -2549,7 +2576,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     end
                 end
                 
-                ind_y_pk(ii)        = mean(tmp4, 'omitnan'); % best guess y index at reference trace 
+                ind_y_pk(ii)        = mean_alt(tmp4); % best guess y index at reference trace 
                 
                 % extract best layers again, now including the new layer
                 tmp4                = tmp1(tmp3);
@@ -2575,7 +2602,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 
                 % smooth polynomials again
-                tmp2                = round(mean(pk.length_smooth) / mean(diff(block.dist_lin(ind_decim)), 'omitnan'));
+                tmp2                = ceil(mean(pk.length_smooth) / mean_alt(diff(block.dist_lin(ind_decim))));
                 if parallel_check
                     tmp1            = pk.poly_flat;
                     parfor jj = 1:(ord_poly + 1)
@@ -2732,7 +2759,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             tmp1            = floor(decim_flat / 2);
             for ii = 1:num_decim_flat
                 amp_flat_mean(:, ii) ...
-                            = mean(amp_flat(:, (ind_decim_flat(ii) - tmp1):(ind_decim_flat(ii) + tmp1)), 2, 'omitnan');
+                            = mean_alt(amp_flat(:, (ind_decim_flat(ii) - tmp1):(ind_decim_flat(ii) + tmp1)), 2);
             end
         elseif (decim_flat == 1)
             ind_decim_flat  = 1:block.num_trace;
@@ -2794,8 +2821,8 @@ set(disp_group, 'selectedobject', disp_check(1))
 
     function pk_auto(source, eventdata)
         
-        if ~any(strcmp(disp_type, {'twtt' '~depth' 'clutter' 'flat'}))
-            set(status_box, 'string', 'Layers can only be traced in twtt, ~depth clutter or flat.')
+        if ~any(strcmp(disp_type, {'twtt' '~depth' 'flat'}))
+            set(status_box, 'string', 'Layers can only be traced in twtt, ~depth or flat.')
             return
         end
         
@@ -2824,13 +2851,13 @@ set(disp_group, 'selectedobject', disp_check(1))
             [ind_x_pk, ind_y_pk, button] ...
                             = ginput(1);
             switch disp_type
-                case {'twtt' 'clutter' '~depth'}
+                case {'twtt' '~depth'}
                     ind_x_pk= interp1(block.dist_lin(ind_decim), ind_decim, ind_x_pk, 'nearest', 'extrap');
                 case 'flat'
                     ind_x_pk= interp1(block.dist_lin(ind_decim_flat), 1:num_decim_flat, ind_x_pk, 'nearest', 'extrap');
             end
             switch disp_type
-                case {'twtt' 'clutter' 'flat'}
+                case {'twtt' 'flat'}
                     ind_y_pk= interp1(block.twtt, 1:num_sample_trim, (1e-6 * ind_y_pk), 'nearest', 'extrap');
                 case '~depth'
                     ind_y_pk= interp1(block.twtt, 1:num_sample_trim, (1e-6 * (ind_y_pk + (1e6 * (block.twtt_surf(ind_x_pk) - block.twtt(1))))), 'nearest', 'extrap');
@@ -2854,7 +2881,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 tmp1        = NaN((pk.num_layer - tmp3 + 1), 1);
                 for ii = 1:(pk.num_layer - tmp3 + 1)
                     switch disp_type
-                        case {'twtt' 'clutter'}
+                        case 'twtt'
                             tmp1(ii) = pk.layer(tmp3 + ii - 1).ind_y(ind_x_pk); % y index at x index pick for each layer
                         case '~depth'
                             tmp1(ii) = pk.layer(tmp3 + ii - 1).ind_y(ind_x_pk) - ind_surf(ind_x_pk) + 1;
@@ -2872,7 +2899,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     continue
                 end
                 switch disp_type
-                    case {'twtt' 'clutter'}
+                    case 'twtt'
                         delete(p_pk(tmp1))
                     case '~depth'
                         delete(p_pkdepth(tmp1))
@@ -2881,7 +2908,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 tmp2        = setdiff(1:pk.num_layer, tmp1);
                 switch disp_type
-                    case {'twtt' 'clutter'}
+                    case 'twtt'
                         p_pk= p_pk(tmp2);
                     case '~depth'
                         p_pkdepth ...
@@ -2901,7 +2928,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     continue
                 end
                 switch disp_type
-                    case {'twtt' 'clutter'}
+                    case 'twtt'
                         delete(p_pk(end))
                         p_pk= p_pk(1:(end - 1));
                     case '~depth'
@@ -2927,7 +2954,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 try
                     for ii = 1:(pk.num_layer - tmp3 + 1) % y index at x index pick for each layer
                         switch disp_type
-                            case {'twtt' '~depth' 'clutter'}
+                            case {'twtt' '~depth'}
                                 tmp1(ii) = pk.layer(tmp3 + ii - 1).ind_y(ind_x_pk);
                             case 'flat'
                                 tmp1(ii) = ind_y_flat_mean((tmp3 + ii - 1), ind_x_pk);
@@ -2953,7 +2980,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     [ind_x_pk(2), ~] ...
                             = ginput(1);
                     switch disp_type
-                        case {'twtt' '~depth' 'clutter'}
+                        case {'twtt' '~depth'}
                             ind_x_pk(2) = interp1(block.dist_lin(ind_decim), ind_decim, ind_x_pk(2), 'nearest', 'extrap');
                         case 'flat'
                             ind_x_pk(2) = interp1(block.dist_lin(ind_decim_flat), 1:num_decim_flat, ind_x_pk(2), 'nearest', 'extrap');
@@ -2964,7 +2991,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                         tmp2= 1:ind_x_pk;
                     case {'r' 'R'}
                         switch disp_type
-                            case {'twtt' '~depth' 'clutter'}
+                            case {'twtt' '~depth'}
                                 tmp2 = ind_x_pk:block.num_trace;
                             case 'flat'
                                 tmp2 = ind_x_pk:num_decim_flat;
@@ -2973,10 +3000,10 @@ set(disp_group, 'selectedobject', disp_check(1))
                         tmp2= ind_x_pk(1):ind_x_pk(2);
                 end
                 switch disp_type
-                    case {'twtt' '~depth' 'clutter'}
+                    case {'twtt' '~depth'}
                         pk.layer(tmp1).ind_y(tmp2) ...
                             = NaN;
-                        if any(strcmp(disp_type, {'twtt' 'clutter'}))
+                        if strcmp(disp_type, 'twtt')
                             delete(p_pk(tmp1))
                         else
                             delete(p_pkdepth(tmp1))
@@ -2987,7 +3014,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                         delete(p_pkflat(tmp1))
                 end
                 switch disp_type
-                    case {'twtt' '~depth' 'clutter'}
+                    case {'twtt' '~depth'}
                         if all(isnan(pk.layer(tmp1).ind_y))
                             tmp2 = true;
                         else
@@ -3003,7 +3030,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 if tmp2
                     tmp4    = setdiff(1:pk.num_layer, tmp1);
                     switch disp_type
-                        case {'twtt' 'clutter'}
+                        case {'twtt'}
                             p_pk = p_pk(tmp4);
                         case '~depth'
                             p_pkdepth = p_pkdepth(tmp4);
@@ -3016,7 +3043,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     pause(0.5)
                 else
                     switch disp_type
-                        case {'twtt' 'clutter'}
+                        case 'twtt'
                             p_pk(tmp1) ...
                                 = plot(block.dist_lin(ind_decim(~isnan(pk.layer(tmp1).ind_y(ind_decim)))), (1e6 .* block.twtt(pk.layer(tmp1).ind_y(ind_decim(~isnan(pk.layer(tmp1).ind_y(ind_decim)))))), '.', 'color', [1 0.7 0.7], 'markersize', 12);
                         case '~depth'
@@ -3049,7 +3076,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 tmp1        = NaN((pk.num_layer - tmp3 + 1), 1);
                 for ii = 1:(pk.num_layer - tmp3 + 1)
                     switch disp_type
-                        case {'twtt' '~depth' 'clutter'}
+                        case {'twtt' '~depth'}
                             tmp1(ii) = pk.layer(tmp3 + ii - 1).ind_y(ind_x_pk);
                         case 'flat'
                             tmp1(ii) = ind_y_flat_mean((tmp3 + ii - 1), ind_x_pk);
@@ -3067,7 +3094,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 
                 switch disp_type
-                    case {'twtt' 'clutter'}
+                    case 'twtt'
                         set(p_pk(tmp1), 'color', 'y')
                     case '~depth'
                         set(p_pkdepth(tmp1), 'color', 'y')
@@ -3079,13 +3106,13 @@ set(disp_group, 'selectedobject', disp_check(1))
                 [ind_x_pk, ind_y_pk] ...
                             = ginput(1);
                 switch disp_type
-                    case {'twtt' '~depth' 'clutter'}
+                    case {'twtt' '~depth'}
                         ind_x_pk = interp1(block.dist_lin(ind_decim), ind_decim, ind_x_pk, 'nearest', 'extrap');
                     case 'flat'
                         ind_x_pk = interp1(block.dist_lin(ind_decim_flat), 1:num_decim_flat, ind_x_pk, 'nearest', 'extrap');
                 end
                 switch disp_type
-                    case {'twtt' 'clutter' 'flat'}
+                    case {'twtt' 'flat'}
                         ind_y_pk ...
                             = interp1(block.twtt, 1:num_sample_trim, (1e-6 * ind_y_pk), 'nearest', 'extrap');
                     case '~depth'
@@ -3095,7 +3122,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 tmp2        = NaN((pk.num_layer - tmp3 + 1), 1);
                 for ii = 1:(pk.num_layer - tmp3 + 1)
                     switch disp_type
-                        case {'twtt' '~depth' 'clutter'}
+                        case {'twtt' '~depth'}
                             tmp2(ii) ...
                                 = pk.layer(tmp3 + ii - 1).ind_y(ind_x_pk);
                         case 'flat'
@@ -3111,7 +3138,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 else
                     set(status_box, 'string', 'Cannot determine which layer to merge with. Pick a more distinct x index.')
                     switch disp_type
-                        case {'twtt' 'clutter'}
+                        case 'twtt'
                             set(p_pk(tmp1), 'color', [1 0.7 0.7])
                         case '~depth'
                             set(p_pkdepth(tmp1), 'color', [1 0.7 0.7])
@@ -3123,7 +3150,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 
                 switch disp_type
-                    case {'twtt' 'clutter'}
+                    case 'twtt'
                         set(p_pk(tmp2), 'color', 'y')
                     case '~depth'
                         set(p_pkdepth(tmp2), 'color', 'y')
@@ -3135,10 +3162,10 @@ set(disp_group, 'selectedobject', disp_check(1))
                 tmp4        = setdiff(1:pk.num_layer, tmp2);
                 
                 switch disp_type
-                    case {'twtt' '~depth' 'clutter'}
+                    case {'twtt' '~depth'}
                         pk.layer(tmp1).ind_y(isnan(pk.layer(tmp1).ind_y)) ...
                             = pk.layer(tmp2).ind_y(isnan(pk.layer(tmp1).ind_y));
-                        if any(strcmp(disp_type, {'twtt' 'clutter'}))
+                        if strcmp(disp_type, 'twtt')
                             delete(p_pk([tmp1 tmp2]))
                             p_pk(tmp1) ...
                                 = plot(block.dist_lin(ind_decim(~isnan(pk.layer(tmp1).ind_y(ind_decim)))), (1e6 .* block.twtt(pk.layer(tmp1).ind_y(ind_decim(~isnan(pk.layer(tmp1).ind_y(ind_decim)))))), '.', 'color', [1 0.7 0.7], 'markersize', 12);
@@ -3220,7 +3247,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         % make colors bolder
         switch disp_type
-            case {'twtt' 'clutter'}
+            case 'twtt'
                 set(p_pk(ishandle(p_pk)), 'color', 'r')
             case '~depth'
                 set(p_pkdepth(ishandle(p_pkdepth)), 'color', 'r')
@@ -3231,10 +3258,10 @@ set(disp_group, 'selectedobject', disp_check(1))
         % plot picks in other spaces/views
         switch disp_type
             
-            case {'twtt' '~depth' 'clutter'}
+            case {'twtt' '~depth'}
                 
                 switch disp_type
-                    case {'twtt' 'clutter'}
+                    case 'twtt'
                         delete(p_pkdepth(ishandle(p_pkdepth)))
                         p_pkdepth ...
                             = NaN(1, pk.num_layer);
@@ -3365,7 +3392,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         pk.layer(curr_layer).ind_y ...
                             = NaN(1, block.num_trace);
         switch disp_type
-            case {'twtt' 'clutter'}
+            case 'twtt'
                 [~, pk.layer(curr_layer).ind_y(ind_x_pk)] ...
                             = max(block.amp((ind_y_pk - pk.num_win):(ind_y_pk + pk.num_win), ind_x_pk)); % y index of nearest min/max
                 pk.layer(curr_layer).ind_y(ind_x_pk) ...
@@ -3388,11 +3415,11 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         % loop for left of ind_x_pk
         switch disp_type
-            case {'twtt' 'clutter' 'flat'}
+            case {'twtt' 'flat'}
                 for ii = (ind_x_pk - 1):-1:1
                     try
                         switch disp_type
-                            case {'twtt' 'clutter'}
+                            case 'twtt'
                                 [~, pk.layer(curr_layer).ind_y(ii)] ...
                                     = max(block.amp((pk.layer(curr_layer).ind_y(ii + 1) - pk.num_win):(pk.layer(curr_layer).ind_y(ii + 1) + pk.num_win), ii));
                                 pk.layer(curr_layer).ind_y(ii) ...
@@ -3421,7 +3448,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         
         switch disp_type
-            case {'twtt' '~depth' 'clutter'}
+            case {'twtt' '~depth'}
                 tmp4        = block.num_trace;
             case 'flat'
                 tmp4        = num_decim_flat;
@@ -3429,11 +3456,11 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         % loop for right of ind_x_pk
         switch disp_type
-            case {'twtt' 'clutter' 'flat'}
+            case {'twtt' 'flat'}
                 for ii = (ind_x_pk + 1):tmp4
                     try
                         switch disp_type
-                            case {'twtt' 'clutter'}
+                            case 'twtt'
                                 [~, pk.layer(curr_layer).ind_y(ii)] ...
                                     = max(block.amp((pk.layer(curr_layer).ind_y(ii - 1) - pk.num_win):(pk.layer(curr_layer).ind_y(ii - 1) + pk.num_win), ii));
                                 pk.layer(curr_layer).ind_y(ii) ...
@@ -3468,7 +3495,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         % plot new layer
         switch disp_type
-            case {'twtt' 'clutter'}
+            case 'twtt'
                 p_pk(curr_layer) ...
                             = plot(block.dist_lin(ind_decim(~isnan(pk.layer(curr_layer).ind_y(ind_decim)))), (1e6 .* block.twtt(pk.layer(curr_layer).ind_y(ind_decim(~isnan(pk.layer(curr_layer).ind_y(ind_decim)))))), '.', 'color', [1 0.7 0.7], 'markersize', 12);
             case '~depth'
@@ -3488,8 +3515,8 @@ set(disp_group, 'selectedobject', disp_check(1))
 
     function pk_man(source, eventdata)
         
-        if ~any(strcmp(disp_type, {'twtt' '~depth' 'clutter'}))
-            set(status_box, 'string', 'Layers can only be traced manually in twtt, ~depth or clutter views.')
+        if ~any(strcmp(disp_type, {'twtt' '~depth'}))
+            set(status_box, 'string', 'Layers can only be traced manually in twtt or ~depth views.')
             return
         end
         
@@ -3516,7 +3543,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = deal(tmp1, tmp2);
                 ind_x_pk(ii)= interp1(block.dist_lin(ind_decim), ind_decim, ind_x_pk(ii), 'nearest', 'extrap'); % raw picks must be indices, not dimensionalized vectors (horizontal)
                 switch disp_type
-                    case {'twtt' 'clutter'}
+                    case 'twtt'
                         ind_y_pk(ii) ...
                             = interp1(block.twtt, 1:num_sample_trim, (1e-6 .* ind_y_pk(ii)), 'nearest', 'extrap'); % interpolate traveltime pick onto traveltime vector
                     case '~depth'
@@ -3527,7 +3554,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     delete(tmp3) % get rid of old plot handle
                 end
                 switch disp_type
-                    case {'twtt' 'clutter'}
+                    case 'twtt'
                         tmp3= plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'rx', 'markersize', 12); % original picks
                     case '~depth'
                         tmp3= plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk - ind_surf(ind_x_pk) + 1)), 'rx', 'markersize', 12); % original picks
@@ -3543,7 +3570,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 end
                 if (ii > 2)
                     switch disp_type
-                        case {'twtt' 'clutter'}
+                        case 'twtt'
                             tmp3 ...
                                 = plot(block.dist_lin(ind_x_pk), (1e6 .* block.twtt(ind_y_pk)), 'rx', 'markersize', 12); % original picks
                         case '~depth'
@@ -3610,9 +3637,11 @@ set(disp_group, 'selectedobject', disp_check(1))
                 [ind_y_flat_mean, ind_y_flat_smooth] ...
                             = deal([ind_y_flat_mean; NaN(1, num_decim_flat)], [ind_y_flat_smooth; NaN(1, num_decim_flat)]);
                 if flat_done
-                    for ii = find(sum(~isnan(ind_y_flat(:, ind_decim_flat))) > 2)
-                        ind_y_flat_mean(pk.num_layer, ii) ...
+                    for ii = interp1(ind_decim_flat, 1:num_decim_flat, ind_x_pk(1), 'nearest', 'extrap'):interp1(ind_decim_flat, 1:num_decim_flat, ind_x_pk(end), 'nearest', 'extrap')
+                        if find(sum(~isnan(ind_y_flat(:, ind_decim_flat(ii)))) > 2)
+                            ind_y_flat_mean(pk.num_layer, ii) ...
                                 = interp1(ind_y_flat(~isnan(ind_y_flat(:, ind_decim_flat(ii))), ind_decim_flat(ii)), find(~isnan(ind_y_flat(:, ind_decim_flat(ii)))), pk.layer(pk.num_layer).ind_y(ind_decim_flat(ii)), 'nearest', 'extrap');
+                        end
                     end
                     ind_y_flat_smooth ...
                             = [ind_y_flat_smooth; NaN(1, num_decim_flat)]; %#ok<AGROW>
@@ -3648,7 +3677,7 @@ set(disp_group, 'selectedobject', disp_check(1))
     function pk_sort(source, eventdata)
         tmp1                = NaN(pk.num_layer, 1);
         for ii = 1:pk.num_layer
-            tmp1(ii)        = mean(pk.layer(ii).ind_y, 'omitnan');
+            tmp1(ii)        = mean_alt(pk.layer(ii).ind_y);
         end
         [~, tmp1]           = sort(tmp1);
         [pk.layer, smooth_done, p_pk, p_pkdepth, p_pkflat, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, ind_y_flat_mean, ind_y_flat_smooth] ...
@@ -4757,12 +4786,12 @@ set(disp_group, 'selectedobject', disp_check(1))
         tmp1                = [];
         for ii = find(~smooth_done)
             pk.layer(ii).ind_y_smooth ...
-                            = round(smooth_lowess(pk.layer(ii).ind_y, round(pk.length_smooth / mean(diff(block.dist_lin), 'omitnan')))');
+                            = round(smooth_lowess(pk.layer(ii).ind_y, ceil(pk.length_smooth / mean_alt(diff(block.dist_lin))))');
             pk.layer(ii).ind_y_smooth((pk.layer(ii).ind_y_smooth < 1) | (pk.layer(ii).ind_y_smooth > num_sample_trim)) ...
                             = NaN;
             if flat_done
                 ind_y_flat_smooth(ii, :) ...
-                            = round(smooth_lowess(ind_y_flat_mean(ii, :), round(pk.length_smooth / (mean(diff(block.dist_lin), 'omitnan') * decim_flat)))');
+                            = round(smooth_lowess(ind_y_flat_mean(ii, :), ceil(pk.length_smooth / (mean_alt(diff(block.dist_lin)) * decim_flat)))');
                 ind_y_flat_smooth(ii, ((ind_y_flat_smooth(ii, :) < 1) | (ind_y_flat_smooth(ii, :) > num_sample_trim))) ...
                             = NaN;
             end
@@ -4915,7 +4944,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = tmp1(:, ~isnan(pk.layer(ii).ind_y_smooth(1:block.ind_overlap(1)))) - repmat(block.twtt(round(pk.layer(ii).ind_y_smooth(~isnan(pk.layer(ii).ind_y_smooth(1:block.ind_overlap(1))))))', pk_ref.num_layer, 1);
             tmp3            = NaN(1, pk_ref.num_layer);
             for jj = 1:pk_ref.num_layer
-                tmp3(jj)    = abs(mean(tmp2(jj, :), 'omitnan'));
+                tmp3(jj)    = abs(mean_alt(tmp2(jj, :)));
             end
             
             if (length(find(tmp3 < pk.twtt_match)) == 1) % found a single matching layer within the threshold
@@ -4957,7 +4986,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         
         % add new layer numbers for those that didn't match any reference layers
         if any(isnan(pk.ind_match))
-            tmp1            = max(pk.ind_match, [], 'omitnan');
+            tmp1            = max_alt(pk.ind_match);
             if isfield(pk_ref, 'ind_match_max') % if available, take care not to repeat layer numbers
                 if ((pk_ref.ind_match_max > tmp1) || isnan(tmp1))
                     tmp1    = pk_ref.ind_match_max;
@@ -5456,7 +5485,7 @@ set(disp_group, 'selectedobject', disp_check(1))
 
     function slide_db_min(source, eventdata)
         switch disp_type
-            case {'twtt' '~depth' 'clutter' 'flat'}
+            case {'twtt' '~depth' 'flat'}
                 tmp1        = [db_min db_max];
                 tmp2        = [db_min_ref db_max_ref];
             case 'phase'
@@ -5465,6 +5494,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             case 'ARESP'
                 tmp1        = [aresp_min aresp_max];
                 tmp2        = [aresp_min_ref aresp_max_ref];
+            case 'clutter'
+                tmp1        = [clutter_min clutter_max];
+                tmp2        = [clutter_min_ref clutter_max_ref];
         end
         if (get(cb_min_slide, 'value') < tmp1(2))
             if get(cbfix_check1, 'value')
@@ -5502,14 +5534,17 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
         end
         switch disp_type
-            case {'twtt' '~depth' 'clutter' 'flat'}
+            case {'twtt' '~depth' 'flat'}
                 [db_min, db_max] ...
                             = deal(tmp1(1), tmp1(2));
             case 'phase'
                 [phase_diff_min, phase_diff_max] ...
                             = deal(tmp1(1), tmp1(2));
-            case 'aresp'
+            case 'ARESP'
                 [aresp_min, aresp_max] ...
+                            = deal(tmp1(1), tmp1(2));
+            case 'clutter'
+                [clutter_min, clutter_max] ...
                             = deal(tmp1(1), tmp1(2));
         end
         update_db_range
@@ -5522,7 +5557,7 @@ set(disp_group, 'selectedobject', disp_check(1))
 
     function slide_db_max(source, eventdata)
         switch disp_type
-            case {'twtt' '~depth' 'clutter' 'flat'}
+            case {'twtt' '~depth' 'flat'}
                 tmp1        = [db_min db_max];
                 tmp2        = [db_min_ref db_max_ref];
             case 'phase'
@@ -5531,6 +5566,9 @@ set(disp_group, 'selectedobject', disp_check(1))
             case 'ARESP'
                 tmp1        = [aresp_min aresp_max];
                 tmp2        = [aresp_min_ref aresp_max_ref];
+            case 'clutter'
+                tmp1        = [clutter_min clutter_max];
+                tmp2        = [clutter_min_ref clutter_max_ref];
         end
         if (get(cb_max_slide, 'value') > tmp1(1))
             if get(cbfix_check1, 'value')
@@ -5568,14 +5606,17 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
         end
         switch disp_type
-            case {'twtt' '~depth' 'clutter' 'flat'}
+            case {'twtt' '~depth' 'flat'}
                 [db_min, db_max] ...
                     = deal(tmp1(1), tmp1(2));
             case 'phase'
                 [phase_diff_min, phase_diff_max] ...
                     = deal(tmp1(1), tmp1(2));
-            case 'aresp'
+            case 'ARESP'
                 [aresp_min, aresp_max] ...
+                    = deal(tmp1(1), tmp1(2));
+            case 'clutter'
+                [clutter_min, clutter_max] ...
                     = deal(tmp1(1), tmp1(2));
         end
         update_db_range
@@ -5588,15 +5629,18 @@ set(disp_group, 'selectedobject', disp_check(1))
 
     function reset_db_min(source, eventdata)
         switch disp_type
-            case {'twtt' '~depth' 'clutter' 'flat'}
+            case {'twtt' '~depth' 'flat'}
                 [tmp1, db_min] ...
                             = deal(db_min_ref);
             case 'phase'
                 [tmp1, phase_diff_min] ...
                             = deal(phase_diff_min_ref);
             case 'ARESP'
-                [tmp1, aresp_min_ref] ...
+                [tmp1, aresp_min] ...
                             = deal(aresp_min_ref);
+            case 'clutter'
+                [tmp1, clutter_min] ...
+                            = deal(clutter_min_ref);
         end
         if (tmp1 < get(cb_min_slide, 'min'))
             set(cb_min_slide, 'value', get(cb_min_slide, 'min'))
@@ -5611,15 +5655,18 @@ set(disp_group, 'selectedobject', disp_check(1))
 
     function reset_db_max(source, eventdata)
         switch disp_type
-            case {'twtt' '~depth' 'clutter' 'flat'}
+            case {'twtt' '~depth' 'flat'}
                 [tmp1, db_max] ...
                             = deal(db_max_ref);
             case 'phase'
                 [tmp1, phase_diff_max] ...
                             = deal(phase_diff_max_ref);
             case 'ARESP'
-                [tmp1, aresp_max_ref] ...
+                [tmp1, aresp_max] ...
                             = deal(aresp_max_ref);
+            case 'clutter'
+                [tmp1, clutter_max] ...
+                            = deal(clutter_max_ref);
         end
         if (tmp1 > get(cb_max_slide, 'max'))
             set(cb_max_slide, 'value', get(cb_max_slide, 'max'))
@@ -5635,12 +5682,14 @@ set(disp_group, 'selectedobject', disp_check(1))
     function update_db_range(source, eventdata)
         axes(ax_radar)
         switch disp_type
-            case {'twtt' '~depth' 'clutter' 'flat'}
+            case {'twtt' '~depth' 'flat'}
                 caxis([db_min db_max])
             case 'phase'
                 caxis([phase_diff_min phase_diff_max])
             case 'ARESP'
                 caxis([aresp_min aresp_max])
+            case 'clutter'
+                caxis([clutter_min clutter_max])
         end
     end
 
@@ -6136,17 +6185,18 @@ set(disp_group, 'selectedobject', disp_check(1))
             delete(p_data)
         end
         axes(ax_radar) %#ok<*MAXES>
-        p_data              = imagesc(block.dist_lin(ind_decim), (1e6 .* block.twtt), block.clutter(:, ind_decim), [db_min db_max]);
+        p_data              = imagesc(block.dist_lin(ind_decim), (1e6 .* block.twtt), block.clutter(:, ind_decim), [clutter_min clutter_max]);
         disp_type           = 'clutter';
+        narrow_cb
         show_surfbed
         show_ref
         show_pk
         show_smooth
         set(cbl, 'string', '(dB)')
-        set(cb_min_slide, 'min', db_min_ref, 'max', db_max_ref, 'value', db_min)
-        set(cb_max_slide, 'min', db_min_ref, 'max', db_max_ref, 'value', db_max)
-        set(cb_min_edit, 'string', sprintf('%2.1f', db_min))
-        set(cb_max_edit, 'string', sprintf('%2.1f', db_max))
+        set(cb_min_slide, 'min', clutter_min_ref, 'max', clutter_max_ref, 'value', clutter_min)
+        set(cb_max_slide, 'min', clutter_min_ref, 'max', clutter_max_ref, 'value', clutter_max)
+        set(cb_min_edit, 'string', sprintf('%2.1f', clutter_min))
+        set(cb_max_edit, 'string', sprintf('%2.1f', clutter_max))
     end
 
 %% Plot layer-flattened radargram
@@ -6450,7 +6500,7 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Adjust number of indices to display
 
     function adj_decim(source, eventdata)
-        decim               = abs(round(str2double(get(decim_edit, 'string'))));
+        decim               = abs(ceil(str2double(get(decim_edit, 'string'))));
         if load_done
             if (decim > 1)
                 ind_decim   = (1 + ceil(decim / 2)):decim:(block.num_trace - ceil(decim / 2));
@@ -6463,7 +6513,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 tmp1        = floor(decim / 2);
                 for ii = 1:num_decim
                     amp_mean(:, ii) ...
-                            = mean(block.amp(:, (ind_decim(ii) - tmp1):(ind_decim(ii) + tmp1)), 2, 'omitnan');
+                            = mean_alt(block.amp(:, (ind_decim(ii) - tmp1):(ind_decim(ii) + tmp1)), 2);
                 end
             else
                 amp_mean    = single(block.amp);
@@ -6578,7 +6628,7 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Adjust length of each chunk
 
     function adj_length_chunk(source, eventdata)
-        length_chunk        = abs(round(str2double(get(length_chunk_edit, 'string'))));
+        length_chunk        = abs(ceil(str2double(get(length_chunk_edit, 'string'))));
         % make the horizontal chunks of data to pick (too big is unwieldy)
         num_chunk           = floor((block.dist_lin(end) - block.dist_lin(1)) ./ length_chunk);
         dist_chunk          = block.dist_lin(1):length_chunk:block.dist_lin(end);
@@ -6618,7 +6668,7 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Adjust number of indices over which to horizontally average flattened data
 
     function adj_decim_flat(source, eventdata)
-        decim_flat          = abs(round(str2double(get(decim_flat_edit, 'string'))));
+        decim_flat          = abs(ceil(str2double(get(decim_flat_edit, 'string'))));
         set(status_box, 'string', ['Flattened averaging length adjusted to ' num2str(decim_flat) ' samples.'])
         set(decim_flat_edit, 'string', num2str(decim_flat))
         if flat_done
@@ -6629,12 +6679,12 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Adjust number of indices above/below layer to search for peak
 
     function adj_num_win(source, eventdata)
-        if ~round(str2double(get(num_win_edit, 'string')))
+        if ~ceil(str2double(get(num_win_edit, 'string')))
             set(num_win_edit, 'string', num2str(pk.num_win))
             set(status_box, 'string', 'Search window must be non-zero.')
             return
         end
-        pk.num_win          = abs(round(str2double(get(num_win_edit, 'string'))));
+        pk.num_win          = abs(ceil(str2double(get(num_win_edit, 'string'))));
         set(num_win_edit, 'string', num2str(pk.num_win))
         set(status_box, 'string', ['Vertical search window adjusted to +/- ' num2str(pk.num_win) ' samples.'])
     end
@@ -6642,12 +6692,12 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Adjust layer smoothing length
 
     function adj_length_smooth(source, eventdata)
-        if (round(10 * str2double(get(length_smooth_edit, 'string'))) == 0)
+        if (ceil(10 * str2double(get(length_smooth_edit, 'string'))) == 0)
             set(length_smooth_edit, 'string', num2str(pk.length_smooth))
             set(status_box, 'string', 'Smoothing length must be non-zero.')
             return
         end
-        pk.length_smooth    = abs(round(10 * str2double(get(length_smooth_edit, 'string')))) / 10;
+        pk.length_smooth    = abs(ceil(10 * str2double(get(length_smooth_edit, 'string')))) / 10;
         smooth_done         = false(1, pk.num_layer); % now no layers have this smoothing length so all must be re-smoothed
         set(status_box, 'string', ['Layer smoothing length adjusted to ' num2str(pk.length_smooth) ' km.'])
         set(length_smooth_edit, 'string', num2str(pk.length_smooth))
@@ -6893,32 +6943,31 @@ set(disp_group, 'selectedobject', disp_check(1))
 
     function pop_map(source, eventdata)
         if ~load_done
-            set(status_box, 'string', 'Data must be loaded prior to popping out a map.')
+            set(status_box, 'string', 'Data must be loaded prior to displaying map.')
             return
         end
         if ~map_avail
             try
-                map_data    = load('mat/dem', 'x', 'y', 'elev_surf');
+                [tmp1, tmp2]= uigetfile('*.mat', 'Locate alaska_dem.mat:');
+                map_data    = load([tmp2 tmp1], 'x', 'y', 'elev_surf');
                 map_avail   = true;
             catch tmp1
-                set(status_box, 'string', ['Map data could not be loaded because ' tmp1.message '.'])
+                set(status_box, 'string', ['Map data could not be loaded. Error: ' tmp1.message '.'])
                 return
             end
         end
-        set(0, 'DefaultFigureWindowStyle', 'default')
-        p_map               = figure('position', [100 100 1200 1200]);
-        colormap(jet)
+        p_map               = figure('name', 'Alaska DEM');
+        colormap(gray)
         hold on
         imagesc(map_data.x, map_data.y, map_data.elev_surf)
-        plot(block.x, block.y, 'k', 'linewidth', 3)
-        set(gca, 'fontsize', 20, 'layer', 'top')
+        axis xy equal
+        ax_map              = gca;
+        p_trans             = plot(block.x, block.y, 'b', 'linewidth', 3);
+        set(ax_map, 'fontsize', 20, 'layer', 'top')
         xlabel('X (km)')
         ylabel('Y (km)')
-        title(file_data(1:(end - 4)), 'fontweight', 'bold', 'interpreter', 'none')
-        colorbar('fontsize', 20)
         grid on
         box on
-        set(0, 'DefaultFigureWindowStyle', 'docked')
     end
 
 %% Toggle gridlines
@@ -6958,15 +7007,17 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
             tmp2            = NaN(1, 2);
             [tmp2(1), tmp2(2)] ...
-                            = deal(mean(tmp1(~isinf(tmp1)), 'omitnan'), std(tmp1(~isinf(tmp1)), 'omitnan'));
+                            = deal(mean_alt(tmp1(~isinf(tmp1))), std_alt(tmp1(~isinf(tmp1))));
             [tmp1, tmp4]    = deal(zeros(1, 2));
             switch disp_type
-                case {'twtt' '~depth' 'flat' 'clutter'}
+                case {'twtt' '~depth' 'flat'}
                     tmp4    = [db_min_ref db_max_ref];
                 case 'phase'
                     tmp4    = [phase_diff_min_ref phase_diff_max_ref];
-                case 'aresp'
+                case 'ARESP'
                     tmp4    = [aresp_min_ref aresp_max_ref];
+                case 'clutter'
+                    tmp4    = [clutter_min_ref clutter_max_ref];
             end
             if ((tmp2(1) - (2 * tmp2(2))) < tmp4(1))
                 tmp1(1)     = tmp4(1);
@@ -6985,25 +7036,31 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
             set(cb_min_slide, 'value', tmp4(1))
             if (tmp4(2) > get(cb_max_slide, 'max'))
-                tmp4(2)     = db_min_ref;
+                tmp4(2)     = db_max_ref;
             end
             if any(isnan(tmp4))
                 set(status_box, 'string', 'Color scale could not be changed due to NaN color values.')
                 return
+            end
+            if ~issorted(tmp4)
+                tmp4        = sort(tmp4);
             end
             set(cb_max_slide, 'value', tmp4(2))
             set(cb_min_edit, 'string', sprintf('%3.0f', tmp4(1)))
             set(cb_max_edit, 'string', sprintf('%3.0f', tmp4(2)))
             caxis(tmp4)
             switch disp_type
-                case {'twtt' '~depth' 'clutter' 'flat'}
+                case {'twtt' '~depth' 'flat'}
                     [db_min, db_max] ...
                             = deal(tmp4(1), tmp4(2));
                 case 'phase'
                     [phase_diff_min, phase_diff_max] ...
                             = deal(tmp4(1), tmp4(2));
-                case 'aresp'
+                case 'ARESP'
                     [aresp_min, aresp_max] ...
+                            = deal(tmp4(1), tmp4(2));
+                case 'clutter'
+                    [clutter_min, clutter_max] ...
                             = deal(tmp4(1), tmp4(2));
             end
         end
@@ -7240,7 +7297,8 @@ set(disp_group, 'selectedobject', disp_check(1))
                     if ishandle(p_loc)
                         delete(p_loc)
                     end
-                    p_loc   = plot(block.x(ind_x_pk), block.y(ind_x_pk), 'ko', 'markersize', 24, 'markerfacecolor', 'r');
+                    p_loc   = plot(block.x(ind_x_pk), block.y(ind_x_pk), 'ko', 'markersize', 16, 'markerfacecolor', 'r');
+                    axes(ax_radar)
                 end
             end
         elseif (map_avail && ishandle(p_map))
@@ -7251,13 +7309,68 @@ set(disp_group, 'selectedobject', disp_check(1))
             if ((tmp1(1) > (tmp4(1, 1))) && (tmp1(1) < (tmp4(1, 2))) && (tmp1(2) > (tmp4(2, 1))) && (tmp1(2) < (tmp4(2, 2))))
                 tmp1        = ((tmp1(1) - tmp4(1, 1)) / diff(tmp4(1, :)));
                 tmp2        = get(ax_radar, 'xlim');
-                ind_x_pk    = (tmp1(1) * diff(tmp2(1, :))) + tmp2(1, 1);
+                ind_x_pk    = interp1(block.dist_lin(ind_decim), ind_decim, (tmp1(1) * diff(tmp2(1, :))) + tmp2(1, 1), 'nearest', 'extrap');
             end
             axes(ax_map)
             if ishandle(p_loc)
                 delete(p_loc)
             end
-            p_loc           = plot(block.x(ind_x_pk), block.y(ind_x_pk), 'ko', 'markersize', 24, 'markerfacecolor', 'r');
+            p_loc           = plot(block.x(ind_x_pk), block.y(ind_x_pk), 'ko', 'markersize', 16, 'markerfacecolor', 'r');
+            axes(ax_radar)
+        end
+    end
+
+%% Mean function
+
+    function varargout      = mean_alt(varargin)
+        if old_check
+            switch nargin
+                case 1
+                    varargout{1} ...
+                        = nanmean(varargin{1});
+                case 2
+                    varargout{1} ...
+                        = nanmean(varargin{1}, varargin{2});
+            end
+        else
+            switch nargin
+                case 1
+                    varargout{1} ...
+                        = mean(varargin{1}, 'omitnan');
+                case 2
+                    varargout{1} ...
+                        = mean(varargin{1}, varargin{2}, 'omitnan');
+            end
+        end
+    end
+
+%% Std function
+
+    function varargout      = std_alt(varargin)
+        if old_check
+            varargout{1}    = nanstd(varargin{1});
+        else
+            varargout{1}    = std(varargin{1}, 'omitnan');
+        end
+    end
+
+%% Min function
+
+    function varargout      = min_alt(varargin)
+        if old_check
+            varargout{1}    = nanmin(varargin{1});
+        else
+            varargout{1}    = min(varargin{1}, [], 'omitnan');
+        end
+    end
+
+%% Max function
+
+    function varargout      = max_alt(varargin)
+        if old_check
+            varargout{1}    = nanmax(varargin{1});
+        else
+            varargout{1}    = max(varargin{1}, [], 'omitnan');
         end
     end
 
