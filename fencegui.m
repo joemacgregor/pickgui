@@ -11,7 +11,7 @@ function fencegui(varargin)
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 08/14/15
+% Last updated: 08/20/15
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -1155,7 +1155,8 @@ linkaxes(ax(2:3), 'y')
         if (curr_rad == 2)
             [tmp1, tmp2, tmp3, tmp4, tmp5] ...
                             = deal([x{1}(~isinf(x{1})) x{2}(~isinf(x{2}))], [y{1}(~isinf(y{1})) y{2}(~isinf(y{2}))], ...
-                                   [elev_surf{1}(~isinf(elev_surf{1})) elev_surf{2}(~isinf(elev_surf{2}))], [elev_bed{1}(~isinf(elev_bed{1})) elev_bed{2}(~isinf(elev_bed{2}))], [elev_smooth{1}(~isinf(elev_smooth{1}(:))); elev_smooth{2}(~isinf(elev_smooth{2}(:)))]);
+                                   [elev_surf{1}(~isinf(elev_surf{1})) elev_surf{2}(~isinf(elev_surf{2}))], [elev_bed{1}(~isinf(elev_bed{1})) elev_bed{2}(~isinf(elev_bed{2}))], [elev_smooth{1}(:); elev_smooth{2}(:)]);
+            tmp5            = tmp5(~isinf(tmp5));
             [x_min_ref, x_max_ref, x_min, x_max] ...
                             = deal(min(tmp1, [], 'omitnan'), max(tmp1, [], 'omitnan'), min(tmp1, [], 'omitnan'), max(tmp1, [], 'omitnan'));
             [y_min_ref, y_max_ref, y_min, y_max] ...
