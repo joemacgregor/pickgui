@@ -5203,7 +5203,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(status_box, 'string', 'Layers not matched yet, or need re-matching.')
             return
         end
-        if ~cross_check
+        if cross_check
             set(status_box, 'string', 'Crossing layers must be addressed before saving.')
             return
         end
