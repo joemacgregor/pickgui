@@ -14,7 +14,7 @@ function mergegui(varargin)
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 08/03/15
+% Last updated: 08/24/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -78,7 +78,7 @@ colors_def                  = [0    0       0.75;
 letters                     = 'a':'z';
 
 % allocate a bunch of variables
-[age_done, bed_avail, core_done, data_done, edit_flag, flat_done, merge_done, merge_file, surf_avail, time_avail] ...
+[age_done, bed_avail, core_done, cross_check, data_done, edit_flag, flat_done, merge_done, merge_file, surf_avail, time_avail] ...
                             = deal(false);
 [age, age_curr, amp_depth, amp_elev, amp_flat, button, colors, colors_age, curr_chunk, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ind_surf, ind_x_pk, ...
  ind_x_ref, ind_y_pk, int_core, jj, kk, name_core, name_trans, num_chunk, num_core, num_data, num_decim, num_int, num_pk, num_sample, num_trans, num_year, p_bed, p_beddepth, p_bedflat, p_block, p_blockflat, p_blocknum, p_blocknumflat, p_core, p_coreflat, p_corename, p_corenameflat, p_data, ...
@@ -286,13 +286,14 @@ set(cb_group, 'selectedobject', cb_check(1))
             set(cb_group, 'selectedobject', cb_check(1))
             cb_type         = 'dB';
         end
+        set(status_box, 'edgecolor', 'k', 'linewidth', 1)
     end
 
 %% Clear data and picks
 
     function clear_data(source, eventdata)
         pk                  = struct;
-        [bed_avail, data_done, edit_flag, flat_done, merge_done, merge_file, surf_avail, time_avail] ...
+        [bed_avail, cross_check, data_done, edit_flag, flat_done, merge_done, merge_file, surf_avail, time_avail] ...
                             = deal(false);
         [age_curr, amp_depth, amp_elev, amp_flat, colors, curr_chunk, curr_subtrans, curr_trans, curr_year, depth, depth_bed, depth_bed_flat, depth_curr, depth_flat, depth_layer_flat, depth_layer_ref, depth_mat, dist_chunk, dt, elev, ii, ind_decim, ind_int, ind_surf, ind_x_pk, ind_x_ref, ...
          ind_y_pk, jj, kk, num_chunk, num_data, num_decim, num_int, num_pk, num_sample, pk_all, tmp1, tmp2, tmp3, tmp4, tmp5, twtt] ...
@@ -720,6 +721,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         axes(ax_radar)
         axis xy
         curr_layer          = 1;
+        pk_cross
         show_surfbed
         show_pk
         show_block
@@ -1484,6 +1486,32 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
     end
 
+%% Check for crossing picked layers
+
+    function pk_cross(source, eventdata)
+        if (pk.num_layer < 1)
+            return
+        end
+        for ii = 1:pk.num_layer
+            for jj = (ii + 1):pk.num_layer
+                tmp1        = intersect(find(~isnan(pk.ind_y(ii, :))), find(~isnan(pk.ind_y(jj, :))));
+                if isempty(tmp1)
+                    continue
+                end
+                if ~isempty(find(diff(sign(pk.ind_y(ii, tmp1) - pk.ind_y(jj, tmp1))), 1))
+                    set(status_box, 'edgecolor', 'r', 'linewidth', 3)
+                    set(status_box, 'string', ['Layer #' num2str(ii) ' crosses layer #' num2str(jj) '.'])
+                    pause(2)
+                    cross_check ...
+                            = true;
+                    return
+                end
+            end
+        end
+        cross_check       = false;
+        set(status_box, 'edgecolor', 'g', 'linewidth', 3)
+    end
+
 %% Choose a layer manually
 
     function pk_select_gui(source, eventdata)
@@ -1701,6 +1729,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         set(status_box, 'string', ['Layer #' num2str(curr_layer) ' deleted.'])
         pk_select
+        pk_cross
         set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
     end
 
@@ -1728,7 +1757,6 @@ set(cb_group, 'selectedobject', cb_check(1))
             set(status_box, 'string', 'Load picks before merging them.')
             return
         end
-        
         
         set(mgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         
@@ -1778,8 +1806,10 @@ set(cb_group, 'selectedobject', cb_check(1))
         if ishandle(p_pkdepth(tmp1))
             set(p_pkdepth(tmp1), 'color', colors(curr_layer, :))
         end
-        if (flat_done && ishandle(p_pkflat(tmp1)))
-            set(p_pkflat(tmp1), 'color', colors(curr_layer, :))
+        if (data_done && flat_done)
+            if ishandle(p_pkflat(tmp1))
+                set(p_pkflat(tmp1), 'color', colors(curr_layer, :))
+            end
         end
         pause(0.1)
         
@@ -1793,8 +1823,10 @@ set(cb_group, 'selectedobject', cb_check(1))
             if ishandle(p_pkdepth(tmp1))
                 set(p_pkdepth(tmp1), 'color', colors(tmp1, :))
             end
-            if (flat_done && ishandle(p_pkflat(tmp1)))
-                set(p_pkflat(tmp1), 'color', colors(tmp1, :))
+            if (data_done && flat_done)
+                if ishandle(p_pkflat(tmp1))
+                    set(p_pkflat(tmp1), 'color', colors(tmp1, :))
+                end
             end
             set(status_box, 'string', 'Layer merging cancelled.')
             set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
@@ -1833,7 +1865,7 @@ set(cb_group, 'selectedobject', cb_check(1))
             p_pkdepth(curr_layer) ...
                             = plot(pk.dist_lin(~isnan(pk.depth_smooth(curr_layer, :))), pk.depth_smooth(curr_layer, ~isnan(pk.depth_smooth(curr_layer, :))), '.', 'color', colors(curr_layer, :), 'markersize', 24, 'visible', 'off');
         end
-        if flat_done
+        if (flat_done && data_done)
             if any(ishandle(p_pkflat([curr_layer tmp1])))
                 if ishandle(p_pkflat(curr_layer))
                     delete(p_pkflat(curr_layer))
@@ -1973,7 +2005,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         p_pkdepth(pk.num_layer) ...
                             = plot(pk.dist_lin(~isnan(pk.depth_smooth(end, :))), pk.depth_smooth(end, ~isnan(pk.depth_smooth(end, :))), '.', 'color', colors(end, :), 'markersize', 24, 'visible', 'off');
-        if flat_done
+        if (flat_done && data_done)
             if ishandle(p_pkflat(curr_layer))
                 delete(p_pkflat(curr_layer))
             end
@@ -2024,6 +2056,10 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         if edit_flag
             set(status_box, 'string', 'Layers merged or deleted since flattening. Re-flatten prior to saving.')
+            return
+        end
+        if ~cross_check
+            set(status_box, 'string', 'Crossing layers must be addressed before saving.')
             return
         end
         

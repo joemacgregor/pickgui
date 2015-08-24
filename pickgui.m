@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 08/14/15
+% Last updated: 08/24/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -115,7 +115,7 @@ else
 end
 
 % pre-allocate a bunch of variables
-[aresp_avail, aresp_done, bed_avail, clutter_avail, depth_avail, do_keep_pk, do_surfbed, flat_done, keep_phase_done, keep_aresp_done, load_done, load_flat, map_avail, match_done, phase_avail, phase_done, pk_done, ref_done, smooth_done, surf_avail, trim_done] ...
+[aresp_avail, aresp_done, bed_avail, clutter_avail, cross_check, depth_avail, do_keep_pk, do_surfbed, flat_done, keep_phase_done, keep_aresp_done, load_done, load_flat, map_avail, match_done, phase_avail, phase_done, pk_done, ref_done, smooth_done, surf_avail, trim_done] ...
                             = deal(false);
 [amp_depth, amp_flat_mean, amp_mean, ax_map, block, button, curr_chunk, curr_layer, dist_chunk, elev_surf_gimp, ii, ind_bed, ind_bed_flat, ind_decim, ind_decim_flat, ind_surf, ind_surf_flat, ind_decim_flat_old, ind_x_pk, ind_y_aresp, ind_y_curr, ind_y_flat, ind_y_mat, ind_y_phase, ind_y_pk, ...
  jj, kk, map_data, num_chunk, num_decim, num_decim_flat, num_sample_trim, p_aresp, p_arespdepth, p_bed, p_beddepth, p_bedflat, p_data, p_loc, p_map, p_man, p_mandepth, p_phase, p_phasedepth, p_pk, p_pkdepth, p_pkflat, p_ref, p_refdepth, p_pksmooth, p_pksmoothdepth, p_pksmoothflat, ...
@@ -314,6 +314,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         set(disp_check(2:6), 'visible', 'off')
         set(layer_list, 'string', 'N/A', 'value', 1)
         set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
+        set(status_box, 'edgecolor', 'k', 'linewidth', 1)
     end
 
 %% Clear data and picks
@@ -326,7 +327,7 @@ set(disp_group, 'selectedobject', disp_check(1))
          num_decim, num_decim_flat, num_sample_trim, pkfig, rad_sample, tmp1, tmp2, tmp3, tmp4, tmp5] ...
                             = deal(0);
         pk.predict_or_pk    = 'predict';
-        [aresp_avail, aresp_done, bed_avail, clutter_avail, depth_avail, do_surfbed, pk_done, flat_done, keep_phase_done, keep_aresp_done, load_done, load_flat, match_done, phase_avail, phase_done, ref_done, smooth_done, surf_avail, trim_done] ...
+        [aresp_avail, aresp_done, bed_avail, clutter_avail, cross_check, depth_avail, do_surfbed, pk_done, flat_done, keep_phase_done, keep_aresp_done, load_done, load_flat, match_done, phase_avail, phase_done, ref_done, smooth_done, surf_avail, trim_done] ...
                             = deal(false);
         [ind_y_flat_mean, ind_y_flat_smooth] ...
                             = deal([]);
@@ -530,6 +531,15 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = deal(min_alt(block.clutter(:)));
             [clutter_max_ref, clutter_max] ...
                             = deal(max_alt(block.clutter(:)));
+            if ~isequal(size(block.amp, 2), size(block.clutter, 2))
+                if (size(block.amp, 2) > size(block.clutter, 2))
+                    block.clutter ...
+                            = [block.clutter NaN(size(block.clutter, 1), (size(block.amp, 2) - size(block.clutter, 2)))];
+                elseif (size(block.amp, 2) < size(block.clutter, 2))
+                    block.clutter ...
+                            = block.clutter(:, 1:size(block.amp, 2));
+                end
+            end
         end
         
         % decimation vector
@@ -1331,6 +1341,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         if aresp_avail
             set(disp_check(4), 'visible', 'on')
         end
+        pk_cross
         show_phase
         show_aresp
         show_ref
@@ -3381,6 +3392,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         match_done          = false;
         pk_smooth
         pk_select
+        pk_cross
         set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
         
     end
@@ -3666,10 +3678,37 @@ set(disp_group, 'selectedobject', disp_check(1))
                 show_pk
                 set(status_box, 'string', 'Manual layer successfully picked.')
                 set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
+                pk_cross
                 return
             end
         end
         set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
+    end
+
+%% Check for crossing picked layers
+
+    function pk_cross(source, eventdata)
+        if (pk.num_layer < 1)
+            return
+        end
+        for ii = 1:pk.num_layer
+            for jj = (ii + 1):pk.num_layer
+                tmp1        = intersect(find(~isnan(pk.layer(ii).ind_y)), find(~isnan(pk.layer(jj).ind_y)));
+                if isempty(tmp1)
+                    continue
+                end
+                if ~isempty(find(diff(sign(pk.layer(ii).ind_y(tmp1) - pk.layer(jj).ind_y(tmp1))), 1))
+                    set(status_box, 'edgecolor', 'r', 'linewidth', 3)
+                    set(status_box, 'string', ['Layer #' num2str(ii) ' crosses layer #' num2str(jj) '.'])
+                    pause(2)
+                    cross_check ...
+                            = true;
+                    return
+                end
+            end
+        end
+        cross_check       = false;
+        set(status_box, 'edgecolor', 'g', 'linewidth', 3)
     end
 
 %% Sort layers from top to bottom based on their mean vertical index
@@ -3943,6 +3982,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         pause(0.1)
         pk_select
+        pk_cross
         set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
     end
 
@@ -4213,6 +4253,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     match_done ...
                             = false;
                 end
+                pk_cross
                 set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                 return
             end
@@ -4762,6 +4803,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         set(layer_list, 'string', [num2cell(1:pk.num_layer) 'surface' 'bed'], 'value', curr_layer)
         match_done          = false;
         pk_select
+        pk_cross
         show_surfbed
         show_pk
         show_smooth
@@ -5159,6 +5201,10 @@ set(disp_group, 'selectedobject', disp_check(1))
         % want everything done before saving
         if ~match_done
             set(status_box, 'string', 'Layers not matched yet, or need re-matching.')
+            return
+        end
+        if ~cross_check
+            set(status_box, 'string', 'Crossing layers must be addressed before saving.')
             return
         end
         
