@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 08/24/15
+% Last updated: 08/27/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -64,7 +64,6 @@ pk.predict_or_pk            = 'predict';
 [clutter_min_ref, clutter_max_ref] ...
                             = deal(0, 1);
 [clutter_min, clutter_max]  = deal(clutter_min_ref, clutter_max_ref);
-
 
 % default values for several parameters
 speed_vacuum                = 299792458;
@@ -526,7 +525,6 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = NaN;
             block.clutter(isinf(block.clutter)) ...
                             = NaN;
-            block.clutter   = 10 .* log10(abs(single(block.clutter)));
             [clutter_min_ref, clutter_min] ...
                             = deal(min_alt(block.clutter(:)));
             [clutter_max_ref, clutter_max] ...
@@ -2736,7 +2734,10 @@ set(disp_group, 'selectedobject', disp_check(1))
             end
             [ind_y_flat_mean, ind_y_flat_smooth] ...
                             = deal(NaN(pk.num_layer, num_decim_flat));
-            for ii = tmp2
+            for ii = 1:num_decim_flat
+                if isempty(find(~isnan(ind_y_flat(:, ind_decim_flat(ii))), 1))
+                    continue
+                end
                 ind_y_flat_mean(~isnan(ind_y_curr(:, ind_decim_flat(ii))), ii) ...
                             = interp1(ind_y_flat(~isnan(ind_y_flat(:, ind_decim_flat(ii))), ind_decim_flat(ii)), find(~isnan(ind_y_flat(:, ind_decim_flat(ii)))), ind_y_curr(~isnan(ind_y_curr(:, ind_decim_flat(ii))), ind_decim_flat(ii)), 'nearest', 'extrap');
             end
@@ -2900,10 +2901,11 @@ set(disp_group, 'selectedobject', disp_check(1))
                             tmp1(ii) = ind_y_flat_mean((tmp3 + ii - 1), ind_x_pk);
                     end
                 end
-                if (length(tmp1(~isnan(tmp1))) > 1)
-                    tmp1= interp1(tmp1(~isnan(tmp1)), find(~isnan(tmp1)), ind_y_pk, 'nearest', 'extrap') + tmp3 - 1;
-                elseif (length(tmp1(~isnan(tmp1))) == 1)
-                    tmp1=find(~isnan(tmp1)) + tmp3 - 1;
+                [tmp2, tmp4] = unique(tmp1);
+                if (length(find(~isnan(tmp2))) > 1)
+                    tmp1= interp1(tmp2(~isnan(tmp2)), tmp4(~isnan(tmp2)), ind_y_pk, 'nearest', 'extrap') + tmp3 - 1;
+                elseif (length(find(~isnan(tmp2))) == 1)
+                    tmp1=find(~isnan(tmp2)) + tmp3 - 1;
                 else
                     set(status_box, 'string', 'Cannot determine which layer to delete. Pick a more distinct x index.')
                     pause(0.5)
