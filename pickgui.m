@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 08/27/15
+% Last updated: 08/31/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -196,6 +196,7 @@ uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Surf./bed', 'units', 'normali
 uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Next', 'units', 'normalized', 'position', [0.68 0.925 0.035 0.03], 'callback', @pk_next, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Last', 'units', 'normalized', 'position', [0.64 0.925 0.035 0.03], 'callback', @pk_last, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Test', 'units', 'normalized', 'position', [0.82 0.885 0.04 0.03], 'callback', @misctest, 'fontsize', size_font, 'foregroundcolor', 'r')
+uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Cross', 'units', 'normalized', 'position', [0.965 0.965 0.03 0.03], 'callback', @pk_cross, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Match', 'units', 'normalized', 'position', [0.925 0.925 0.04 0.03], 'callback', @pk_match, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Save', 'units', 'normalized', 'position', [0.965 0.925 0.03 0.03], 'callback', @pk_save, 'fontsize', size_font, 'foregroundcolor', 'g')
 uicontrol(pkgui, 'style', 'pushbutton', 'string', 'Reset x/y', 'units', 'normalized', 'position', [0.945 0.885 0.05 0.03], 'callback', @reset_xy, 'fontsize', size_font, 'foregroundcolor', 'r')
@@ -235,7 +236,7 @@ end
 
 % variable text annotations
 file_box                    = annotation('textbox', [0.005 0.925 0.20 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none', 'linewidth', 1);
-status_box                  = annotation('textbox', [0.64 0.965 0.35 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none', 'linewidth', 1);
+status_box                  = annotation('textbox', [0.64 0.965 0.32 0.03], 'string', '', 'color', 'k', 'fontsize', size_font, 'backgroundcolor', 'w', 'edgecolor', 'k', 'interpreter', 'none', 'linewidth', 1);
 cbl                         = annotation('textbox', [0.93 0.03 0.03 0.03], 'string', '', 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 if ~ispc
     set(cbl, 'fontweight', 'bold')

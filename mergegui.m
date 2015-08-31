@@ -175,6 +175,7 @@ uicontrol(mgui, 'style', 'pushbutton', 'string', 'Split layer', 'units', 'normal
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Delete layer', 'units', 'normalized', 'position', [0.505 0.885 0.07 0.03], 'callback', @pk_del, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Test', 'units', 'normalized', 'position', [0.59 0.965 0.04 0.03], 'callback', @misctest, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'SNR', 'units', 'normalized', 'position', [0.59 0.925 0.04 0.03], 'callback', @snr, 'fontsize', size_font, 'foregroundcolor', 'b')
+uicontrol(mgui, 'style', 'pushbutton', 'string', 'Cross', 'units', 'normalized', 'position', [0.59 0.885 0.04 0.03], 'callback', @pk_cross, 'fontsize', size_font, 'foregroundcolor', 'g')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Map', 'units', 'normalized', 'position', [0.865 0.925 0.03 0.03], 'callback', @pop_map, 'fontsize', size_font, 'foregroundcolor', 'g')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Pop figure', 'units', 'normalized', 'position', [0.90 0.925 0.06 0.03], 'callback', @pop_fig, 'fontsize', size_font, 'foregroundcolor', 'g')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Save', 'units', 'normalized', 'position', [0.965 0.925 0.03 0.03], 'callback', @pk_save, 'fontsize', size_font, 'foregroundcolor', 'g')
@@ -1484,6 +1485,7 @@ set(cb_group, 'selectedobject', cb_check(1))
                 set(p_pkflat(curr_layer), 'markersize', 24)
             end
         end
+        set(status_box, 'string', ['Layer #' num2str(curr_layer) ' chosen.'])
     end
 
 %% Check for crossing picked layers
@@ -1542,7 +1544,6 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
             set(layer_list, 'value', curr_layer)
             pk_select
-            set(status_box, 'string', ['Layer #' num2str(curr_layer) ' chosen.'])
         else
             set(status_box, 'string', 'No layer at that position')
         end
