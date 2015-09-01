@@ -14,7 +14,7 @@ function mergegui(varargin)
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 08/24/15
+% Last updated: 09/01/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -1254,8 +1254,8 @@ set(cb_group, 'selectedobject', cb_check(1))
                 depth_mat   = 0;
                 depth_flat((depth_flat < 0) | (depth_flat > depth(end))) ...
                             = NaN; % limit too-high depths
-                        
-                for jj = 1:num_decim
+                
+                for jj = 1:length(tmp1)
                     if ~isempty(find((diff(depth_flat(:, jj)) <= 0), 1))
                         depth_flat((1 + find(diff(depth_flat(:, jj)) <= 0)), jj) ...
                             = NaN;
