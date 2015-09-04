@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 08/31/15
+% Last updated: 09/04/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -3696,11 +3696,11 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         for ii = 1:pk.num_layer
             for jj = (ii + 1):pk.num_layer
-                tmp1        = intersect(find(~isnan(pk.layer(ii).ind_y)), find(~isnan(pk.layer(jj).ind_y)));
+                tmp1        = intersect(find(~isnan(pk.layer(ii).ind_y_smooth)), find(~isnan(pk.layer(jj).ind_y_smooth)));
                 if isempty(tmp1)
                     continue
                 end
-                if ~isempty(find(diff(sign(pk.layer(ii).ind_y(tmp1) - pk.layer(jj).ind_y(tmp1))), 1))
+                if ~isempty(find(diff(sign(pk.layer(ii).ind_y_smooth(tmp1) - pk.layer(jj).ind_y_smooth(tmp1))), 1))
                     set(status_box, 'edgecolor', 'r', 'linewidth', 3)
                     set(status_box, 'string', ['Layer #' num2str(ii) ' crosses layer #' num2str(jj) '.'])
                     pause(2)
@@ -5946,19 +5946,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         if (dist_max > dist_max_ref)
             dist_max    	= dist_max_ref;
         end
-        set(dist_min_edit, 'string', sprintf('%3.1f', dist_min))
-        set(dist_max_edit, 'string', sprintf('%3.1f', dist_max))
-        if (dist_min < get(dist_min_slide, 'min'))
-            set(dist_min_slide, 'value', get(dist_min_slide, 'min'))
-        else
-            set(dist_min_slide, 'value', dist_min)
-        end
-        if (dist_max > get(dist_max_slide, 'max'))
-            set(dist_max_slide, 'value', get(dist_max_slide, 'max'))
-        else
-            set(dist_max_slide, 'value', dist_max)
-        end
-        update_dist_range
+        pan_horiz
     end
 
     function pan_right(source, eventdata)
@@ -5973,6 +5961,11 @@ set(disp_group, 'selectedobject', disp_check(1))
         if (dist_min < dist_min_ref)
             dist_min        = dist_min_ref;
         end
+        pan_horiz
+    end
+
+    function pan_horiz(source, eventdata)
+
         set(dist_min_edit, 'string', sprintf('%3.1f', dist_min))
         set(dist_max_edit, 'string', sprintf('%3.1f', dist_max))
         if (dist_min < get(dist_min_slide, 'min'))
@@ -5985,7 +5978,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         else
             set(dist_max_slide, 'value', dist_max)
         end
-        update_dist_range
+        update_dist_range        
     end
 
     function pan_up(source, eventdata)
@@ -5997,23 +5990,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             twtt_min        = tmp2;
         end
         twtt_max            = twtt_min + tmp1;
-        set(twtt_min_edit, 'string', sprintf('%3.1f', (1e6 * twtt_min)))
-        set(twtt_max_edit, 'string', sprintf('%3.1f', (1e6 * twtt_max)))
-        if ((1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref))) < get(twtt_min_slide, 'min'))
-            set(twtt_min_slide, 'value', get(twtt_min_slide, 'min'))
-        elseif ((1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref))) > get(twtt_min_slide, 'max'))
-            set(twtt_min_slide, 'value', get(twtt_min_slide, 'max'))
-        else
-            set(twtt_min_slide, 'value', (1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref))))
-        end
-        if ((1e6 * (twtt_max_ref - (twtt_max - twtt_min_ref))) < get(twtt_max_slide, 'min'))
-            set(twtt_max_slide, 'value', get(twtt_max_slide, 'min'))
-        elseif ((1e6 * (twtt_max_ref - (twtt_max - twtt_min_ref))) > get(twtt_max_slide, 'max'))
-            set(twtt_max_slide, 'value', get(twtt_max_slide, 'max'))
-        else
-            set(twtt_max_slide, 'value', (1e6 * (twtt_max_ref - (twtt_max - twtt_min_ref))))
-        end
-        update_twtt_range
+        pan_vert
     end
 
     function pan_down(source, eventdata)
@@ -6025,6 +6002,10 @@ set(disp_group, 'selectedobject', disp_check(1))
             twtt_max        = tmp2;
         end
         twtt_min            = twtt_max - tmp1;
+        pan_vert
+    end
+
+    function pan_vert(source, eventdata)
         set(twtt_min_edit, 'string', sprintf('%3.1f', (1e6 * twtt_min)))
         set(twtt_max_edit, 'string', sprintf('%3.1f', (1e6 * twtt_max)))
         if ((1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref))) < get(twtt_min_slide, 'min'))
@@ -6103,13 +6084,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         p_data              = imagesc(block.dist_lin(ind_decim), (1e6 .* block.twtt), amp_mean, [db_min db_max]);
         disp_type           = 'twtt';
         narrow_cb
-        show_surfbed
-        show_phase
-        show_aresp
-        show_man
-        show_ref
-        show_pk
-        show_smooth
+        show_all
         set(cbl, 'string', '(dB)')
         set(cb_min_slide, 'min', db_min_ref, 'max', db_max_ref, 'value', db_min)
         set(cb_max_slide, 'min', db_min_ref, 'max', db_max_ref, 'value', db_max)
@@ -6135,13 +6110,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         p_data              = imagesc(block.dist_lin(ind_decim), (1e6 .* block.twtt), amp_depth, [db_min db_max]);
         disp_type           = '~depth';
         narrow_cb
-        show_surfbed
-        show_phase
-        show_aresp
-        show_man
-        show_ref
-        show_pk
-        show_smooth
+        show_all
         set(cbl, 'string', '(dB)')
         set(cb_min_slide, 'min', db_min_ref, 'max', db_max_ref, 'value', db_min)
         set(cb_max_slide, 'min', db_min_ref, 'max', db_max_ref, 'value', db_max)
@@ -6171,13 +6140,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         if get(cbfix_check2, 'value')
             set(cbfix_check2, 'value', 0)
         end
-        show_surfbed
-        show_phase
-        show_aresp
-        show_man
-        show_ref
-        show_pk
-        show_smooth
+        show_all
         set(cbl, 'string', '(rad)')
         set(cb_min_slide, 'min', phase_diff_min_ref, 'max', phase_diff_max_ref, 'value', phase_diff_min)
         set(cb_max_slide, 'min', phase_diff_min_ref, 'max', phase_diff_max_ref, 'value', phase_diff_max)
@@ -6207,13 +6170,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         if get(cbfix_check2, 'value')
             set(cbfix_check2, 'value', 0)
         end
-        show_surfbed
-        show_phase
-        show_aresp
-        show_man
-        show_ref
-        show_pk
-        show_smooth
+        show_all
         set(cbl, 'string', '(\theta)')
         set(cb_min_slide, 'min', aresp_min_ref, 'max', aresp_max_ref, 'value', aresp_min)
         set(cb_max_slide, 'min', aresp_min_ref, 'max', aresp_max_ref, 'value', aresp_max)
@@ -6237,10 +6194,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         p_data              = imagesc(block.dist_lin(ind_decim), (1e6 .* block.twtt), block.clutter(:, ind_decim), [clutter_min clutter_max]);
         disp_type           = 'clutter';
         narrow_cb
-        show_surfbed
-        show_ref
-        show_pk
-        show_smooth
+        show_all
         set(cbl, 'string', '(dB)')
         set(cb_min_slide, 'min', clutter_min_ref, 'max', clutter_max_ref, 'value', clutter_min)
         set(cb_max_slide, 'min', clutter_min_ref, 'max', clutter_max_ref, 'value', clutter_max)
@@ -6268,18 +6222,24 @@ set(disp_group, 'selectedobject', disp_check(1))
         p_data              = imagesc(block.dist_lin(ind_decim_flat), (1e6 .* block.twtt), amp_flat_mean, [db_min db_max]);
         disp_type           = 'flat';
         narrow_cb
+        show_all
+        set(cbl, 'string', '(dB)')
+        set(cb_min_slide, 'min', db_min_ref, 'max', db_max_ref, 'value', db_min)
+        set(cb_max_slide, 'min', db_min_ref, 'max', db_max_ref, 'value', db_max)
+        set(cb_min_edit, 'string', sprintf('%3.0f', db_min))
+        set(cb_max_edit, 'string', sprintf('%3.0f', db_max))
+    end
+
+%% Show all
+
+    function show_all(source, eventdata)
         show_surfbed
         show_phase
         show_aresp
         show_man
         show_ref
         show_pk
-        show_smooth
-        set(cbl, 'string', '(dB)')
-        set(cb_min_slide, 'min', db_min_ref, 'max', db_max_ref, 'value', db_min)
-        set(cb_max_slide, 'min', db_min_ref, 'max', db_max_ref, 'value', db_max)
-        set(cb_min_edit, 'string', sprintf('%3.0f', db_min))
-        set(cb_max_edit, 'string', sprintf('%3.0f', db_max))
+        show_smooth        
     end
 
 %% Show surface/bed
@@ -7022,8 +6982,8 @@ set(disp_group, 'selectedobject', disp_check(1))
 %% Toggle gridlines
 
     function toggle_grid(source, eventdata)
+        axes(ax_radar)
         if get(grid_check, 'value')
-            axes(ax_radar)
             grid on
         else
             grid off
@@ -7376,19 +7336,19 @@ set(disp_group, 'selectedobject', disp_check(1))
             switch nargin
                 case 1
                     varargout{1} ...
-                        = nanmean(varargin{1});
+                            = nanmean(varargin{1});
                 case 2
                     varargout{1} ...
-                        = nanmean(varargin{1}, varargin{2});
+                            = nanmean(varargin{1}, varargin{2});
             end
         else
             switch nargin
                 case 1
                     varargout{1} ...
-                        = mean(varargin{1}, 'omitnan');
+                            = mean(varargin{1}, 'omitnan');
                 case 2
                     varargout{1} ...
-                        = mean(varargin{1}, varargin{2}, 'omitnan');
+                            = mean(varargin{1}, varargin{2}, 'omitnan');
             end
         end
     end

@@ -14,7 +14,7 @@ function mergegui(varargin)
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 09/01/15
+% Last updated: 09/04/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -1496,11 +1496,11 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         for ii = 1:pk.num_layer
             for jj = (ii + 1):pk.num_layer
-                tmp1        = intersect(find(~isnan(pk.ind_y(ii, :))), find(~isnan(pk.ind_y(jj, :))));
+                tmp1        = intersect(find(~isnan(pk.ind_y_smooth(ii, :))), find(~isnan(pk.ind_y_smooth(jj, :))));
                 if isempty(tmp1)
                     continue
                 end
-                if ~isempty(find(diff(sign(pk.ind_y(ii, tmp1) - pk.ind_y(jj, tmp1))), 1))
+                if ~isempty(find(diff(sign(pk.ind_y_smooth(ii, tmp1) - pk.ind_y_smooth(jj, tmp1))), 1))
                     set(status_box, 'edgecolor', 'r', 'linewidth', 3)
                     set(status_box, 'string', ['Layer #' num2str(ii) ' crosses layer #' num2str(jj) '.'])
                     pause(2)
