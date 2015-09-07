@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 09/04/15
+% Last updated: 09/07/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -868,7 +868,6 @@ set(disp_group, 'selectedobject', disp_check(1))
         % check against data file
         try %#ok<TRYNC>
             if ~strcmp(file_data(1:(end - 4)), file_pk(1:(end - 7)))
-                set(pkgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
                 set(status_box, 'string', ['Selected picks file (' file_pk(1:(end - 4)) ') might not match data file. Continue loading? Y: yes; otherwise: no...'])
                 waitforbuttonpress
                 if ~strcmpi(get(pkgui, 'currentcharacter'), 'Y')
@@ -876,7 +875,6 @@ set(disp_group, 'selectedobject', disp_check(1))
                     set(status_box, 'string', 'Loading of picks file cancelled.')
                     return
                 end
-                set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             end
         end
         
