@@ -363,7 +363,6 @@ set(disp_group, 'selectedobject', disp_check(1))
                     tmp2    = num2str(tmp2);
                 end
                 if exist([path_data file_data(1:(end - 6)) tmp2 '.mat'], 'file')
-                    set(pkgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
                     set(status_box, 'string', 'Load next block in transect? Y: yes; otherwise: no...')
                     waitforbuttonpress
                     if strcmpi(get(pkgui, 'currentcharacter'), 'Y')
@@ -374,13 +373,10 @@ set(disp_group, 'selectedobject', disp_check(1))
                                 = true;
                         end
                     end
-                    set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                 end
             end
         end
-        
-        set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
-        
+                
         % dialog box to choose radar data file to load
         if (isempty(file_data) || strcmp(tmp1, file_data))
             [tmp1, tmp2]    = deal(file_data, path_data);
@@ -400,6 +396,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         if isempty(file_data)
             file_data       = tmp1;
             set(status_box, 'string', 'No data loaded.')
+            set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             return
         end
         
@@ -423,6 +420,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                             = deal(double(tmp1.Data), tmp1.Latitude, tmp1.Longitude, length(tmp1.Latitude), tmp1.Time, tmp1.Elevation, (tmp1.Time(2) - tmp1.Time(1)), length(tmp1.Time), file_data(1:(end - 4)), NaN(1, 2));
                 catch
                     set(status_box, 'string', 'Selected file does not contain expected variables.')
+                    set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                     return
                 end
                 try
@@ -454,6 +452,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                 
             else
                 set(status_box, 'string', 'Selected file does not contain expected variables.')
+                set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
                 return
             end
         end
@@ -673,6 +672,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         if do_keep_pk
             load_ref
         end
+        set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)        
     end
 
 %% Trim excess data within GUI (e.g., before surface reflection and after deepest bed reflection)
