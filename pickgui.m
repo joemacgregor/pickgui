@@ -2626,7 +2626,7 @@ set(disp_group, 'selectedobject', disp_check(1))
                     continue
                 end
                 ind_y_flat_mean(~isnan(ind_y_curr(:, ind_decim_flat(ii))), ii) ...
-                            = interp1(ind_y_flat(~isnan(ind_y_flat(:, ind_decim_flat(ii))), ind_decim_flat(ii)), find(~isnan(ind_y_flat(:, ind_decim_flat(ii)))), ind_y_curr(~isnan(ind_y_curr(:, ind_decim_flat(ii))), ind_decim_flat(ii)), 'nearest', 'extrap');
+                            = interp1(ind_y_flat(~isnan(ind_y_flat(:, ind_decim_flat(ii))), ind_decim_flat(ii)), find(~isnan(ind_y_flat(:, ind_decim_flat(ii)))), ind_y_curr(~isnan(ind_y_curr(:, ind_decim_flat(ii))), ind_decim_flat(ii)), 'nearest');
             end
             pk_smooth
         end
@@ -3212,26 +3212,32 @@ set(disp_group, 'selectedobject', disp_check(1))
                 
                 % loop through each and reproject
                 for ii = 1:pk.num_layer
+                    
                     tmp4    = pk.layer(ii).ind_y; % preserve original ind_y temporarily
+                    
                     pk.layer(ii).ind_y ...
                             = NaN(1, block.num_trace);
-                    tmp1    = round(interp1(ind_decim_flat, ind_y_flat_mean(ii, :), 1:block.num_trace, 'linear', 'extrap'));
+                    
+                    tmp2    = 1:block.num_trace;
+                    tmp1    = round(interp1(ind_decim_flat, ind_y_flat_mean(ii, :), tmp2, 'linear', 'extrap'));
                     tmp1((tmp1 < 1) | (tmp1 > num_sample_trim)) ...
                             = NaN;
-                    tmp2    = 1:block.num_trace;
-                    tmp2    = tmp2(~isnan(tmp1));
+                    tmp5    = find(~isnan(tmp1));
+                        
                     try %#ok<TRYNC>
-                        pk.layer(ii).ind_y(~isnan(tmp1)) ...
-                            = ind_y_flat(sub2ind([num_sample_trim block.num_trace], tmp1(~isnan(tmp1)), tmp2));
+                        pk.layer(ii).ind_y(tmp5) ...
+                            = ind_y_flat(sub2ind([num_sample_trim block.num_trace], tmp1(tmp5), tmp2(tmp5)));
                     end
                     pk.layer(ii).ind_y((pk.layer(ii).ind_y < 1) | (pk.layer(ii).ind_y > num_sample_trim)) ...
                             = NaN;
+                    
                     for jj = 1:(num_decim_flat - 1)
                         if all(isnan(ind_y_flat_mean(ii, jj:(jj + 1))))
                             pk.layer(ii).ind_y(ind_decim_flat(jj):ind_decim_flat(jj + 1)) ...
                                 = NaN; % deal with breaks in layers
                         end
                     end
+                    
                     pk.layer(ii).ind_y(isnan(pk.layer(ii).ind_y) & ~isnan(tmp4)) ...
                             = tmp4(isnan(pk.layer(ii).ind_y) & ~isnan(tmp4)); % revert back to ind_y where necessary
                 end
