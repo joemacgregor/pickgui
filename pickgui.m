@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 09/07/15
+% Last updated: 09/08/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -69,7 +69,7 @@ pk.predict_or_pk            = 'predict';
 speed_vacuum                = 299792458;
 permitt_ice                 = 3.15;
 speed_ice                   = speed_vacuum / sqrt(permitt_ice);
-decim                       = 5; % decimate radargram for displayls
+decim                       = 1; % decimate radargram for displays
 length_chunk                = 10; % chunk length in km
 int_track                   = 10; % number of indices (vertical) to separate phase- and ARESP-tracked layers
 decim_flat                  = 5;
@@ -130,9 +130,6 @@ amp_flat                    = NaN;
 
 set(0, 'DefaultFigureWindowStyle', 'docked')
 pkgui                       = figure('toolbar', 'figure', 'name', 'PICKGUI', 'menubar', 'none', 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click);
-if ~nargin
-    set(pkgui, 'windowscrollwheelfcn', @wheel_zoom)
-end
 ax_radar                    = subplot('position', [0.065 0.06 0.86 0.81]);
 if ispc % windows switch
     size_font               = 14;
@@ -885,12 +882,13 @@ set(disp_group, 'selectedobject', disp_check(1))
             tmp1            = 0;
         catch
             set(status_box, 'string', 'Selected file does not contained a pk structure.')
+            set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             return
         end
         
         if ~pk.num_layer
-            set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             set(status_box, 'string', 'Picks file has no picks.')
+            set(pkgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             return
         end
         
@@ -1212,120 +1210,10 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         
         if load_flat % reflatten if possible
-            
             pause(0.1)
             set(status_box, 'string', 'Re-flattening data...')
-            
-            % load polynomial flattening
-            ind_y_mat       = single((1:size(block.amp, 1))');
-            ind_y_mat       = ind_y_mat(:, ones(1, block.num_trace)); % matrix of y indices
-            switch ord_poly
-                case 2
-                    ind_y_flat ...
-                            = ((ind_y_mat .^ 2) .* pk.poly_flat(ones(num_sample_trim, 1), :)) + (ind_y_mat .* (pk.poly_flat((2 .* ones(num_sample_trim, 1)), :))) + pk.poly_flat((3 .* ones(num_sample_trim, 1)), :);
-                case 3
-                    ind_y_flat ...
-                            = ((ind_y_mat .^ 3) .* pk.poly_flat(ones(num_sample_trim, 1), :)) + ((ind_y_mat .^ 2) .* pk.poly_flat((2 .* ones(num_sample_trim, 1)), :)) + (ind_y_mat .* (pk.poly_flat((3 .* ones(num_sample_trim, 1)), :))) + pk.poly_flat((4 .* ones(num_sample_trim, 1)), :);
-            end
-            ind_y_mat       = 0;
-            ind_y_flat((ind_y_flat < 1) | (ind_y_flat > num_sample_trim)) ...
-                            = NaN;
-            % prevent non-unique flattening
-            for ii = 1:block.num_trace
-                if ~isempty(find((diff(ind_y_flat(:, ii)) <= 0), 1))
-                    ind_y_flat((1 + find(diff(ind_y_flat(:, ii)) <= 0)), ii) ...
-                            = NaN;
-                end
-                [tmp1, tmp2]= unique(ind_y_flat(:, ii));
-                ind_y_flat(setdiff((1:num_sample_trim)', tmp2(~isnan(tmp1))), ii) ...
-                            = deal(NaN); % reduce to unique values
-            end
-            amp_flat        = NaN(size(block.amp, 1), block.num_trace, 'single');
-            
-            if parallel_check
-                tmp1        = block.amp;
-                parfor ii = 1:block.num_trace
-                    amp_flat(:, ii) ...
-                            = interp1(tmp1(:, ii), ind_y_flat(:, ii));
-                end
-                tmp1        = 0;
-            else
-                for ii = 1:block.num_trace
-                    amp_flat(:, ii) ...
-                            = interp1(block.amp(:, ii), ind_y_flat(:, ii));
-                end
-            end
-            flat_done       = true;
-            
-            % flatten layers
-            tmp1            = NaN(pk.num_layer, num_decim_flat);
-            for ii = 1:pk.num_layer
-                tmp1(ii, :) = pk.layer(ii).ind_y(ind_decim_flat);
-            end
-            for ii = find(sum(~isnan(ind_y_flat(:, ind_decim_flat))) > 2)
-                ind_y_flat_mean(~isnan(tmp1(:, ii)), ii) ...
-                            = interp1(ind_y_flat(~isnan(ind_y_flat(:, ind_decim_flat(ii))), ind_decim_flat(ii)), find(~isnan(ind_y_flat(:, ind_decim_flat(ii)))), tmp1(~isnan(tmp1(:, ii)), ii), 'nearest', 'extrap');
-            end
-            
-            tmp1            = NaN(pk.num_layer, num_decim_flat);
-            for ii = 1:pk.num_layer
-                tmp1(ii, :) = pk.layer(ii).ind_y_smooth(ind_decim_flat);
-            end
-            for ii = find(sum(~isnan(ind_y_flat(:, ind_decim_flat))) > 2)
-                ind_y_flat_smooth(~isnan(tmp1(:, ii)), ii) ...
-                            = interp1(ind_y_flat(~isnan(ind_y_flat(:, ind_decim_flat(ii))), ind_decim_flat(ii)), find(~isnan(ind_y_flat(:, ind_decim_flat(ii)))), tmp1(~isnan(tmp1(:, ii)), ii), 'nearest', 'extrap');
-            end
-            
-            % flatten surface pick
-            if surf_avail
-                ind_surf_flat ...
-                            = NaN(1, block.num_trace);
-                for ii = find(sum(~isnan(ind_y_flat)) > 2)
-                    ind_surf_flat(ii) ...
-                            = interp1(ind_y_flat(~isnan(ind_y_flat(:, ii)), ii), find(~isnan(ind_y_flat(:, ii))), ind_surf(ii), 'nearest', 'extrap');
-                end
-                ind_surf_flat ...
-                            = round(ind_surf_flat);
-                ind_surf_flat((ind_surf_flat < 1) | (ind_surf_flat > num_sample_trim)) ...
-                            = NaN;
-                if ~isempty(find(~isnan(ind_surf_flat(ind_decim)), 1))
-                    tmp1    = ind_surf_flat(ind_decim_flat);
-                    p_surfflat ...
-                            = plot(block.dist_lin(ind_decim_flat(~isnan(tmp1))), (1e6 .* block.twtt(tmp1(~isnan(tmp1)))), 'm.', 'markersize', 12, 'visible', 'off');
-                else
-                    p_surfflat ...
-                            = plot(NaN, NaN, 'm.', 'markersize', 12, 'visible', 'off');
-                end
-            else
-                p_surfflat  = plot(NaN, NaN, 'm.', 'markersize', 12, 'visible', 'off');
-            end
-            
-            % flatten bed pick
-            if bed_avail
-                ind_bed_flat= NaN(1, block.num_trace);
-                for ii = find(sum(~isnan(ind_y_flat)) > 2)
-                    ind_bed_flat(ii) ...
-                            = interp1(ind_y_flat(~isnan(ind_y_flat(:, ii)), ii), find(~isnan(ind_y_flat(:, ii))), ind_bed(ii), 'nearest', 'extrap');
-                end
-                ind_bed_flat= round(ind_bed_flat);
-                ind_bed_flat((ind_bed_flat < 1) | (ind_bed_flat > num_sample_trim)) ...
-                            = NaN;
-                if ~isempty(find(~isnan(ind_bed_flat(ind_decim)), 1))
-                    tmp1    = ind_bed_flat(ind_decim_flat);
-                    p_bedflat ...
-                            = plot(block.dist_lin(ind_decim_flat(~isnan(tmp1))), (1e6 .* block.twtt(tmp1(~isnan(tmp1)))), 'm.', 'markersize', 12, 'visible', 'off');
-                else
-                    p_bedflat ...
-                            = plot(NaN, NaN, 'm.', 'markersize', 12, 'visible', 'off');
-                end
-            else
-                p_bedflat   = plot(NaN, NaN, 'm.', 'markersize', 12, 'visible', 'off');
-            end
-            
-            mean_flat
-            pause(0.1)
-            set(disp_check(6), 'visible', 'on')
-            match_done      = true;
+            flatten
+            set(pkgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         end
         
         set([pk_check smooth_check], 'value', 1)
@@ -6133,7 +6021,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(cmap_list, 'value', 2)
             change_cmap
         end
-        p_data              = imagesc(block.dist_lin(1:decim:size(block.phase_diff_filt, 2)), (1e6 .* block.twtt), block.phase_diff_filt(:, 1:decim:end), [phase_diff_min phase_diff_max]);
+        p_data              = imagesc(block.dist_lin(ind_decim), (1e6 .* block.twtt), block.phase_diff_filt(:, ind_decim), [phase_diff_min phase_diff_max]);
         disp_type           = 'phase';
         if get(cbfix_check2, 'value')
             set(cbfix_check2, 'value', 0)
@@ -6163,7 +6051,7 @@ set(disp_group, 'selectedobject', disp_check(1))
             set(cmap_list, 'value', 2)
             change_cmap
         end
-        p_data              = imagesc(block.dist_lin(1:decim:size(block.slope_aresp, 2)), (1e6 .* block.twtt), atand(block.slope_aresp(:, 1:decim:end)), [aresp_min aresp_max]);
+        p_data              = imagesc(block.dist_lin(ind_decim), (1e6 .* block.twtt), atand(block.slope_aresp(:, ind_decim)), [aresp_min aresp_max]);
         disp_type           = 'ARESP';
         if get(cbfix_check2, 'value')
             set(cbfix_check2, 'value', 0)
@@ -7271,17 +7159,6 @@ set(disp_group, 'selectedobject', disp_check(1))
                         disp_type = 'twtt';
                         plot_twtt
                 end
-        end
-    end
-
-%% Mouse wheel shortcut
-
-    function wheel_zoom(~, eventdata)
-        switch eventdata.VerticalScrollCount
-            case -1
-                zoom_in
-            case 1
-                zoom_out
         end
     end
 
