@@ -118,9 +118,6 @@ end
 
 set(0, 'DefaultFigureWindowStyle', 'docked')
 mgui                        = figure('toolbar', 'figure', 'name', 'MERGEGUI', 'menubar', 'none', 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click);
-if ~nargin
-    set(mgui, 'windowscrollwheelfcn', @wheel_zoom)
-end
 ax_radar                    = subplot('position', [0.065 0.06 0.86 0.81]);
 if ispc % windows switch
     size_font               = 14;
@@ -1494,13 +1491,14 @@ set(cb_group, 'selectedobject', cb_check(1))
         if (pk.num_layer < 1)
             return
         end
-        for ii = 1:pk.num_layer
-            for jj = (ii + 1):pk.num_layer
-                tmp1        = intersect(find(~isnan(pk.ind_y_smooth(ii, :))), find(~isnan(pk.ind_y_smooth(jj, :))));
-                if isempty(tmp1)
-                    continue
-                end
-                if ~isempty(find(diff(sign(pk.ind_y_smooth(ii, tmp1) - pk.ind_y_smooth(jj, tmp1))), 1))
+        for ii = 1:(pk.num_layer - 1)
+            tmp1            = find(sum(pk.ind_y_smooth((ii + 1):end, ~isnan(pk.ind_y_smooth(ii, :))), 2, 'omitnan'));
+            if isempty(tmp1)
+                continue
+            end
+            for jj = (ii + tmp1')
+                tmp2        = intersect(find(~isnan(pk.ind_y_smooth(ii, :))), find(~isnan(pk.ind_y_smooth(jj, :))));
+                if ~isempty(find(diff(sign(pk.ind_y_smooth(ii, tmp2) - pk.ind_y_smooth(jj, tmp2))), 1))
                     set(status_box, 'edgecolor', 'r', 'linewidth', 3)
                     set(status_box, 'string', ['Layer #' num2str(ii) ' crosses layer #' num2str(jj) '.'])
                     pause(2)
@@ -1730,7 +1728,6 @@ set(cb_group, 'selectedobject', cb_check(1))
         end
         set(status_box, 'string', ['Layer #' num2str(curr_layer) ' deleted.'])
         pk_select
-        pk_cross
         set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
     end
 
@@ -2066,7 +2063,9 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         reset_xz
         pause(0.1)
-
+        
+        pk_cross
+        
         set(mgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         
         % didn't get to flatten :(

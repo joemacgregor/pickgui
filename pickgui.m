@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 09/08/15
+% Last updated: 09/23/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -3586,13 +3586,15 @@ set(disp_group, 'selectedobject', disp_check(1))
         if (pk.num_layer < 1)
             return
         end
+        tmp1                = reshape([pk.layer(:).ind_y_smooth], block.num_trace, pk.num_layer)';
         for ii = 1:pk.num_layer
-            for jj = (ii + 1):pk.num_layer
-                tmp1        = intersect(find(~isnan(pk.layer(ii).ind_y_smooth)), find(~isnan(pk.layer(jj).ind_y_smooth)));
-                if isempty(tmp1)
-                    continue
-                end
-                if ~isempty(find(diff(sign(pk.layer(ii).ind_y_smooth(tmp1) - pk.layer(jj).ind_y_smooth(tmp1))), 1))
+            tmp2            = find(sum(tmp1((ii + 1):end, ~isnan(tmp1(ii, :))), 2, 'omitnan'));
+            if isempty(tmp2)
+                continue
+            end
+            for jj = (ii + tmp2')
+                tmp3        = intersect(find(~isnan(tmp1(ii, :))), find(~isnan(tmp1(jj, :))));
+                if ~isempty(find(diff(sign(tmp1(ii, tmp3) - tmp1(jj, tmp3))), 1))
                     set(status_box, 'edgecolor', 'r', 'linewidth', 3)
                     set(status_box, 'string', ['Layer #' num2str(ii) ' crosses layer #' num2str(jj) '.'])
                     pause(2)
@@ -3821,7 +3823,6 @@ set(disp_group, 'selectedobject', disp_check(1))
         end
         set(twtt_min_edit, 'string', sprintf('%3.1f', (1e6 * twtt_min)))
         set(twtt_max_edit, 'string', sprintf('%3.1f', (1e6 * twtt_max)))
-
         if (curr_layer == (pk.num_layer + 1))
             set(status_box, 'string', 'Focused on surface.')
         elseif (curr_layer == (pk.num_layer + 2))
