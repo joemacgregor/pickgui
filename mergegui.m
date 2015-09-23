@@ -14,7 +14,7 @@ function mergegui(varargin)
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 09/04/15
+% Last updated: 09/23/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -2066,10 +2066,11 @@ set(cb_group, 'selectedobject', cb_check(1))
         
         reset_xz
         pause(0.1)
+
+        set(mgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         
         % didn't get to flatten :(
         if ~flat_done
-            set(mgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
             set(status_box, 'string', 'Merged layers not flattened...continue saving? Y: yes; otherwise: no.')
             waitforbuttonpress
             if ~strcmpi(get(mgui, 'currentcharacter'), 'Y')
@@ -2079,7 +2080,6 @@ set(cb_group, 'selectedobject', cb_check(1))
             end
             pk.poly_flat_merge ...
                             = [];
-            set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
         end
         
         pk.merge_flag       = true; % will help when merged picks are loaded later
@@ -2113,6 +2113,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         if ~ischar(file_save)
             [file_save, path_save] ...
                             = deal('');
+            set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             set(status_box, 'string', 'Saving cancelled.')
         else
             
@@ -2147,6 +2148,8 @@ set(cb_group, 'selectedobject', cb_check(1))
                 box on
                 print(pkfig, '-dpng', [path_save file_save(1:(end - 4)) '.png'])
             end
+            
+            set(mgui, 'keypressfcn', @keypress, 'windowbuttondownfcn', @mouse_click)
             set(status_box, 'string', ['Merged picks saved as ' file_save(1:(end - 4)) ' in ' path_save '.'])
         end
     end
