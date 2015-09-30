@@ -1,4 +1,4 @@
-function fencegui(varargin)
+function fencegui
 % FENCEGUI Interactive comparison of layer picks between intersecting radar transects.
 %   
 %   FENCEGUI loads a pair of GUIs (3D and 2D) for interactive comparison of
@@ -11,7 +11,7 @@ function fencegui(varargin)
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 08/20/15
+% Last updated: 09/30/15
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -230,9 +230,6 @@ pause(0.5)
 %% draw second GUI
 
 fgui(2)                     = figure('toolbar', 'figure', 'name', 'FENCEGUI 2D', 'menubar', 'none', 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click);
-if ~nargin
-    set(fgui(2), 'windowscrollwheelfcn', @wheel_zoom)
-end
 ax(2)                       = subplot('position', [0.065 0.06 0.41 0.81]);
 ax(3)                       = subplot('position', [0.55 0.06 0.41 0.81]);
 
@@ -4749,27 +4746,6 @@ linkaxes(ax(2:3), 'y')
                         [curr_ax, curr_rad] = deal(3, 2);
                 end
                 update_z_range
-        end
-    end
-
-%% Mouse wheel shortcut
-
-    function wheel_zoom(~, eventdata)
-        switch eventdata.VerticalScrollCount
-            case -1
-                tmp1        = dist_max(curr_rad) - dist_min(curr_rad);
-                tmp2        = [(dist_min(curr_rad) + (0.25 * tmp1)) (dist_max(curr_rad) - (0.25 * tmp1))];
-                tmp3        = elev_max(curr_gui) - elev_min(curr_gui);
-                tmp4        = [(elev_min(curr_gui) + (0.25 * tmp3)) (elev_max(curr_gui) - (0.25 * tmp3))];
-                set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
-                panzoom
-            case 1
-                tmp1        = dist_max(curr_rad) - dist_min(curr_rad);
-                tmp2        = [(dist_min(curr_rad) - (0.25 * tmp1)) (dist_max(curr_rad) + (0.25 * tmp1))];
-                tmp3    	= elev_max(curr_gui) - elev_min(curr_gui);
-                tmp4        = [(elev_min(curr_gui) - (0.25 * tmp3)) (elev_max(curr_gui) + (0.25 * tmp3))];
-                set(ax(curr_ax), 'xlim', tmp2, 'ylim', tmp4)
-                panzoom
         end
     end
 

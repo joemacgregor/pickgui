@@ -14,7 +14,7 @@ function mergegui(varargin)
 %   input will be assumed to mean that no parallelization is desired.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 09/23/15
+% Last updated: 09/30/15
 
 if ~exist('topocorr', 'file')
     error('mergegui:topocorr', 'Necessary function TOPOCORR is not available within this user''s path.')
@@ -172,7 +172,7 @@ uicontrol(mgui, 'style', 'pushbutton', 'string', 'Split layer', 'units', 'normal
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Delete layer', 'units', 'normalized', 'position', [0.505 0.885 0.07 0.03], 'callback', @pk_del, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Test', 'units', 'normalized', 'position', [0.59 0.965 0.04 0.03], 'callback', @misctest, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'SNR', 'units', 'normalized', 'position', [0.59 0.925 0.04 0.03], 'callback', @snr, 'fontsize', size_font, 'foregroundcolor', 'b')
-uicontrol(mgui, 'style', 'pushbutton', 'string', 'Cross', 'units', 'normalized', 'position', [0.59 0.885 0.04 0.03], 'callback', @pk_cross, 'fontsize', size_font, 'foregroundcolor', 'g')
+uicontrol(mgui, 'style', 'pushbutton', 'string', 'Cross', 'units', 'normalized', 'position', [0.59 0.885 0.04 0.03], 'callback', @pk_cross, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Map', 'units', 'normalized', 'position', [0.865 0.925 0.03 0.03], 'callback', @pop_map, 'fontsize', size_font, 'foregroundcolor', 'g')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Pop figure', 'units', 'normalized', 'position', [0.90 0.925 0.06 0.03], 'callback', @pop_fig, 'fontsize', size_font, 'foregroundcolor', 'g')
 uicontrol(mgui, 'style', 'pushbutton', 'string', 'Save', 'units', 'normalized', 'position', [0.965 0.925 0.03 0.03], 'callback', @pk_save, 'fontsize', size_font, 'foregroundcolor', 'g')
@@ -1476,7 +1476,7 @@ set(cb_group, 'selectedobject', cb_check(1))
         set(layer_list, 'value', curr_layer)
         set([p_pk(ishandle(p_pk)) p_pkdepth(ishandle(p_pkdepth))], 'markersize', 12)
         set([p_pk(curr_layer) p_pkdepth(curr_layer)], 'markersize', 24)
-        if (flat_done && data_done)
+        if (data_done && flat_done)
             set(p_pkflat(ishandle(p_pkflat)), 'markersize', 12)
             if ishandle(p_pkflat(curr_layer))
                 set(p_pkflat(curr_layer), 'markersize', 24)
@@ -3356,36 +3356,6 @@ set(cb_group, 'selectedobject', cb_check(1))
         narrow_cb
     end
 
-    function zoom_in(source, eventdata)
-        tmp1                = dist_max - dist_min;
-        tmp2                = [(dist_min + (0.25 * tmp1)) (dist_max - (0.25 * tmp1))];
-        switch disp_type
-            case 'elev.'
-                tmp3        = elev_max - elev_min;
-                tmp4        = [(elev_min + (0.25 * tmp3)) (elev_max - (0.25 * tmp3))];
-            case {'depth' 'flat'}
-                tmp3        = depth_max - depth_min;
-                tmp4        = [(elev_min + (0.25 * tmp3)) (elev_max - (0.25 * tmp3))];
-        end
-        set(ax_radar, 'xlim', tmp2, 'ylim', tmp4)
-        panzoom
-    end
-
-    function zoom_out(source, eventdata)
-        tmp1                = dist_max - dist_min;
-        tmp2                = [(dist_min - (0.25 * tmp1)) (dist_max + (0.25 * tmp1))];
-        switch disp_type
-            case 'elev.'
-                tmp3        = elev_max - elev_min;
-                tmp4        = [(elev_min - (0.25 * tmp3)) (elev_max + (0.25 * tmp3))];
-            case {'depth' 'flat'}
-                tmp3        = depth_max - depth_min;
-                tmp4        = [(elev_min - (0.25 * tmp3)) (elev_max + (0.25 * tmp3))];
-        end
-        set(ax_radar, 'xlim', tmp2, 'ylim', tmp4)
-        panzoom
-    end
-
 %% Plot radargram in terms of elevation
 
     function plot_elev(source, eventdata)
@@ -4379,17 +4349,6 @@ set(cb_group, 'selectedobject', cb_check(1))
                         disp_type = 'elev.';
                         plot_elev
                 end
-        end
-    end
-
-%% Mouse wheel shortcut
-
-    function wheel_zoom(~, eventdata)
-        switch eventdata.VerticalScrollCount
-            case -1
-                zoom_in
-            case 1
-                zoom_out
         end
     end
 
