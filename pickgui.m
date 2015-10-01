@@ -23,7 +23,7 @@ function pickgui(varargin)
 %   initiated.
 %   
 % Joe MacGregor (UTIG), Mark Fahnestock (UAF-GI)
-% Last updated: 09/23/15
+% Last updated: 10/01/15
 
 if ~exist('smooth_lowess', 'file')
     error('pickgui:smoothlowess', 'Function SMOOTH_LOWESS is not available within this user''s path.')
@@ -71,7 +71,7 @@ permitt_ice                 = 3.15;
 speed_ice                   = speed_vacuum / sqrt(permitt_ice);
 decim                       = 1; % decimate radargram for displays
 length_chunk                = 10; % chunk length in km
-int_track                   = 10; % number of indices (vertical) to separate phase- and ARESP-tracked layers
+int_track                   = 20; % number of indices (vertical) to separate phase- and ARESP-tracked layers
 decim_flat                  = 5;
 pk.num_win                  = 1; % +/- number of vertical indices in window within which to search for peak/trough in flattened layers
 pk.length_smooth            = 1; % km length over which layers will be smoothed
@@ -568,7 +568,7 @@ set(disp_group, 'selectedobject', disp_check(1))
         if (decim > 1)
             amp_mean        = NaN(num_sample_trim, num_decim, 'single');
             tmp1            = floor(decim / 2);
-            for ii = 1:num_decim
+            for ii = 1:num_decim %#ok<*FXUP>
                 amp_mean(:, ii) ...
                             = mean_alt(block.amp(:, (ind_decim(ii) - tmp1):(ind_decim(ii) + tmp1)), 2);
             end
@@ -1578,41 +1578,27 @@ set(disp_group, 'selectedobject', disp_check(1))
     function prop_phase(source, eventdata)
         
         rad_sample          = (pk.freq * block.dt) / (2 * pi); % radians traveled per time sampling interval
-        tmp1                = block.phase_diff_filt ./ rad_sample; % convert into index space translated
         
-        ind_y_phase         = NaN(pk.num_phase, block.num_trace, 'single'); % y indices of first-attempt layer tracing by phase propagation
-        ind_y_phase(:, pk.ind_x_start_phase) ...
-                            = pk.ind_y_start_phase'; % assign starting y index at starting x index
+        ind_y_phase         = NaN(pk.num_phase, block.num_trace);
         
-        % loop through each starter y index at pk.ind_x_start_phase and propagate from that x index using the filtered phase gradient
-        for ii = 1:pk.num_phase %#ok<*FXUP>
-            for jj = (pk.ind_x_start_phase - 1):-1:1 % loop heading left of pk.ind_x_start_phase
-                ind_y_phase(ii, jj) ...
-                            = ind_y_phase(ii, (jj + 1)) + tmp1(round(ind_y_phase(ii, (jj + 1))), (jj + 1));
-                if (ind_y_phase(ii, jj) < 1)
-                    ind_y_phase(ii, jj) ...
-                            = 1;
-                elseif (ind_y_phase(ii, jj) > num_sample_trim)
-                    ind_y_phase(ii, jj) ...
-                            = num_sample_trim;
-                end
-            end
-            for jj = (pk.ind_x_start_phase + 1):block.num_trace % loop heading right of pk.ind_x_start_phase
-                ind_y_phase(ii, jj) ...
-                            = ind_y_phase(ii, (jj - 1)) - tmp1(round(ind_y_phase(ii, (jj - 1))), (jj - 1));
-                if (ind_y_phase(ii, jj) < 1)
-                    ind_y_phase(ii, jj) ...
-                            = 1;
-                elseif (ind_y_phase(ii, jj) > num_sample_trim)
-                    ind_y_phase(ii, jj) ...
-                            = num_sample_trim;
-                end
-            end
+        tmp1                = stream2(-ones(num_sample_trim, pk.ind_x_start_phase), (block.phase_diff_filt(:, 1:pk.ind_x_start_phase) ./ rad_sample), pk.ind_x_start_phase(ones(pk.num_phase, 1)), pk.ind_y_start_phase', [1 pk.ind_x_start_phase]); % propagate going left
+        tmp2                = stream2(ones(num_sample_trim, length(pk.ind_x_start_phase:block.num_trace)), -(block.phase_diff_filt(:, pk.ind_x_start_phase:end) ./ rad_sample), ones(pk.num_phase, 1), pk.ind_y_start_phase', [1 length(pk.ind_x_start_phase:block.num_trace)]); % propagate going right
+        
+        % apportion layers
+        for ii = 1:pk.num_phase
+            ind_y_phase(ii, 1:pk.ind_x_start_phase) ...
+                            = interp1(tmp1{ii}(:, 1)', tmp1{ii}(:, 2)', 1:pk.ind_x_start_phase, 'linear', 'extrap');
+            ind_y_phase(ii, pk.ind_x_start_phase:end) ...
+                            = interp1(tmp2{ii}(:, 1)', tmp2{ii}(:, 2)', 1:length(pk.ind_x_start_phase:block.num_trace), 'linear', 'extrap');
         end
         
-        tmp1                = 0;
+        ind_y_phase         = round(ind_y_phase);
+        ind_y_phase(ind_y_phase < 1) ...
+                            = 1;
+        ind_y_phase(ind_y_phase > num_sample_trim) ...
+                            = num_sample_trim;
         
-        % remove phase-tracked layers that NaN'd out
+        % remove phase layers that NaN'd out
         tmp1                = find(sum(isnan(ind_y_phase), 2));
         if ~isempty(tmp1)
             ind_y_phase     = ind_y_phase(setdiff(1:pk.num_phase, tmp1), :);
@@ -1873,39 +1859,24 @@ set(disp_group, 'selectedobject', disp_check(1))
 
     function prop_aresp(source, eventdata)
         
-        ind_y_aresp         = NaN(pk.num_aresp, block.num_trace, 'single'); % y indices of first-attempt layer tracing by ARESP
-        ind_y_aresp(:, pk.ind_x_start_aresp) ...
-                            = pk.ind_y_start_aresp'; % assign starting y index at starting x index
+        ind_y_aresp         = NaN(pk.num_aresp, block.num_trace);
         
-        % loop through each starter y index at pk.ind_x_start and propagate from that x index using the ARESP slope
-        for ii = 1:pk.num_aresp %#ok<*FXUP>
-            for jj = (pk.ind_x_start_aresp - 1):-1:1 % loop heading left of pk.ind_x_start
-                ind_y_aresp(ii, jj) ...
-                            = ind_y_aresp(ii, (jj + 1)) + block.slope_aresp(round(ind_y_aresp(ii, (jj + 1))), (jj + 1));
-                if (ind_y_aresp(ii, jj) < 1)
-                    ind_y_aresp(ii, jj) ...
-                            = 1;
-                elseif (ind_y_aresp(ii, jj) > num_sample_trim)
-                    ind_y_aresp(ii, jj) ...
-                            = num_sample_trim;
-                elseif isnan(ind_y_aresp(ii, jj))
-                    break
-                end
-            end
-            for jj = (pk.ind_x_start_aresp + 1):block.num_trace % loop heading right of pk.ind_x_start
-                ind_y_aresp(ii, jj) ...
-                            = ind_y_aresp(ii, (jj - 1)) - block.slope_aresp(round(ind_y_aresp(ii, (jj - 1))), (jj - 1));
-                if (ind_y_aresp(ii, jj) < 1)
-                    ind_y_aresp(ii, jj) ...
-                            = 1;
-                elseif (ind_y_aresp(ii, jj) > num_sample_trim)
-                    ind_y_aresp(ii, jj) ...
-                            = num_sample_trim;
-                elseif isnan(ind_y_aresp(ii, jj))
-                    break
-                end
-            end
+        tmp1                = stream2(-ones(num_sample_trim, pk.ind_x_start_aresp), block.slope_aresp(:, 1:pk.ind_x_start_aresp), pk.ind_x_start_aresp(ones(pk.num_aresp, 1)), pk.ind_y_start_aresp', [1 pk.ind_x_start_aresp]); % propagate going left
+        tmp2                = stream2(ones(num_sample_trim, length(pk.ind_x_start_aresp:block.num_trace)), -block.slope_aresp(:, pk.ind_x_start_aresp:end), ones(pk.num_aresp, 1), pk.ind_y_start_aresp', [1 length(pk.ind_x_start_aresp:block.num_trace)]); % propagate going right
+        
+        % apportion layers
+        for ii = 1:pk.num_aresp
+            ind_y_aresp(ii, 1:pk.ind_x_start_aresp) ...
+                            = interp1(tmp1{ii}(:, 1)', tmp1{ii}(:, 2)', 1:pk.ind_x_start_aresp, 'linear', 'extrap');
+            ind_y_aresp(ii, pk.ind_x_start_aresp:end) ...
+                            = interp1(tmp2{ii}(:, 1)', tmp2{ii}(:, 2)', 1:length(pk.ind_x_start_aresp:block.num_trace), 'linear', 'extrap');
         end
+        
+        ind_y_aresp         = round(ind_y_aresp);
+        ind_y_aresp(ind_y_aresp < 1) ...
+                            = 1;
+        ind_y_aresp(ind_y_aresp > num_sample_trim) ...
+                            = num_sample_trim;
         
         % remove ARESP layers that NaN'd out
         tmp1                = find(sum(isnan(ind_y_aresp), 2));
