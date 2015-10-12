@@ -11,7 +11,7 @@ function fencegui
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 09/30/15
+% Last updated: 10/12/15
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -449,13 +449,15 @@ linkaxes(ax(2:3), 'y')
 %% Load intersection data
 
     function load_int(source, eventdata)
+        set(fgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         [curr_gui, curr_ax] = deal(1);
         if int_done
             set(status_box(1), 'string', 'Transect intersections already loaded.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             return
         end
         if isempty(radar_type)
-            set(fgui(1), 'keypressfcn', '')
             set(status_box(1), 'string', 'Deep (D) or accumulation (A) radar?...')
             waitforbuttonpress
             switch get(fgui(1), 'currentcharacter')
@@ -468,9 +470,10 @@ linkaxes(ax(2:3), 'y')
                 otherwise
                     set(fgui(1), 'keypressfcn', @keypress1)
                     set(status_box(1), 'string', 'Choice unclear. Try again.')
+                    set(fgui(1), 'keypressfcn', @keypress1)
+                    set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
                     return
             end
-            set(fgui(1), 'keypressfcn', @keypress1)
         end
         if ispc
             if exist('\\melt\icebridge\data\mat\', 'dir')
@@ -518,19 +521,25 @@ linkaxes(ax(2:3), 'y')
         else
             set(status_box(1), 'string', 'No intersection data loaded.')
         end
+        set(fgui(1), 'keypressfcn', @keypress1)
+        set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
     end
 
 %% Load core intersection data
 
     function load_core(source, eventdata)
-        
+        set(fgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         [curr_gui, curr_ax] = deal(1);
         if core_done
             set(status_box(1), 'string', 'Core intersections already loaded.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             return
         end
         if ~int_done
             set(status_box(1), 'string', 'Load transect intersections first.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             return
         end
         switch radar_type
@@ -570,16 +579,18 @@ linkaxes(ax(2:3), 'y')
                         = deal(tmp1.int_core, tmp1.name_core, tmp1.rad_threshold, tmp1.x_core, tmp1.y_core);
             catch % give up, force restart
                 set(status_box(1), 'string', [file_core ' does not contain the expected variables. Try again.'])
+                set(fgui(1), 'keypressfcn', @keypress1)
+                set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
                 return
             end
             
             core_done   = true;
             set(status_box(1), 'string', 'Core intersection data loaded.')
-            return
-            
         else
             set(status_box(1), 'string', 'No core intersections loaded.')
         end
+        set(fgui(1), 'keypressfcn', @keypress1)
+        set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
     end
 
 %% Load core breakout
@@ -659,7 +670,7 @@ linkaxes(ax(2:3), 'y')
 %% Locate master layer ID list
 
     function locate_master(source, eventdata)
-        
+                
         [curr_gui, curr_ax] = deal(1);
         
         if master_done
@@ -711,7 +722,10 @@ linkaxes(ax(2:3), 'y')
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(1, 1, 1, 2);
         tmp1                = 'trans';
+        set(fgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         load_pk
+        set(fgui(1), 'keypressfcn', @keypress1)
+        set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
     end
 
     function load_pk2(source, eventdata)
@@ -720,7 +734,10 @@ linkaxes(ax(2:3), 'y')
         tmp1                = 'trans';
         tmp2                = get(int_list, 'string');
         file_pk{2}          = [tmp2{get(int_list, 'value')} '_pk_merge.mat'];
+        set(fgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         load_pk
+        set(fgui(1), 'keypressfcn', @keypress1)
+        set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
     end
 
     function load_subtrans(source, eventdata)
@@ -730,7 +747,10 @@ linkaxes(ax(2:3), 'y')
             tmp1            = get(subtrans_list, 'string');
             file_pk{1}      = [file_pk{1}(1:11) tmp1{get(subtrans_list, 'value')} file_pk{1}(13:end)];
             tmp1            = 'subtrans';
+            set(fgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
             load_pk
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
         end
     end
 
@@ -850,15 +870,12 @@ linkaxes(ax(2:3), 'y')
             if ((curr_rad == 1) && pk_done(1))
                 tmp1        = get(int_list, 'string');
                 if ~strcmp(tmp1{get(int_list, 'value')}, file_pk{1}(1:11))
-                    set(fgui(1), 'keypressfcn', '')
                     set(status_box(1), 'string', 'Chosen picks filename does not match selected transect. Continue loading? Y: yes; otherwise: no...')
                     waitforbuttonpress
                     if ~strcmpi(get(fgui(1), 'currentcharacter'), 'Y')
                         set(status_box(1), 'string', 'Loading of picks file cancelled.')
-                        set(fgui(1), 'keypressfcn', @keypress1)
                         return
                     end
-                    set(fgui(1), 'keypressfcn', @keypress1)
                 end
                 % check for sub-transects, populate list if present
                 if (length(dir([path_pk{1} tmp1{get(int_list, 'value')} '*.mat'])) > 1)
@@ -985,7 +1002,6 @@ linkaxes(ax(2:3), 'y')
         
         % fix for 2011 P3/TO ambiguity
         if (strcmp(radar_type, 'deep') && (ii == 17))
-            set(fgui(1), 'keypressfcn', '')
             set(status_box(1), 'string', '2011 TO (press T)?')
             waitforbuttonpress
             if strcmpi(get(fgui(1), 'currentcharacter'), 'T')
@@ -998,13 +1014,11 @@ linkaxes(ax(2:3), 'y')
                     end
                 end
                 if strcmp(tmp2, 'fail')
-                    set(fgui(1), 'keypressfcn', @keypress1)
                     set(status_box(1), 'string', 'Transect incorrectly identified as 2011 TO. Try again.')
                     clear_data
                     return
                 end
             end
-            set(fgui(1), 'keypressfcn', @keypress1)
         end
         
         switch curr_rad
@@ -1163,14 +1177,14 @@ linkaxes(ax(2:3), 'y')
                             = deal(max(tmp3));
             else
                 [elev_max_ref, elev_max(1:2)] ...
-                            = deal(max(tmp5, [], 'omitnan') + (0.1 * (max(tmp5, [], 'omitnan') - min(tmp5, [], 'omitnan'))));
+                            = deal(max(tmp5, [], 'omitnan') + 200);
             end
             if all(bed_avail)
                 [elev_min_ref, elev_min(1:2)] ...
                             = deal(min(tmp4, [], 'omitnan'));
             else
                 [elev_min_ref, elev_min(1:2)] ...
-                            = deal(min(tmp5, [], 'omitnan') - (0.1 * (max(tmp5, [], 'omitnan') - min(tmp5, [], 'omitnan'))));
+                            = deal(min(tmp5, [], 'omitnan') - 200);
             end
         else
             [x_min_ref, x_max_ref, x_min, x_max] ...
@@ -1182,14 +1196,14 @@ linkaxes(ax(2:3), 'y')
                             = deal(max(elev_surf{curr_rad}(~isinf(elev_surf{curr_rad})), [], 'omitnan'));
             else
                 [elev_max_ref, elev_max(1:2)] ...
-                            = deal(max(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), [], 'omitnan') + (0.1 * (max(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), [], 'omitnan') - min(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), [], 'omitnan'))));
+                            = deal(max(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), [], 'omitnan') + 200);
             end
             if bed_avail(curr_rad)
                 [elev_min_ref, elev_min(1:2)] ...
                             = deal(min(elev_bed{curr_rad}(~isinf(elev_bed{curr_rad})), [], 'omitnan'));
             else
                 [elev_min_ref, elev_min(1:2)] ...
-                            = deal(min(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), [], 'omitnan') - (0.1 * (max(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), [], 'omitnan') - min(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), [], 'omitnan'))));
+                            = deal(min(elev_smooth{curr_rad}(~isinf(elev_smooth{curr_rad}(:))), [], 'omitnan') - 200);
             end
         end
         
@@ -1325,13 +1339,19 @@ linkaxes(ax(2:3), 'y')
     function load_data1(source, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(2, 2, 1, 2);
+        set(fgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         load_data
+        set(fgui(1), 'keypressfcn', @keypress1)
+        set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
     end
 
     function load_data2(source, eventdata)
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(2, 3, 2, 1);
+        set(fgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         load_data
+        set(fgui(1), 'keypressfcn', @keypress1)
+        set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
     end
 
     function load_data(source, eventdata) %#ok<*INUSD>
@@ -1438,7 +1458,6 @@ linkaxes(ax(2:3), 'y')
         end
         
         load_data_breakout
-        
     end
 
     function load_data_breakout(source, eventdata)
@@ -1561,11 +1580,9 @@ linkaxes(ax(2:3), 'y')
         elev{curr_rad}      = flipud(max(elev_surf{curr_rad}(ind_decim{curr_rad})) - depth{curr_rad}); % elevation vector
         
         % assign traveltime and distance reference values/sliders based on data
-        [elev_min_ref, db_min_ref(curr_ax), elev_max_ref, db_max_ref(curr_ax), elev_min(curr_gui), db_min(curr_ax), elev_max(curr_gui), db_max(curr_ax), depth_min, depth_max] ...
-                            = deal(min([min(elev{curr_rad}(~isinf(elev{curr_rad})), [], 'omitnan') elev_min_ref], [], 'omitnan'), min(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), [], 'omitnan'), ...
-                                   max([max(elev{curr_rad}(~isinf(elev{curr_rad})), [], 'omitnan') elev_max_ref], [], 'omitnan'), max(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), [], 'omitnan'), ...
-                                   min([min(elev{curr_rad}(~isinf(elev{curr_rad})), [], 'omitnan') elev_min_ref], [], 'omitnan'), min(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), [], 'omitnan'), ...
-                                   max([max(elev{curr_rad}(~isinf(elev{curr_rad}))) elev_max_ref], [], 'omitnan'), max(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), [], 'omitnan'), min(depth{curr_rad}), max(depth{curr_rad}));
+        [db_min_ref(curr_ax), db_max_ref(curr_ax), db_min(curr_ax), db_max(curr_ax), depth_min, depth_max] ...
+                            = deal(min(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), [], 'omitnan'), max(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), [], 'omitnan'), min(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), [], 'omitnan'), ...
+                                   max(amp_elev{curr_rad}(~isinf(amp_elev{curr_rad}(:))), [], 'omitnan'), min(depth{curr_rad}), max(depth{curr_rad}));
         if data_done(curr_rad_alt)
             [depth_min_ref, depth_max_ref] ...
                             = deal(min([depth{1}; depth{2}]), max([depth{1}; depth{2}]));
@@ -1990,10 +2007,14 @@ linkaxes(ax(2:3), 'y')
 
     function pk_match(source, eventdata)
         
+        set(fgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
+        
         curr_gui            = 2;
         
         if ~all(pk_done)
             set(status_box(curr_gui), 'string', 'Picks must be loaded for both master and intersecting transects.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)            
             return
         end
         
@@ -2013,6 +2034,8 @@ linkaxes(ax(2:3), 'y')
         if ~isempty(pk{2}.ind_layer)
             if ~isempty(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1)) & (pk{2}.ind_layer(:, 5) == curr_layer(1))), 1))
                 set(status_box(2), 'string', 'This layer pair is already matched.')
+                set(fgui(1), 'keypressfcn', @keypress1)
+                set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
                 return
             end
         end
@@ -2064,26 +2087,31 @@ linkaxes(ax(2:3), 'y')
         end
         
         set(status_box(2), 'string', ['Intersecting transect layer #' num2str(curr_layer(2)) ' matched to master transect layer #' num2str(curr_layer(1)) '.'])
+        set(fgui(1), 'keypressfcn', @keypress1)
+        set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
     end
 
 %% Unmatch two intersecting layers
 
     function pk_unmatch(source, eventdata)
         
+        set(fgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         curr_gui            = 2;
         
         if ~all(pk_done)
             set(status_box(2), 'string', 'Picks must be loaded for both master and intersecting transects.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             return
         end
-
-        set(fgui(2), 'keypressfcn', '', 'windowbuttondownfcn', '')
+        
         set(status_box(2), 'string', 'Unmatch current pair? (Y: yes; otherwise: cancel)...')
         waitforbuttonpress
         
         if ~strcmpi(get(fgui(2), 'currentcharacter'), 'Y')
-            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             set(status_box(2), 'string', 'Unmatching cancelled.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             return
         end
         
@@ -2094,8 +2122,9 @@ linkaxes(ax(2:3), 'y')
             pk{1}.ind_layer = pk{1}.ind_layer(setdiff(1:size(pk{1}.ind_layer, 1), find(((pk{1}.ind_layer(:, 1) == curr_layer(1)) & (pk{1}.ind_layer(:, 5) == curr_layer(2))))), :);
             pk{2}.ind_layer = pk{2}.ind_layer(setdiff(1:size(pk{2}.ind_layer, 1), find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 5) == curr_layer(1))))), :);
         else
-            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             set(status_box(2), 'string', 'Current layer pair not matched. Unmatching cancelled.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)            
             return
         end
         
@@ -2155,13 +2184,16 @@ linkaxes(ax(2:3), 'y')
             end
         end
         
-        set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
         set(status_box(2), 'string', ['Intersecting layer # ' num2str(curr_layer(2)) ' unmatched from master layer #' num2str(curr_layer(1)) '.'])
+        set(fgui(1), 'keypressfcn', @keypress1)
+        set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)        
     end
 
 %% Save merged picks
 
     function pk_save(source, eventdata)
+        
+        set(fgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
         
         [curr_gui, curr_ax, curr_rad, curr_rad_alt] ...
                             = deal(1, 1, 2, 1);
@@ -2169,20 +2201,24 @@ linkaxes(ax(2:3), 'y')
         % want everything done before saving
         if ~all(pk_done)
             set(status_box(1), 'string', 'Intersecting picks not loaded yet.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             return
         end
         
         if (isempty(find(ismember(pk{1}.ind_layer(:, 2:4), [curr_year(2) curr_trans(2) curr_subtrans(2)], 'rows'), 1)) || isempty(find(ismember(pk{2}.ind_layer(:, 2:4), [curr_year(1) curr_trans(1) curr_subtrans(1)], 'rows'), 1)))
             set(status_box(1), 'string', 'No new layers matched. No need to save intersecting picks.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)            
             return
         end
         
         if ~master_done
             set(status_box(1), 'string', 'Locate master layer ID list before saving picks.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)            
             return
         else
-%             set(status_box(1), 'string', 'Confirm that master layer ID list is not being accessed. Press any key...')
-%             waitforbuttonpress
             try
                 tmp1        = load([path_master file_master]);
                 [id_layer_master_mat, id_layer_master_cell] ...
@@ -2190,44 +2226,18 @@ linkaxes(ax(2:3), 'y')
             catch
                 set(status_box(1), 'string', 'Selected master layer ID list does not contain expected variables. Re-locate.')
                 master_done = false;
+                set(fgui(1), 'keypressfcn', @keypress1)
+                set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
                 return
             end
         end
-        
-%         set(status_box(1), 'string', 'Select locations to save picks...')
-%         pause(0.1)
-%         
-%         [tmp1, tmp2, tmp3, tmp4] ...
-%                             = deal(file_pk{1}, path_pk{1}, file_pk{2}, path_pk{2});
-%         
-%         if ~isempty(path_pk{1})
-%             [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_pk{1} file_pk{1}]);
-%         elseif ~isempty(path_data{1})
-%             [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_data{1} file_pk{1}]);
-%         elseif ~isempty(path_pk{2})
-%             [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_pk{2} file_pk{1}]);
-%         elseif ~isempty(path_data{2})
-%             [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', [path_data{2} file_pk{1}]);
-%         else
-%             [file_pk{1}, path_pk{1}] = uiputfile('*.mat', 'Save master picks:', file_pk{1});
-%         end
-%         
-%         if ~isempty(path_pk{2})
-%             [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_pk{2} file_pk{2}]);
-%         elseif ~isempty(path_data{2})
-%             [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_data{2} file_pk{2}]);
-%         elseif ~isempty(path_pk{1})
-%             [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_pk{1} file_pk{2}]);
-%         elseif ~isempty(path_data{1})
-%             [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', [path_data{1} file_pk{2}]);
-%         else
-%             [file_pk{2}, path_pk{2}] = uiputfile('*.mat', 'Save intersecting picks:', file_pk{2});
-%         end
         
         if (~ischar(file_pk{1}) || ~ischar(file_pk{2}))
             [file_pk{1}, path_pk{1}, file_pk{2}, path_pk{2}] ...
                             = deal(tmp1, tmp2, tmp3, tmp4);
             set(status_box(1), 'string', 'Picks'' locations not chosen. Saving cancelled.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             return
         end
         
@@ -2300,6 +2310,8 @@ linkaxes(ax(2:3), 'y')
         catch
             pk              = tmp1;
             set(status_box(1), 'string', 'MASTER PICKS DID NOT SAVE. Try saving again shortly. Don''t perform any other operation.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             return
         end
         pause(0.1)
@@ -2314,6 +2326,8 @@ linkaxes(ax(2:3), 'y')
         catch
             pk              = tmp1;
             set(status_box(1), 'string', 'INTERSECTING PICKS DID NOT SAVE. Try saving again shortly. Don''t perform any other operation.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             return
         end
         pause(0.1)
@@ -2324,6 +2338,8 @@ linkaxes(ax(2:3), 'y')
             set(status_box(1), 'string', ['Saved master layer ID list as ' file_master ' in ' path_master '. Saving complete.'])
         catch
             set(status_box(1), 'string', 'MASTER LAYER ID LIST DID NOT SAVE. Try saving again shortly. Don''t perform any other operation.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             return
         end
         
@@ -2332,6 +2348,8 @@ linkaxes(ax(2:3), 'y')
             set(int_list, 'value', (get(int_list, 'value') + 1))
             load_pk2
         end
+        set(fgui(1), 'keypressfcn', @keypress1)
+        set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
     end
 
 %% Update minimum dB/x/y/z/dist
@@ -3812,7 +3830,10 @@ linkaxes(ax(2:3), 'y')
         if data_done(curr_rad)
             set(status_box, 'string', 'Updating data to new decimation...')
             pause(0.1)
+            set(fgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
             load_data_breakout
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
         end
         set(decim_edit(:, curr_rad), 'string', num2str(decim(curr_rad)))
         set(status_box, 'string', ['Decimation number set to 1/' num2str(decim(curr_rad)) ' indice(s).'])
@@ -4320,7 +4341,10 @@ linkaxes(ax(2:3), 'y')
                     set(match_check, 'value', 1)
                 end
             case 'l'
+                set(fgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
                 load_data
+                set(fgui(1), 'keypressfcn', @keypress1)
+                set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             case 'm'
                 pk_match
             case 'n'
