@@ -11,7 +11,7 @@ function fencegui
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 10/12/15
+% Last updated: 10/27/15
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -1174,7 +1174,7 @@ linkaxes(ax(2:3), 'y')
                             = deal(min(tmp2, [], 'omitnan'), max(tmp2, [], 'omitnan'), min(tmp2, [], 'omitnan'), max(tmp2, [], 'omitnan'));
             if all(surf_avail)
                 [elev_max_ref, elev_max(1:2)] ...
-                            = deal(max(tmp3));
+                            = deal(max(tmp3, [], 'omitnan'));
             else
                 [elev_max_ref, elev_max(1:2)] ...
                             = deal(max(tmp5, [], 'omitnan') + 200);
