@@ -11,7 +11,7 @@ function fencegui
 %   available within the user's path.
 % 
 % Joe MacGregor (UTIG)
-% Last updated: 10/27/15
+% Last updated: 11/03/15
 
 if ~exist('intersecti', 'file')
     error('fencegui:intersecti', 'Necessary function INTERSECTI is not available within this user''s path.')
@@ -70,11 +70,11 @@ colors_def                  = [0    0       0.75;
 
 % allocate a bunch of variables
 p_beddepth                  = NaN(1, 2);
-[core_done, int_done, master_done] ...
+[core_done, int_done, match_done] ...
                             = deal(false);
 [bed_avail, data_done, pk_done, surf_avail] ...
                             = deal(false(1, 2));
-[amp_depth, amp_elev, colors, depth, dist_lin, elev, elev_bed, elev_smooth, elev_surf, file_data, file_pk, file_pk_short, ind_corr, ind_decim, ind_int_core, layer_str, p_coredepth, p_corenamedepth, p_pkdepth, path_data, path_pk, pk, twtt, x, y] ...
+[amp_depth, amp_elev, colors, depth, dist_lin, elev, elev_bed, elev_smooth, elev_surf, file_data, file_pk, file_pk_short, ind_corr, ind_decim, ind_int_core, ind_layer, layer_str, p_coredepth, p_corenamedepth, p_pkdepth, path_data, path_pk, pk, twtt, x, y] ...
                             = deal(cell(1, 2));
 p_int1                      = cell(2, 3);
 [p_core, p_corename, p_int2, p_pk] ...
@@ -83,13 +83,13 @@ p_int1                      = cell(2, 3);
                             = deal(zeros(1, 2));
 [decim_edit, layer_list, p_bed, p_data, pk_check, p_surf] ...
                             = deal(NaN(2));
-[curr_az2, curr_el2, curr_ind_int, id_layer_master_mat, id_layer_master_cell, ii, ind_x_pk, ind_y_pk, int_all, int_core, int_year, jj, kk, name_core, name_trans, name_year, num_int, num_trans, num_year, rad_threshold, tmp1, tmp2, tmp3, tmp4, tmp5, x_core, y_core] ...
+[curr_az2, curr_el2, curr_ind_int, ind_layer_match, ii, ind_x_pk, ind_y_pk, int_all, int_core, int_year, jj, kk, name_core, name_trans, name_year, num_int, num_trans, num_year, rad_threshold, tmp1, tmp2, tmp3, tmp4, tmp5, x_core, y_core] ...
                             = deal(0);
 [curr_ax, curr_gui, curr_int, curr_rad] ...
                             = deal(1);
 curr_rad_alt                = 2;
 curr_dim                    = '3D';
-[file_core, file_master, file_ref, path_core, path_master, path_ref, radar_type] ...
+[file_core, file_match, file_ref, path_core, path_match, path_ref, radar_type] ...
                             = deal('');
 letters                     = 'a':'z';
 
@@ -140,7 +140,7 @@ z_min_edit(1)               = annotation('textbox', [0.005 0.39 0.04 0.03], 'str
 z_max_edit(1)               = annotation('textbox', [0.005 0.84 0.04 0.03], 'string', num2str(elev_max_ref), 'fontsize', size_font, 'color', 'k', 'edgecolor', 'none');
 
 % push buttons
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Load master picks', 'units', 'normalized', 'position', [0.005 0.965 0.10 0.03], 'callback', @load_pk1, 'fontsize', size_font, 'foregroundcolor', 'b')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Load master transect', 'units', 'normalized', 'position', [0.005 0.965 0.10 0.03], 'callback', @load_pk1, 'fontsize', size_font, 'foregroundcolor', 'b')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Next', 'units', 'normalized', 'position', [0.245 0.925 0.03 0.03], 'callback', @pk_next1, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Next', 'units', 'normalized', 'position', [0.51 0.925 0.03 0.03], 'callback', @pk_next2, 'fontsize', size_font, 'foregroundcolor', 'm')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Last', 'units', 'normalized', 'position', [0.215 0.925 0.03 0.03], 'callback', @pk_last1, 'fontsize', size_font, 'foregroundcolor', 'm')
@@ -149,7 +149,7 @@ uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Test', 'units', 'normalized
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Save', 'units', 'normalized', 'position', [0.965 0.965 0.03 0.03], 'callback', @pk_save, 'fontsize', size_font, 'foregroundcolor', 'g')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Transects', 'units', 'normalized', 'position', [0.63 0.965 0.05 0.03], 'callback', @load_int, 'fontsize', size_font, 'foregroundcolor', 'b')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Cores', 'units', 'normalized', 'position', [0.695 0.965 0.03 0.03], 'callback', @load_core, 'fontsize', size_font, 'foregroundcolor', 'b')
-uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Master', 'units', 'normalized', 'position', [0.745 0.965 0.04 0.03], 'callback', @locate_master, 'fontsize', size_font, 'foregroundcolor', 'b')
+uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Matching', 'units', 'normalized', 'position', [0.745 0.965 0.04 0.03], 'callback', @load_match, 'fontsize', size_font, 'foregroundcolor', 'b')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Reset x/y/z', 'units', 'normalized', 'position', [0.94 0.925 0.055 0.03], 'callback', @reset_xyz, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.36 0.04 0.03 0.03], 'callback', @reset_x_min, 'fontsize', size_font, 'foregroundcolor', 'r')
 uicontrol(fgui(1), 'style', 'pushbutton', 'string', 'Reset', 'units', 'normalized', 'position', [0.36 0.005 0.03 0.03], 'callback', @reset_x_max, 'fontsize', size_font, 'foregroundcolor', 'r')
@@ -223,7 +223,7 @@ data_check(1, 1)            = uicontrol(fgui(1), 'style', 'checkbox', 'units', '
 data_check(1, 2)            = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.465 0.925 0.01 0.02], 'callback', @show_data2, 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
 cbfix_check1(1)             = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.97 0.88 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
 cbfix_check2(1)             = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.985 0.88 0.01 0.02], 'callback', @narrow_cb1, 'fontsize', size_font, 'value', 1, 'backgroundcolor', get(fgui(1), 'color'));
-master_check                = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.79 0.965 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
+match_check                 = uicontrol(fgui(1), 'style', 'checkbox', 'units', 'normalized', 'position', [0.79 0.965 0.01 0.02], 'fontsize', size_font, 'value', 0, 'backgroundcolor', get(fgui(1), 'color'));
 
 pause(0.5)
 
@@ -436,8 +436,8 @@ linkaxes(ax(2:3), 'y')
     function clear_data(source, eventdata)
         [bed_avail(curr_rad), data_done(curr_rad), pk_done(curr_rad), surf_avail(curr_rad)] ...
                             = deal(false);
-        [amp_elev{curr_rad}, colors{curr_rad}, depth{curr_rad}, dist_lin{curr_rad}, elev{curr_rad}, elev_bed{curr_rad}, elev_smooth{curr_rad}, elev_surf{curr_rad}, file_pk_short{curr_rad}, ind_decim{curr_rad}, ind_corr{curr_rad}, ind_int_core{curr_rad}, layer_str{curr_rad}, pk{curr_rad}, ...
-         twtt{curr_rad}, x{curr_rad}, y{curr_rad}] ...
+        [amp_elev{curr_rad}, colors{curr_rad}, depth{curr_rad}, dist_lin{curr_rad}, elev{curr_rad}, elev_bed{curr_rad}, elev_smooth{curr_rad}, elev_surf{curr_rad}, file_pk_short{curr_rad}, ind_decim{curr_rad}, ind_corr{curr_rad}, ind_int_core{curr_rad}, ind_layer{curr_rad}, layer_str{curr_rad}, ...
+         pk{curr_rad}, twtt{curr_rad}, x{curr_rad}, y{curr_rad}] ...
                             = deal([]);
         [curr_layer(curr_rad), curr_trans(curr_rad), curr_subtrans(curr_rad), curr_year(curr_rad), dt(curr_rad), num_data(curr_rad), num_decim(curr_rad), num_sample(curr_rad), curr_ind_int, ii, ind_x_pk, ind_y_pk, jj, num_int, tmp1, tmp2, tmp3, tmp4, tmp5] ...
                             = deal(0);
@@ -667,53 +667,76 @@ linkaxes(ax(2:3), 'y')
         show_core1
     end
 
-%% Locate master layer ID list
+%% Load matching layer list
 
-    function locate_master(source, eventdata)
-                
-        [curr_gui, curr_ax] = deal(1);
+    function load_match(source, eventdata)
         
-        if master_done
-            set(status_box(1), 'string', 'Master layer ID list already located.')
+        set(fgui, 'keypressfcn', '', 'windowbuttondownfcn', '')
+        
+        [curr_gui, curr_ax] = deal(1);
+                
+        if (~int_done || ~core_done)
+            set(status_box(1), 'string', 'Load transect and core intersections first.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             return
         end
         
-        if (~int_done || ~core_done)
-            set(status_box(1), 'string', 'Load transect and core intersections first.')
+        if match_done
+            set(status_box(1), 'string', 'Matching layer list already loaded.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             return
         end
         
         switch radar_type
             case 'deep'
-                tmp1        = 'id_layer_master.mat';
+                tmp1        = 'ind_layer_match.mat';
             case 'accum'
-                tmp1        = 'id_layer_master_accum.mat';
+                tmp1        = 'ind_layer_match_accum.mat';
         end
         
         if (~isempty(path_ref) && exist([path_ref tmp1], 'file'))
-            [file_master, path_master] ...
+            [file_match, path_match] ...
                             = deal(tmp1, path_ref);
         elseif ~isempty(path_core)
-            [file_master, path_master] = uigetfile('*.mat', ['Locate master layer ID list (' tmp1 '):'], path_core);
+            [file_match, path_match] = uigetfile('*.mat', ['Load matching layer list (' tmp1 '):'], path_core);
         elseif ~isempty(path_ref)
-            [file_master, path_master] = uigetfile('*.mat', ['Locate master layer ID list (' tmp1 '):'], path_ref);
+            [file_match, path_match] = uigetfile('*.mat', ['Load matching layer list (' tmp1 '):'], path_ref);
         elseif ~isempty(path_pk)
-            [file_master, path_master] = uigetfile('*.mat', ['Locate master layer ID list (' tmp1 '):'], path_pk);
+            [file_match, path_match] = uigetfile('*.mat', ['Load matching layer list (' tmp1 '):'], path_pk);
         elseif ~isempty(path_data)
-            [file_master, path_master] = uigetfile('*.mat', ['Locate master layer ID list (' tmp1 '):'], path_data);
+            [file_match, path_match] = uigetfile('*.mat', ['Load matching layer list (' tmp1 '):'], path_data);
         else
-            [file_master, path_master] = uigetfile('*.mat', ['Locate master layer ID list (' tmp1 '):']);
+            [file_match, path_match] = uigetfile('*.mat', ['Load matching layer list (' tmp1 '):']);
         end
         
-        if isnumeric(file_master)
-            [file_master, path_master] ...
+        if isnumeric(file_match)
+            [file_match, path_match] ...
                             = deal('');
-            set(status_box(1), 'string', 'No master layer ID list located.')
+            set(status_box(1), 'string', 'No matching layer list found.')
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
+            return
         else
-            master_done     = true;
-            set(master_check, 'value', 1)
-            set(status_box(1), 'string', 'Master layer ID list located.')
+            try
+                tmp1        = load([path_match file_match]);
+                ind_layer_match ...
+                            = tmp1.ind_layer_match;
+                match_done  = true;
+                set(match_check, 'value', 1)
+                set(status_box(1), 'string', 'Matching layer list loaded.')
+            catch
+                set(status_box(1), 'string', 'Selected matching layer list does not contain the expected variable. Re-locate.')
+                match_done  = false;
+                set(fgui(1), 'keypressfcn', @keypress1)
+                set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
+                return
+            end
         end
+        
+        set(fgui(1), 'keypressfcn', @keypress1)
+        set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
     end
 
 %% Load picks for this transect
@@ -766,6 +789,10 @@ linkaxes(ax(2:3), 'y')
             set(status_box(1), 'string', 'Load core intersection data before loading picks.')
             return
         end
+        if ~match_done
+            set(status_box(1), 'string', 'Load matching layer list before loading picks.')
+            return
+        end        
         if ((curr_rad == 2) && ~pk_done(1))
             set(status_box(1), 'string', 'Load master transect before intersecting transect.')
             return
@@ -906,11 +933,11 @@ linkaxes(ax(2:3), 'y')
         
         pause(0.1)
         
-        % load picks files
+        % load picks file
         set(status_box(1), 'string', ['Loading ' file_pk{curr_rad}(1:(end - 4)) '...'])
         pause(0.1)
-        tmp1                = load([path_pk{curr_rad} file_pk{curr_rad}]);
         try
+            tmp1            = load([path_pk{curr_rad} file_pk{curr_rad}], 'pk');
             pk{curr_rad}    = tmp1.pk;
             tmp1            = 0;
             if ~isfield(pk{curr_rad}, 'merge_flag')
@@ -923,16 +950,7 @@ linkaxes(ax(2:3), 'y')
             set(status_box(1), 'string', [file_pk{curr_rad} ' does not contain a pk structure. Try again.'])
             return
         end
-        
-        % add master picks matrix if not already present
-        if ~isfield(pk{curr_rad}, 'ind_layer')
-            pk{curr_rad}.ind_layer ...
-                            = [];
-        elseif (size(pk{curr_rad}.ind_layer, 2) == 6)
-                pk{curr_rad}.ind_layer ...
-                            = pk{curr_rad}.ind_layer(:, 1:(end - 1));
-        end
-        
+                
         % extract date and best name from pk files
         [tmp1, tmp2]        = strtok(file_pk{curr_rad}, '_');
         file_pk_short{curr_rad} ...
@@ -1036,6 +1054,17 @@ linkaxes(ax(2:3), 'y')
                             = ii;
                 break
             end
+        end
+        
+        % list matches
+        tmp1                = find(ismember(ind_layer_match(:, 1:3), [curr_year(curr_rad) curr_trans(curr_rad) curr_subtrans(curr_rad)], 'rows'));
+        tmp2                = find(ismember(ind_layer_match(:, 5:7), [curr_year(curr_rad) curr_trans(curr_rad) curr_subtrans(curr_rad)], 'rows'));
+        if (~isempty(tmp1) || ~isempty(tmp2))
+            ind_layer{curr_rad} ...
+                            = unique([ind_layer_match(tmp1, 4:8); ind_layer_match(tmp2, [8 1:4])], 'rows');
+        else
+            ind_layer{curr_rad} ...
+                            = NaN(0, 5);
         end
         
         % find intersections for primary transect
@@ -1253,9 +1282,9 @@ linkaxes(ax(2:3), 'y')
             end
             for ii = 1:pk{2}.num_layer
                 p_int2{1, 1}(ii) ...
-                            = plot(dist_lin{1}(curr_ind_int(:, 1)), elev_smooth{2}(ii, curr_ind_int(:, 2)), 'ko', 'markersize', 8, 'markerfacecolor', colors{2}(ii, :), 'visible', 'off');
+                            = plot(dist_lin{1}(curr_ind_int(:, 1)), elev_smooth{2}(ii, curr_ind_int(:, 2)), 'ko', 'linewidth', 1, 'markersize', 8, 'markerfacecolor', colors{2}(ii, :), 'visible', 'off');
                 p_int2{2, 1}(ii) ...
-                            = plot(dist_lin{1}(curr_ind_int(:, 1)), pk{2}.depth_smooth(ii, curr_ind_int(:, 2)), 'ko', 'markersize', 8, 'markerfacecolor', colors{2}(ii, :), 'visible', 'off');
+                            = plot(dist_lin{1}(curr_ind_int(:, 1)), pk{2}.depth_smooth(ii, curr_ind_int(:, 2)), 'ko', 'linewidth', 1, 'markersize', 8, 'markerfacecolor', colors{2}(ii, :), 'visible', 'off');
             end
             axes(ax(3))
             for ii = 1:num_int
@@ -1266,28 +1295,28 @@ linkaxes(ax(2:3), 'y')
             end
             for ii = 1:pk{1}.num_layer
                 p_int2{1, 2}(ii) ...
-                            = plot(dist_lin{2}(curr_ind_int(:, 2)), elev_smooth{1}(ii, curr_ind_int(:, 1)), 'ko', 'markersize', 8, 'markerfacecolor', colors{1}(ii, :), 'visible', 'off');
+                            = plot(dist_lin{2}(curr_ind_int(:, 2)), elev_smooth{1}(ii, curr_ind_int(:, 1)), 'ko', 'linewidth', 1, 'markersize', 8, 'markerfacecolor', colors{1}(ii, :), 'visible', 'off');
                 p_int2{2, 2}(ii) ...
-                            = plot(dist_lin{2}(curr_ind_int(:, 2)), pk{1}.depth_smooth(ii, curr_ind_int(:, 1)), 'ko', 'markersize', 8, 'markerfacecolor', colors{1}(ii, :), 'visible', 'off');
+                            = plot(dist_lin{2}(curr_ind_int(:, 2)), pk{1}.depth_smooth(ii, curr_ind_int(:, 1)), 'ko', 'linewidth', 1, 'markersize', 8, 'markerfacecolor', colors{1}(ii, :), 'visible', 'off');
             end
             
-            if ~isempty(pk{1}.ind_layer)
-                set([p_int2{1, 2}(pk{1}.ind_layer(:, 1)) p_int2{2, 2}(pk{1}.ind_layer(:, 1))], 'marker', 's')
+            if ~isempty(ind_layer{1})
+                set([p_int2{1, 2}(ind_layer{1}(:, 1)) p_int2{2, 2}(ind_layer{1}(:, 1))], 'marker', 's')
             end
-            if ~isempty(pk{2}.ind_layer)
-                set([p_int2{1, 1}(pk{2}.ind_layer(:, 1)) p_int2{2, 1}(pk{2}.ind_layer(:, 1))], 'marker', 's')
+            if ~isempty(ind_layer{2})
+                set([p_int2{1, 1}(ind_layer{2}(:, 1)) p_int2{2, 1}(ind_layer{2}(:, 1))], 'marker', 's')
             end
             
-            for ii = 1:size(pk{1}.ind_layer, 1)
-                if ((pk{1}.ind_layer(ii, 2) == curr_year(2)) && (pk{1}.ind_layer(ii, 3) == curr_trans(2)) && (pk{1}.ind_layer(ii, 4) == curr_subtrans(2))) % match to current transect
-                    if (length(find((pk{1}.ind_layer(:, end) == pk{1}.ind_layer(ii, end)))) > 1)
-                        tmp1= find((pk{1}.ind_layer(:, end) == pk{1}.ind_layer(ii, end)));
-                        colors{1}(pk{1}.ind_layer(tmp1(2:end), 1), :) ...
-                            = repmat(colors{1}(pk{1}.ind_layer(tmp1(1), 1), :), length(tmp1(2:end)), 1);
-                        set([p_pk{1, 1}(pk{1}.ind_layer(ii, 1)) p_pk{2, 1}(pk{1}.ind_layer(ii, 1)) p_pkdepth{1}(pk{1}.ind_layer(ii, 1))], 'color', colors{1}(pk{1}.ind_layer(tmp1(1), 1), :))
+            for ii = 1:size(ind_layer{1}, 1)
+                if ((ind_layer{1}(ii, 2) == curr_year(2)) && (ind_layer{1}(ii, 3) == curr_trans(2)) && (ind_layer{1}(ii, 4) == curr_subtrans(2))) % match to current transect
+                    if (length(find((ind_layer{1}(:, end) == ind_layer{1}(ii, end)))) > 1)
+                        tmp1= find((ind_layer{1}(:, end) == ind_layer{1}(ii, end)));
+                        colors{1}(ind_layer{1}(tmp1(2:end), 1), :) ...
+                            = repmat(colors{1}(ind_layer{1}(tmp1(1), 1), :), length(tmp1(2:end)), 1);
+                        set([p_pk{1, 1}(ind_layer{1}(ii, 1)) p_pk{2, 1}(ind_layer{1}(ii, 1)) p_pkdepth{1}(ind_layer{1}(ii, 1))], 'color', colors{1}(ind_layer{1}(tmp1(1), 1), :))
                     end
-                    set([p_int2{1}(pk{1}.ind_layer(ii, 5)) p_int2{1, 2}(pk{1}.ind_layer(ii, 1)) p_int2{2, 2}(pk{1}.ind_layer(ii, 1))], 'marker', '^', 'markerfacecolor', colors{1}(pk{1}.ind_layer(ii, 1), :))
-                    set([p_pk{1, 2}(pk{1}.ind_layer(ii, 5)) p_pk{2, 2}(pk{1}.ind_layer(ii, 5)) p_pkdepth{2}(pk{1}.ind_layer(ii, 5))], 'color', colors{1}(pk{1}.ind_layer(ii, 1), :))
+                    set([p_int2{1}(ind_layer{1}(ii, 5)) p_int2{1, 2}(ind_layer{1}(ii, 1)) p_int2{2, 2}(ind_layer{1}(ii, 1))], 'marker', '^', 'markerfacecolor', colors{1}(ind_layer{1}(ii, 1), :))
+                    set([p_pk{1, 2}(ind_layer{1}(ii, 5)) p_pk{2, 2}(ind_layer{1}(ii, 5)) p_pkdepth{2}(ind_layer{1}(ii, 5))], 'color', colors{1}(ind_layer{1}(ii, 1), :))
                 end
             end
             set(int_check, 'value', 1)
@@ -1699,11 +1728,11 @@ linkaxes(ax(2:3), 'y')
             end
         end
         tmp1                = '';
-        if (all(pk_done) && ~isempty(pk{2}.ind_layer) && get(match_check, 'value'))
+        if (all(pk_done) && ~isempty(ind_layer{2}) && get(match_check, 'value'))
             switch curr_rad
                 case 1
-                    if ~isempty(find(((pk{2}.ind_layer(:, 5) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1))
-                        curr_layer(2) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 5) == curr_layer(1)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1), 1);
+                    if ~isempty(find(((ind_layer{2}(:, 5) == curr_layer(1)) & (ind_layer{2}(:, 2) == curr_year(1)) & (ind_layer{2}(:, 3) == curr_trans(1)) & (ind_layer{2}(:, 4) == curr_subtrans(1))), 1))
+                        curr_layer(2) = ind_layer{2}(find(((ind_layer{2}(:, 5) == curr_layer(1)) & (ind_layer{2}(:, 2) == curr_year(1)) & (ind_layer{2}(:, 3) == curr_trans(1)) & (ind_layer{2}(:, 4) == curr_subtrans(1))), 1), 1);
                         for ii = 1:2
                             set(p_pk{ii, 2}(ishandle(p_pk{ii, 2})), 'markersize', 12)
                             set(p_pk{ii, 2}(curr_layer(2)), 'markersize', 24)
@@ -1725,8 +1754,8 @@ linkaxes(ax(2:3), 'y')
                     end
                     set(layer_list(:, 2), 'value', curr_layer(2))
                 case 2
-                    if ~isempty(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1))
-                        curr_layer(1) = pk{2}.ind_layer(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1))), 1), 5);
+                    if ~isempty(find(((ind_layer{2}(:, 1) == curr_layer(2)) & (ind_layer{2}(:, 2) == curr_year(1)) & (ind_layer{2}(:, 3) == curr_trans(1)) & (ind_layer{2}(:, 4) == curr_subtrans(1))), 1))
+                        curr_layer(1) = ind_layer{2}(find(((ind_layer{2}(:, 1) == curr_layer(2)) & (ind_layer{2}(:, 2) == curr_year(1)) & (ind_layer{2}(:, 3) == curr_trans(1)) & (ind_layer{2}(:, 4) == curr_subtrans(1))), 1), 5);
                         for ii = 1:2
                             set(p_pk{ii, 1}(ishandle(p_pk{ii, 1})), 'markersize', 12)
                             if ishandle(p_pk{ii, 1}(curr_layer(1)))
@@ -2014,15 +2043,15 @@ linkaxes(ax(2:3), 'y')
         if ~all(pk_done)
             set(status_box(curr_gui), 'string', 'Picks must be loaded for both master and intersecting transects.')
             set(fgui(1), 'keypressfcn', @keypress1)
-            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)            
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             return
         end
         
         % check if the intersecting layer is already matched to a master layer
-        if ~isempty(pk{1}.ind_layer)
-            if ~isempty(find(((pk{1}.ind_layer(:, 2) == curr_year(2)) & (pk{1}.ind_layer(:, 3) == curr_trans(2)) & (pk{1}.ind_layer(:, 4) == curr_subtrans(2)) & (pk{1}.ind_layer(:, 5) == curr_layer(2))), 1))
-                tmp1        = find((pk{1}.ind_layer(:, 2) == curr_year(2)) & (pk{1}.ind_layer(:, 3) == curr_trans(2)) & (pk{1}.ind_layer(:, 4) == curr_subtrans(2)) & (pk{1}.ind_layer(:, 5) == curr_layer(2)));
-                tmp2        = colors{1}(pk{1}.ind_layer(tmp1(1), 1), :);
+        if ~isempty(ind_layer{1})
+            if ~isempty(find(ismember(ind_layer{1}(:, 2:5), [curr_year(2) curr_trans(2) curr_subtrans(2) curr_layer(2)], 'rows'), 1))
+                tmp1        = find(ismember(ind_layer{1}(:, 2:5), [curr_year(2) curr_trans(2) curr_subtrans(2) curr_layer(2), 'rows']));
+                tmp2        = colors{1}(ind_layer{1}(tmp1(1), 1), :);
             else
                 tmp2        = colors{1}(curr_layer(1), :);
             end
@@ -2031,8 +2060,8 @@ linkaxes(ax(2:3), 'y')
         end
         
         % check for existing match
-        if ~isempty(pk{2}.ind_layer)
-            if ~isempty(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 2) == curr_year(1)) & (pk{2}.ind_layer(:, 3) == curr_trans(1)) & (pk{2}.ind_layer(:, 4) == curr_subtrans(1)) & (pk{2}.ind_layer(:, 5) == curr_layer(1))), 1))
+        if ~isempty(ind_layer{2})
+            if ~isempty(find(ismember(ind_layer{2}, [curr_layer(2) curr_year(1) curr_trans(1) curr_subtrans(1) curr_layer(1)], 'rows'), 1))
                 set(status_box(2), 'string', 'This layer pair is already matched.')
                 set(fgui(1), 'keypressfcn', @keypress1)
                 set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
@@ -2061,21 +2090,21 @@ linkaxes(ax(2:3), 'y')
         pause(0.1)
         
         % reassign master color to first master color if a master layer is matched to multiple intersecting transects
-        if ~isempty(pk{1}.ind_layer)
-            if ~isempty(find(((pk{1}.ind_layer(:, 2) == curr_year(2)) & (pk{1}.ind_layer(:, 3) == curr_trans(2)) & (pk{1}.ind_layer(:, 4) == curr_subtrans(2)) & (pk{1}.ind_layer(:, 5) == curr_layer(2))), 1))
-                colors{1}(pk{1}.ind_layer(tmp1, 1), :) ...
+        if ~isempty(ind_layer{1})
+            if ~isempty(find(ismember(ind_layer{1}(:, 2:5), [curr_year(2) curr_trans(2) curr_subtrans(2) curr_layer(2)], 'rows'), 1))
+                colors{1}(ind_layer{1}(tmp1, 1), :) ...
                             = repmat(tmp2, length(tmp1), 1);
                 for ii = 1:2
-                    set(p_pk{ii, 1}(pk{1}.ind_layer(tmp1, 1)), 'color', tmp2)
-                    set(p_pkdepth{1}(pk{1}.ind_layer(tmp1, 1)), 'color', tmp2)
-                    set(p_int2{ii, 2}(pk{1}.ind_layer(tmp1, 1)), 'markerfacecolor', tmp2)
+                    set(p_pk{ii, 1}(ind_layer{1}(tmp1, 1)), 'color', tmp2)
+                    set(p_pkdepth{1}(ind_layer{1}(tmp1, 1)), 'color', tmp2)
+                    set(p_int2{ii, 2}(ind_layer{1}(tmp1, 1)), 'markerfacecolor', tmp2)
                 end
             end
         end
         
         % add each layer to the other's list
-        pk{1}.ind_layer     = [pk{1}.ind_layer; [curr_layer(1) curr_year(2) curr_trans(2) curr_subtrans(2) curr_layer(2)]];
-        pk{2}.ind_layer     = [pk{2}.ind_layer; [curr_layer(2) curr_year(1) curr_trans(1) curr_subtrans(1) curr_layer(1)]];
+        ind_layer{1}     = [ind_layer{1}; [curr_layer(1) curr_year(2) curr_trans(2) curr_subtrans(2) curr_layer(2)]];
+        ind_layer{2}     = [ind_layer{2}; [curr_layer(2) curr_year(1) curr_trans(1) curr_subtrans(1) curr_layer(1)]];
         
         for ii = 1:2
             if ishandle(p_int2{ii, 1}(curr_layer(2)))
@@ -2118,13 +2147,13 @@ linkaxes(ax(2:3), 'y')
         set(status_box(2), 'string', ['Unmatching master transect layer #' num2str(curr_layer(1)) ' from intersecting transect layer # ' num2str(curr_layer(2)) '...'])
         pause(0.1)
         
-        if (~isempty(find(((pk{1}.ind_layer(:, 1) == curr_layer(1)) & (pk{1}.ind_layer(:, 5) == curr_layer(2))), 1)) && ~isempty(find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 5) == curr_layer(1))), 1)))
-            pk{1}.ind_layer = pk{1}.ind_layer(setdiff(1:size(pk{1}.ind_layer, 1), find(((pk{1}.ind_layer(:, 1) == curr_layer(1)) & (pk{1}.ind_layer(:, 5) == curr_layer(2))))), :);
-            pk{2}.ind_layer = pk{2}.ind_layer(setdiff(1:size(pk{2}.ind_layer, 1), find(((pk{2}.ind_layer(:, 1) == curr_layer(2)) & (pk{2}.ind_layer(:, 5) == curr_layer(1))))), :);
+        if (~isempty(find(ismember(ind_layer{1}(:, [1 5]), [curr_layer(1) curr_layer(2)], 'rows'), 1)) && ~isempty(find(ismember(ind_layer{2}(:, [1 5]), [curr_layer(2) curr_layer(1)], 'rows'), 1)))
+            ind_layer{1} = ind_layer{1}(setdiff(1:size(ind_layer{1}, 1), find(((ind_layer{1}(:, 1) == curr_layer(1)) & (ind_layer{1}(:, 5) == curr_layer(2))))), :);
+            ind_layer{2} = ind_layer{2}(setdiff(1:size(ind_layer{2}, 1), find(((ind_layer{2}(:, 1) == curr_layer(2)) & (ind_layer{2}(:, 5) == curr_layer(1))))), :);
         else
             set(status_box(2), 'string', 'Current layer pair not matched. Unmatching cancelled.')
             set(fgui(1), 'keypressfcn', @keypress1)
-            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)            
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             return
         end
         
@@ -2143,7 +2172,7 @@ linkaxes(ax(2:3), 'y')
             set(p_pkdepth{2}(curr_layer(2)), 'color', colors{2}(curr_layer(2), :))
         end
         
-        if ~isempty(find((pk{1}.ind_layer(:, 1) == curr_layer(1)), 1))
+        if ~isempty(find((ind_layer{1}(:, 1) == curr_layer(1)), 1))
             for ii = 1:2
                 if ishandle(p_int2{ii, 2}(curr_layer(1)))
                     set(p_int2{ii, 2}(curr_layer(1)), 'marker', 's')
@@ -2156,14 +2185,14 @@ linkaxes(ax(2:3), 'y')
                 end
             end
         end
-        if isempty(find((pk{1}.ind_layer(:, 5) == curr_layer(2)), 1))
+        if isempty(find((ind_layer{1}(:, 5) == curr_layer(2)), 1))
             for ii = 1:2
                 if ishandle(p_int2{ii, 2}(curr_layer(1)))
                     set(p_int2{ii, 2}(curr_layer(1)), 'marker', 'o')
                 end
             end
         end
-        if ~isempty(find((pk{2}.ind_layer(:, 1) == curr_layer(2)), 1))
+        if ~isempty(find((ind_layer{2}(:, 1) == curr_layer(2)), 1))
             for ii = 1:2
                 if ishandle(p_int2{ii, 1}(curr_layer(2)))
                     set(p_int2{ii, 1}(curr_layer(2)), 'marker', 's')
@@ -2176,7 +2205,7 @@ linkaxes(ax(2:3), 'y')
                 end
             end
         end
-        if isempty(find((pk{2}.ind_layer(:, 5) == curr_layer(1)), 1))
+        if isempty(find((ind_layer{2}(:, 5) == curr_layer(1)), 1))
             for ii = 1:2
                 if ishandle(p_int2{ii, 1}(curr_layer(2)))
                     set(p_int2{ii, 1}(curr_layer(2)), 'marker', 'o')
@@ -2186,7 +2215,7 @@ linkaxes(ax(2:3), 'y')
         
         set(status_box(2), 'string', ['Intersecting layer # ' num2str(curr_layer(2)) ' unmatched from master layer #' num2str(curr_layer(1)) '.'])
         set(fgui(1), 'keypressfcn', @keypress1)
-        set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)        
+        set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
     end
 
 %% Save merged picks
@@ -2206,36 +2235,10 @@ linkaxes(ax(2:3), 'y')
             return
         end
         
-        if (isempty(find(ismember(pk{1}.ind_layer(:, 2:4), [curr_year(2) curr_trans(2) curr_subtrans(2)], 'rows'), 1)) || isempty(find(ismember(pk{2}.ind_layer(:, 2:4), [curr_year(1) curr_trans(1) curr_subtrans(1)], 'rows'), 1)))
-            set(status_box(1), 'string', 'No new layers matched. No need to save intersecting picks.')
-            set(fgui(1), 'keypressfcn', @keypress1)
-            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)            
-            return
-        end
-        
-        if ~master_done
-            set(status_box(1), 'string', 'Locate master layer ID list before saving picks.')
-            set(fgui(1), 'keypressfcn', @keypress1)
-            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)            
-            return
-        else
-            try
-                tmp1        = load([path_master file_master]);
-                [id_layer_master_mat, id_layer_master_cell] ...
-                            = deal(tmp1.id_layer_master_mat, tmp1.id_layer_master_cell);
-            catch
-                set(status_box(1), 'string', 'Selected master layer ID list does not contain expected variables. Re-locate.')
-                master_done = false;
-                set(fgui(1), 'keypressfcn', @keypress1)
-                set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
-                return
-            end
-        end
-        
         if (~ischar(file_pk{1}) || ~ischar(file_pk{2}))
             [file_pk{1}, path_pk{1}, file_pk{2}, path_pk{2}] ...
                             = deal(tmp1, tmp2, tmp3, tmp4);
-            set(status_box(1), 'string', 'Picks'' locations not chosen. Saving cancelled.')
+            set(status_box(1), 'string', 'Picks'' locations not all assigned. Saving cancelled.')
             set(fgui(1), 'keypressfcn', @keypress1)
             set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             return
@@ -2244,100 +2247,31 @@ linkaxes(ax(2:3), 'y')
         set(status_box(1), 'string', 'Preparing matches for saving...')
         pause(0.1)
         
-        % intitial concatenation of variables for id_layer_master_mat
-        tmp1                = [repmat([curr_year(1) curr_trans(1) curr_subtrans(1)], size(pk{1}.ind_layer, 1), 1) pk{1}.ind_layer]; 
+        % remove earlier set for these sub-transects
+        ind_layer_match     = ind_layer_match((~ismember(ind_layer_match(:, 1:3), [curr_year(1) curr_trans(1) curr_subtrans(1)], 'rows') & ~ismember(ind_layer_match(:, 5:7), [curr_year(1) curr_trans(1) curr_subtrans(1)], 'rows') & ...
+                                               ~ismember(ind_layer_match(:, 1:3), [curr_year(2) curr_trans(2) curr_subtrans(2)], 'rows') & ~ismember(ind_layer_match(:, 5:7), [curr_year(2) curr_trans(2) curr_subtrans(2)], 'rows')), :);
         
-        % extract match data from cells
-        if ~curr_subtrans(1)
-            tmp2            = id_layer_master_cell{curr_year(1)}{curr_trans(1)};
-        elseif iscell(id_layer_master_cell{curr_year(1)}{curr_trans(1)})
-            try
-                tmp2        = id_layer_master_cell{curr_year(1)}{curr_trans(1)}{curr_subtrans(1)};
-            catch
-                tmp2        = [];
-            end
-        else
-            tmp2            = [];
-        end
-        if ~curr_subtrans(2)
-            tmp3            = id_layer_master_cell{curr_year(2)}{curr_trans(2)};
-        elseif iscell(id_layer_master_cell{curr_year(2)}{curr_trans(2)})
-            try
-                tmp3        = id_layer_master_cell{curr_year(2)}{curr_trans(2)}{curr_subtrans(2)};
-            catch
-                tmp3        = [];
-            end
-        else
-            tmp3            = [];
-        end
+        % add new match set for these sub-transects, then reorder and remove any repeated rows
+        ind_layer_match     = [ind_layer_match; repmat([curr_year(1) curr_trans(1) curr_subtrans(1)], size(ind_layer{1}, 1), 1) ind_layer{1}; repmat([curr_year(2) curr_trans(2) curr_subtrans(2)], size(ind_layer{2}, 1), 1) ind_layer{2}];
         
-        % update pk.ind_layer fields
-        pk{1}.ind_layer     = tmp1(:, 4:end);
-        
-        % add new matches to master matrix and remove any repeated rows
-        id_layer_master_mat = [id_layer_master_mat; tmp1];
-        for ii = 1:size(id_layer_master_mat, 1)
-            if ((id_layer_master_mat(ii, 1) > id_layer_master_mat(ii, 5)) || ((id_layer_master_mat(ii, 1) == id_layer_master_mat(ii, 5)) && (id_layer_master_mat(ii, 2) > id_layer_master_mat(ii, 6))) || ...
-               ((id_layer_master_mat(ii, 1) == id_layer_master_mat(ii, 5)) && (id_layer_master_mat(ii, 2) == id_layer_master_mat(ii, 6)) && (id_layer_master_mat(ii, 3) > id_layer_master_mat(ii, 7))) || ...
-               ((id_layer_master_mat(ii, 1) == id_layer_master_mat(ii, 5)) && (id_layer_master_mat(ii, 2) == id_layer_master_mat(ii, 6)) && (id_layer_master_mat(ii, 3) == id_layer_master_mat(ii, 7)) && (id_layer_master_mat(ii, 4) > id_layer_master_mat(ii, 8))))
-                 id_layer_master_mat(ii, :) ...
-                            = id_layer_master_mat(ii, [5:8 1:4]);
+        for ii = 1:size(ind_layer_match, 1)
+            if ((ind_layer_match(ii, 1) > ind_layer_match(ii, 5)) || ((ind_layer_match(ii, 1) == ind_layer_match(ii, 5)) && (ind_layer_match(ii, 2) > ind_layer_match(ii, 6))) || ...
+               ((ind_layer_match(ii, 1) == ind_layer_match(ii, 5)) && (ind_layer_match(ii, 2) == ind_layer_match(ii, 6)) && (ind_layer_match(ii, 3) > ind_layer_match(ii, 7))) || ...
+               ((ind_layer_match(ii, 1) == ind_layer_match(ii, 5)) && (ind_layer_match(ii, 2) == ind_layer_match(ii, 6)) && (ind_layer_match(ii, 3) == ind_layer_match(ii, 7)) && (ind_layer_match(ii, 4) > ind_layer_match(ii, 8))))
+                 ind_layer_match(ii, :) ...
+                            = ind_layer_match(ii, [5:8 1:4]);
             end
         end
-        id_layer_master_mat = unique(id_layer_master_mat, 'rows');
-        id_layer_master_mat = sortrows(id_layer_master_mat, [1:3 5:7 4 8]);
+        ind_layer_match     = unique(ind_layer_match, 'rows');
+        ind_layer_match     = sortrows(ind_layer_match, [1:3 5:7 4 8]);
         
-        % reassign pk.ind_layer to cells and order pk fields
-        for ii = 1:2
-            if curr_subtrans(ii)
-                id_layer_master_cell{curr_year(ii)}{curr_trans(ii)}{curr_subtrans(ii)} ...
-                            = sortrows(pk{ii}.ind_layer, [2:4 1 5]);
-            else
-                id_layer_master_cell{curr_year(ii)}{curr_trans(ii)} ...
-                            = sortrows(pk{ii}.ind_layer, [2:4 1 5]);
-            end
-            pk{ii}          = orderfields(pk{ii});
-        end
-        
-        set(status_box(1), 'string', 'Saving master picks...')
-        pause(0.1)
-        tmp1                = pk;
-        pk                  = pk{1};
-        try
-            save([path_pk{1} file_pk{1}], '-v7.3', 'pk')
-            pk              = tmp1;
-            set(status_box(1), 'string', ['Master picks saved as ' file_pk{1}(1:(end - 4)) ' in ' path_pk{1} '.'])
-        catch
-            pk              = tmp1;
-            set(status_box(1), 'string', 'MASTER PICKS DID NOT SAVE. Try saving again shortly. Don''t perform any other operation.')
-            set(fgui(1), 'keypressfcn', @keypress1)
-            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
-            return
-        end
-        pause(0.1)
-        set(status_box(1), 'string', 'Saving intersecting picks...')
-        pause(0.1)
-        tmp1                = pk;
-        pk                  = pk{2};
-        try
-            save([path_pk{2} file_pk{2}], '-v7.3', 'pk')
-            pk                  = tmp1;
-            set(status_box(1), 'string', ['Intersecting picks saved as ' file_pk{2}(1:(end - 4)) ' in ' path_pk{2} '.'])
-        catch
-            pk              = tmp1;
-            set(status_box(1), 'string', 'INTERSECTING PICKS DID NOT SAVE. Try saving again shortly. Don''t perform any other operation.')
-            set(fgui(1), 'keypressfcn', @keypress1)
-            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
-            return
-        end
-        pause(0.1)
         set(status_box(1), 'string', 'Saving master layer ID list...')
         pause(0.1)
         try
-            save([path_master file_master], '-v7.3', 'id_layer_master_mat', 'id_layer_master_cell')
-            set(status_box(1), 'string', ['Saved master layer ID list as ' file_master ' in ' path_master '. Saving complete.'])
+            save([path_match file_match], '-v7.3', 'ind_layer_match')
+            set(status_box(1), 'string', ['Saved matching layer list as ' file_match ' in ' path_match '. Saving complete.'])
         catch
-            set(status_box(1), 'string', 'MASTER LAYER ID LIST DID NOT SAVE. Try saving again shortly. Don''t perform any other operation.')
+            set(status_box(1), 'string', 'MATCHING LAYER LIST DID NOT SAVE. Try saving again shortly. Do not perform any other operation.')
             set(fgui(1), 'keypressfcn', @keypress1)
             set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
             return
@@ -2347,9 +2281,10 @@ linkaxes(ax(2:3), 'y')
         if (get(int_list, 'value') < length(get(int_list, 'string')))
             set(int_list, 'value', (get(int_list, 'value') + 1))
             load_pk2
+        else
+            set(fgui(1), 'keypressfcn', @keypress1)
+            set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
         end
-        set(fgui(1), 'keypressfcn', @keypress1)
-        set(fgui(2), 'keypressfcn', @keypress2, 'windowbuttondownfcn', @mouse_click)
     end
 
 %% Update minimum dB/x/y/z/dist
@@ -4163,7 +4098,7 @@ linkaxes(ax(2:3), 'y')
             case 'i'
                 load_int
             case 'm'
-                locate_master
+                load_match
             case 'n'
                 pk_next
             case 'p'
