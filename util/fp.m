@@ -12,12 +12,12 @@ function varargout          = fp(varargin)
 %   
 %   H = FP(...) returns the figure handle.
 %   
-%   [H, P] = FP(...) returns both the figure and plot handles.
+%   [H,P] = FP(...) returns both the figure and plot handles.
 %   
 %   See also HP.
 % 
-% Joe MacGregor (UTIG)
-% Last updated: 03/13/13
+% Joe MacGregor (NASA)
+% Last updated: 12 August 2024
 
 if ((nargin < 1) || (nargin > 2))
     error('fp:nargin', 'Incorrect number of inputs to FP (must be 1 or 2).')
@@ -30,20 +30,29 @@ if ((nargin == 2) && (length(varargin{1}) ~= length(varargin{2})))
 end
 
 h                           = figure;
-set(gca, 'fontsize', 20)
+addToolbarExplorationButtons(h)
 switch nargin
     case 1
-        p                   = plot(varargin{1}, 'k', 'linewidth', 2);
-        xlabel('Index')
-        ylabel(inputname(1), 'interpreter', 'none')
+        if ~isempty(find(isnan(varargin{1}), 1))
+            p               = line(varargin{1}, 'Color', 'k', 'Marker', '.', 'MarkerSize', 14);
+        else
+            p               = line(varargin{1}, 'Color', 'k', 'LineWidth', 2);
+        end
     case 2
         if (all(diff(varargin{1}) > 0) && ~all(diff(diff(varargin{1})))) % check if x is monotonically increasing and uniformly spaced
-            p               = plot(varargin{1}, varargin{2}, 'k', 'linewidth', 2);
+            p               = line(varargin{1}, varargin{2}, 'Color', 'k', 'LineWidth', 2);
         else
-            p               = plot(varargin{1}, varargin{2}, 'k.', 'markersize', 14);
+            p               = line(varargin{1}, varargin{2}, 'Color', 'k', 'Marker', '.', 'MarkerSize', 14);
         end
-        xlabel(inputname(1), 'interpreter', 'none')
-        ylabel(inputname(2), 'interpreter', 'none')
+end
+set(gca, 'FontSize', 20)
+switch nargin
+    case 1
+        xlabel('Index')
+        ylabel(inputname(1), 'Interpreter', 'none')
+    case 2
+        xlabel(inputname(1), 'Interpreter', 'none')
+        ylabel(inputname(2), 'Interpreter', 'none')
 end
 grid on
 box on

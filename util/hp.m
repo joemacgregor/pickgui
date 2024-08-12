@@ -16,8 +16,8 @@ function varargout          = hp(varargin)
 %   
 %   See also FP.
 %   
-% Joe MacGregor (UTIG)
-% Last updated: 03/13/13
+% Joe MacGregor (NASA)
+% Last updated: 12 August 2024
 
 if ((nargin < 1) || (nargin > 3))
     error('hp:nargin', 'Incorrect number of inputs to HP (must be between 1 and 3).')
@@ -42,22 +42,22 @@ end
 hold on
 switch num_var
     case 1
-        p                   = plot(varargin{1}, 'linewidth', 2);
-        if (num_var < nargin)
-            set(p, 'color', varargin{end})
+        if ~isempty(find(isnan(varargin{1}), 1))
+            p               = line(varargin{1}, 'Color', 'r', 'Marker', '.', 'MarkerSize', 14);
         else
-            set(p, 'color', 'r')
+            p               = line(varargin{1}, 'Color', 'r', 'LineWidth', 2);
+        end
+        if (num_var < nargin)
+            P.Color = varargin{end};
         end
     case 2
-        if (all(diff(varargin{1}) > 0) && ~all(diff(diff(varargin{1})))); % check if x is monotonically increasing and uniformly spaced
-            p               = plot(varargin{1}, varargin{2}, 'linewidth', 2);
+        if (all(diff(varargin{1}) > 0) && ~all(diff(diff(varargin{1})))) % check if x is monotonically increasing and uniformly spaced
+            p               = line(varargin{1}, varargin{2}, 'Color', 'r', 'LineWidth', 2);
         else
-            p               = plot(varargin{1}, varargin{2}, '.', 'markersize', 14);
-        end;
+            p               = line(varargin{1}, varargin{2}, 'Color', 'r', 'Marker', '.', 'MarkerSize', 14);
+        end
         if (num_var < nargin)
-            set(p, 'color', varargin{end})
-        else
-            set(p, 'color', 'r')
+            p.Color = varargin{end};
         end
 end
 

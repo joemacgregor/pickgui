@@ -1,5 +1,4 @@
-function [x_int, y_int, ind1, ind2] ...
-                            = intersecti(x1, y1, x2, y2)
+function [x_int, y_int, ind1, ind2] = intersecti(x1, y1, x2, y2)
 % INTERSECTI Linearly interpolated intersections between two vectors.
 % 
 %   [XINT,YINT,IND1,IND2] = INTERSECTI(X1,Y1,X2,Y2) finds the linearly
@@ -7,8 +6,8 @@ function [x_int, y_int, ind1, ind2] ...
 %   (X1,Y1) and (X2,Y2). IND1 and IND2 are the indices of the nearest
 %   points in (X1,Y1) and (X2,Y2) to the those intersections, respectively.
 % 
-% Joe MacGregor (UTIG)
-% Last updated: 10/30/13
+% Joe MacGregor (NASA)
+% Last updated: 12/20/18
 
 if (nargin ~= 4)
     error('intersecti:nargin', 'Number of inputs to INTERSECTI must be 4.')
@@ -105,7 +104,7 @@ for ii = 1:4
     for jj = 1:4
         ind_curr            = intersect(test_all{ii, 1}, test_all{jj, 2}); % intersections between index sets that pass
         if ~isempty(ind_curr) % only keep if not empty, can't simplify or a deprecation warning results
-            ind_int         = [ind_int; ind_curr]; %#ok<AGROW>
+            ind_int         = [ind_int; ind_curr(:)]; %#ok<AGROW>
         end
     end
 end
