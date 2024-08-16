@@ -34,9 +34,9 @@ addToolbarExplorationButtons(h)
 switch nargin
     case 1
         if ~isempty(find(isnan(varargin{1}), 1))
-            p               = line(varargin{1}, 'Color', 'k', 'Marker', '.', 'MarkerSize', 14);
+            p               = line(1:length(varargin{1}), varargin{1}, 'Color', 'k', 'Marker', '.', 'MarkerSize', 14);
         else
-            p               = line(varargin{1}, 'Color', 'k', 'LineWidth', 2);
+            p               = line(1:length(varargin{1}), varargin{1}, 'Color', 'k', 'LineWidth', 2);
         end
     case 2
         if (all(diff(varargin{1}) > 0) && ~all(diff(diff(varargin{1})))) % check if x is monotonically increasing and uniformly spaced

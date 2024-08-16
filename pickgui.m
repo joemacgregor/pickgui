@@ -22,7 +22,7 @@
 %   parallelization for those loops that can use it.
 %   
 % Joe MacGregor (NASA)
-% Last updated: 12 August 2024
+% Last updated: 13 August 2024
 
 %% Intialize variables
 
@@ -380,7 +380,6 @@ disp_group.SelectedObject = disp_check(1);
 			[data_cat.ind_trim_surf, data_cat.ind_trim_bed] ...
 							= deal(NaN);
             tmp1			= 0;
-            file_box.String = file_data(6:(end - 4));
             
         else
             status_box.String = 'Selected file does not contain expected variables.';
@@ -4736,7 +4735,7 @@ disp_group.SelectedObject = disp_check(1);
 %% Test something
 
     function misctest(src, event)
-		save('/Users/jamacgre/OneDrive - NASA/research/matlab/pickgui_v2/mat/Data_20190418_01_007-007_pk_plots.mat', '-v7.3', 'amp_depth')
+		
 		pk_gui.KeyPressFcn = @keypress; pk_gui.WindowButtonDownFcn = @mouse_click;
 		status_box.String = 'Test done.';
     end

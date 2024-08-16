@@ -3,11 +3,12 @@
 % of overlapping dated layers.
 % 
 % Joe MacGregor (NASA)
-% Last updated: 9 August 2024
+% Last updated: 14 August 2024
 
 clear
 
 dir_mat						= '/Users/jamacgre/OneDrive - NASA/research/matlab/pickgui_v2/mat/';
+dir_csv						= '/Users/jamacgre/OneDrive - NASA/research/matlab/pickgui_v2/csv/';
 do_snr						= false;
 do_date						= true;
 do_age_check				= true;
@@ -16,8 +17,6 @@ do_interp					= true;
 interp_type					= 'quasi Nye';
 do_save						= true;
 do_grd1						= true;
-do_grd2						= false;
-do_nye_norm					= false;
 
 % variables of interest
 depth_uncert				= 5; % depth uncertainty representing unknown firn correction, m
@@ -26,7 +25,7 @@ age_uncert_frac_max			= 50e-2; % maximum fraction of age uncertainty at which po
 dist_int_max				= 250; % m, +/- range to extract core-intersecting layer depths
 thick_diff_max				= 0.2; % fraction of ice thickness within which overlapping layer must lie
 layer_diff_max				= 1; % fraction of layer thickness within which overlapping layer must lie
-num_depth_norm				= 0;%25; % number of normalized depths
+num_depth_norm				= 20; % number of normalized depths
 age_iso						= 1e3 .* [3 8 9 11.7 12.8 14.7 19 29 57 115]'; % isochrone ages, a
 num_age_iso					= length(age_iso); % number of isochrones to calculate
 thick_diff_max_iso			= 0.2; % fraction of ice thickness within which overlapping layer must lie (for age_norm1)
@@ -128,7 +127,7 @@ thick_grd					= interp2(BM5.x, BM5.y, double(BM5.thick), x_grd, y_grd);
 clear BM5
 
 % load MAR accumulation data (https://arcticdata.io/catalog/view/doi%3A10.18739%2FA28G8FJ7F)
-if (do_date || do_grd1 || (do_grd2 && do_nye_norm))
+if (do_date || do_grd1)
     MAR						= load([dir_mat 'greenland_mar_311_accum.mat'], 'accum', 'x', 'y');
     accum_grd               = MAR.accum(((MAR.y >= y_min) & (MAR.y <= y_max)), ((MAR.x >= x_min) & (MAR.x <= x_max)));
     clear MAR
@@ -424,7 +423,7 @@ if do_date
     end
     
 %%
-elseif (do_grd1 || do_grd2)
+elseif do_grd1
 %%
     disp('Loading layer ages...')
     load([dir_mat 'date_all.mat'], 'age', 'age_uncert')
@@ -440,8 +439,6 @@ if do_grd1
     % decimation
     if (num_depth_norm > 0)
         depth_norm          = ((1 / num_depth_norm):(1 / num_depth_norm):1)'; % normalized/relative depth vector
-    else
-        depth_norm          = 0;
     end
     
     % initialize along-track variables
@@ -491,7 +488,7 @@ if do_grd1
         
         % thickness-normalized layer depths
         depth_decim_norm	= depth_decim ./ repmat(thick_decim{ii}, length(ind_layer_dated), 1);
-
+		
 		% segment-specific grid dimensions
 		if (num_depth_norm > 0)
 			[dist_grd1{ii}, depth_norm_grd1{ii}] ...
@@ -513,21 +510,26 @@ if do_grd1
 		end
 		
         % do age and depth uncertainties first
-		for jj = find(~isnan(thick_decim{ii}) & (thick_decim{ii} > 0) & (sum(~isnan(depth_decim_norm), 1) > 1))
-			
-			if (num_depth_norm > 0)
+		if (num_depth_norm > 0)
+			for jj = find((thick_decim{ii} > 0) & (sum(~isnan(depth_decim_norm), 1) > 1))
 				[depth_norm_unique, ind_depth_norm_unique]	...
 							= unique(depth_decim_norm(~isnan(depth_decim_norm(:, jj)), jj));
-			
+				if isscalar(depth_norm_unique)
+					continue
+				end
 				age_uncert_curr ...
 							= age_uncert_dated(~isnan(depth_decim_norm(:, jj)));
 				age_uncert_norm1{ii}(:, jj) ...
 							= interp1(depth_norm_unique, age_uncert_curr(ind_depth_norm_unique), depth_norm, 'linear', 'extrap');
 			end
-			
-			if (num_age_iso > 0)
+		end
+		if (num_age_iso > 0)
+			for jj = find(~isnan(thick_decim{ii}) & (thick_decim{ii} > 0))
 				[age_unique, ind_age_unique] ...
 							= unique(age_dated);
+				if isscalar(age_unique)
+					continue
+				end
 				depth_uncert_curr ...
 							= mean(diff(core{ind_ngrip}.depth(interp1(core{ind_ngrip}.age, 1:length(core{ind_ngrip}.age), [(age_dated - age_uncert_dated) age_dated (age_dated + age_uncert_dated)], 'nearest', 'extrap')), 1, 2), 2, 'omitnan');
 				depth_uncert_iso1{ii}(:, jj) ...
@@ -546,7 +548,7 @@ if do_grd1
                     % linearly interpolate age at normalized depths
                     if (num_depth_norm > 0)
 						[depth_norm_unique, ind_depth_norm_unique] ...
-							= unique(depth_decim_norm(~isnan(depth_decim_norm(:, jj)), jj));						
+							= unique(depth_decim_norm(~isnan(depth_decim_norm(:, jj)), jj));
                         age_curr ...
                             = age_dated(~isnan(depth_decim_norm(:, jj)));
                         age_norm1{ii}(:, jj) ...
@@ -676,362 +678,104 @@ if do_grd1
     disp('...done 1-D gridding layer ages.')
 %%
     if do_save
+		
         disp('Saving 1-D age grids...')
-
+		
 		if (num_depth_norm > 0)
-			save([dir_mat 'age_grd1_norm.mat'], '-v7.3', 'age_diff1', 'age_norm1', 'age_uncert_norm1', 'depth_norm', 'depth_norm', 'depth_norm_grd1', 'num_depth_norm')
+			
+			save([dir_mat 'age_grd1_norm.mat'], '-v7.3', 'age_diff1', 'age_norm1', 'age_uncert_norm1', 'depth_norm', 'depth_norm_grd1', 'num_depth_norm')
+			
+			% concatenate x/y/thickness
+			[x_pk_decim, y_pk_decim] ...
+							= deal(cell(1, num_file_pk));
+			for ii = find(cellfun(@length, age_norm1))
+				[x_pk_decim{ii}, y_pk_decim{ii}] ...
+							= deal(x_pk{ii}(ind_decim_mid{ii}), y_pk{ii}(ind_decim_mid{ii}));
+			end
+			[x_pk_decim, y_pk_decim, thick_decim_all] ...
+							= deal([x_pk_decim{:}]', [y_pk_decim{:}]', [thick_decim{logical(cellfun(@length, age_norm1))}]');
+			
+			% split ages/uncertainty matrices for each segment into individual cells
+			[age_norm1_split1, age_uncert_norm1_split1] ...
+							= deal(cell(num_depth_norm, num_file_pk));
+			for ii = 1:num_depth_norm
+				for jj = find(cellfun(@length, age_norm1))
+					[age_norm1_split1{ii, jj}, age_uncert_norm1_split1{ii, jj}] ...
+							= deal(age_norm1{jj}(ii, :), age_uncert_norm1{jj}(ii, :));
+				end
+			end
+			
+			% then reconstitute for each normalized depth and concatenate
+			[age_norm1_split2, age_uncert_norm1_split2] ...
+							= deal(cell(1, num_depth_norm));
+			for ii = 1:num_depth_norm
+				[age_norm1_split2{ii}, age_uncert_norm1_split2{ii}] ...
+							= deal([age_norm1_split1{ii, :}]', [age_uncert_norm1_split1{ii, :}]');
+			end
+			
+			% save each age/uncertainty for easy ingestion in python by pandas
+			for ii = 1:num_depth_norm
+				ind_good	= find(~isnan(age_norm1_split2{ii}) & ~isnan(thick_decim_all));
+				str_tmp		= num2str((1e2 * depth_norm(ii)), '%1.0f');
+				switch length(str_tmp)
+					case 1
+						str_tmp	...
+							= ['00' str_tmp]; %#ok<AGROW>
+					case 2
+						str_tmp	...
+							= ['0' str_tmp]; %#ok<AGROW>
+				end
+				writetable(table(x_pk_decim(ind_good), y_pk_decim(ind_good), age_norm1_split2{ii}(ind_good), age_uncert_norm1_split2{ii}(ind_good), thick_decim_all(ind_good), 'VariableNames', {'x' 'y' 'age' 'uncertainty' 'thickness'}), ...
+						   [dir_csv 'age_norm1_' str_tmp '.csv'])
+			end
 		end
 
 		if (num_age_iso > 0)
-
-			save([dir_mat 'age_grd1_iso.mat'], '-v7.3', 'age_iso', 'depth_iso1', 'depth_uncert_iso1', 'num_age_iso')
-			[depth_iso1_cell, depth_uncert_iso1_cell] ...
-						= deal(depth_iso1, depth_uncert_iso1);
-
-			[depth_iso1, depth_uncert_iso1] ...
-						= deal(cell2struct(depth_iso1, 'depth_iso1'), cell2struct(depth_uncert_iso1, 'depth_uncert_iso1'));
-			save([dir_mat 'age_grd1_iso_struct.mat'], 'age_iso', 'depth_iso1', 'depth_uncert_iso1', 'num_age_iso')
-			[depth_iso1, depth_uncert_iso1] ...
-						= deal(depth_iso1_cell, depth_uncert_iso1_cell);
 			
-%%			
+			save([dir_mat 'age_grd1_iso.mat'], '-v7.3', 'age_iso', 'depth_iso1', 'depth_uncert_iso1', 'num_age_iso')
+			
+			% concatenate x/y/thickness
 			[x_pk_decim, y_pk_decim] ...
-						= deal(cell(1, num_file_pk));
+							= deal(cell(1, num_file_pk));
 			for ii = find(cellfun(@length, depth_iso1))
 				[x_pk_decim{ii}, y_pk_decim{ii}] ...
-						= deal(x_pk{ii}(ind_decim_mid{ii}), y_pk{ii}(ind_decim_mid{ii}));
+							= deal(x_pk{ii}(ind_decim_mid{ii}), y_pk{ii}(ind_decim_mid{ii}));
 			end
 			[x_pk_decim, y_pk_decim, thick_decim_all] ...
-						= deal([x_pk_decim{:}]', [y_pk_decim{:}]', [thick_decim{:}]');
+							= deal([x_pk_decim{:}]', [y_pk_decim{:}]', [thick_decim{logical(cellfun(@length, depth_iso1))}]');
+			
+			% split depths/uncertainty matrices for each segment into individual cells
 			[depth_iso1_split1, depth_uncert_iso1_split1] ...
-						= deal(cell(num_age_iso, num_file_pk));
+							= deal(cell(num_age_iso, num_file_pk));
 			for ii = 1:num_age_iso
 				for jj = find(cellfun(@length, depth_iso1))
 					[depth_iso1_split1{ii, jj}, depth_uncert_iso1_split1{ii, jj}] ...
-						= deal(depth_iso1{jj}(ii, :), depth_uncert_iso1{jj}(ii, :));
+							= deal(depth_iso1{jj}(ii, :), depth_uncert_iso1{jj}(ii, :));
 				end
 			end
+			
+			% then reconstitute for each isochrone and concatenate
 			[depth_iso1_split2, depth_uncert_iso1_split2] ...
-						= deal(cell(1, num_age_iso));
+							= deal(cell(1, num_age_iso));
 			for ii = 1:num_age_iso
-				[depth_iso1_split2{ii}, depth_uncert_iso1_split2] ...
-						= deal([depth_iso1_split1{ii, :}]', [depth_uncert_iso1_split1{ii, :}]');
+				[depth_iso1_split2{ii}, depth_uncert_iso1_split2{ii}] ...
+							= deal([depth_iso1_split1{ii, :}]', [depth_uncert_iso1_split1{ii, :}]');
 			end
-%%			
+			
+			% save each isochrone depth/uncertainty for easy ingestion in python by pandas
 			for ii = 1:num_age_iso
-				ind_good= find(~isnan(depth_iso1_split2{ii}) & ~isnan(thick_decim_all));
-				str_tmp = num2str((1e-3 * age_iso(ii)), '%1.1f');
+				ind_good	= find(~isnan(depth_iso1_split2{ii}) & ~isnan(thick_decim_all));
+				str_tmp		= num2str((1e-3 * age_iso(ii)), '%1.1f');
 				if strcmp(str_tmp((end - 1):end), '.0')
-					str_tmp ...
-						= str_tmp(1:(end - 2));
+					str_tmp = str_tmp(1:(end - 2));
 				end
-				writetable(table(x_pk_decim(ind_good), y_pk_decim(ind_good), depth_iso1_split2{ii}(ind_good), depth_uncert_iso1_split2(ind_good), thick_decim_all(ind_good), 'VariableNames', {'x' 'y' 'depth' 'uncertainty' 'thickness'}), ...
-						   [dir_mat 'depth_iso1_' str_tmp '_ka.csv'])
+				writetable(table(x_pk_decim(ind_good), y_pk_decim(ind_good), depth_iso1_split2{ii}(ind_good), depth_uncert_iso1_split2{ii}(ind_good), thick_decim_all(ind_good), 'VariableNames', {'x' 'y' 'depth' 'uncertainty' 'thickness'}), ...
+						   [dir_csv 'depth_iso1_' str_tmp '_ka.csv'])
 			end
 		end
 		
-        disp(['Saved 1-D age grids as ' dir_mat 'age_grd1_*.mat.'])
+        disp(['Saved 1-D age grids as ' dir_mat 'age_grd1_*.mat and as CSV files.'])
     end
-%%
-elseif do_grd2
-%%
-    disp('Loading 1-D age gridding...')
-    load([dir_mat 'age_grd1.mat'], 'age_norm1', 'age_uncert_norm1', 'depth_iso1', 'depth_norm', 'depth_uncert_iso1', 'num_age_iso', 'num_depth_norm')
-    if do_nye_norm
-        load([dir_mat 'age_grd1.mat'], 'age_diff1')
-    end
-    disp('Loaded 1-D age gridding from age_grd1.mat')
-%%
-end
-
-if do_grd2
-    
-    disp('2-D gridding of normalized ages, isochrone depths and their uncertainties...')
-    
-    % prepare cells for ages/depths to be gridded
-    [age_norm2, age_uncert_norm2] ...
-                            = deal(NaN(size(x_grd, 1), size(x_grd, 2), num_depth_norm));
-    [depth_iso2, depth_uncert_iso2] ...
-                            = deal(NaN(size(x_grd, 1), size(x_grd, 2), num_age_iso));
-    [thick_cat, x_all_age_cat, x_all_age_uncert_cat, x_all_depth_cat, x_all_depth_uncert_cat, y_all_age_cat, y_all_age_uncert_cat, y_all_depth_cat, y_all_depth_uncert_cat] ...
-                            = deal([]);
-    [age_all, age_all_min, age_all_max, age_uncert_all, x_all_age, x_all_age_min, x_all_age_max, x_all_age_uncert, y_all_age, y_all_age_min, y_all_age_max, y_all_age_uncert] ...
-                            = deal(cell(1, num_depth_norm));
-    if do_nye_norm
-        age_diff_all        = cell(1, num_depth_norm);
-    end
-    [depth_all, depth_all_min, depth_all_max, depth_uncert_all, x_all_depth, x_all_depth_min, x_all_depth_max, x_all_depth_uncert, y_all_depth, y_all_depth_min, y_all_depth_max, y_all_depth_uncert] ...
-                            = deal(cell(1, num_age_iso));
-    
-    % loop through each 1-D set and add its values to the mix
-    for ii = 1:num_file_pk
-        if ~isempty(age_norm1{ii})
-            [x_all_age_cat, y_all_age_cat] ...
-                    = deal([x_all_age_cat; x_pk{ii}(ind_decim_mid{ii})'], [y_all_age_cat; y_pk{ii}(ind_decim_mid{ii})']);
-            for jj = 1:num_depth_norm
-                age_all{jj} ...
-                    = [age_all{jj}; age_norm1{ii}(jj, :)'];
-                if do_nye_norm
-                    age_diff_all{jj} ...
-                        = [age_diff_all{jj}; age_diff1{ii}(jj, :)'];
-                end
-                [age_min_tmp, age_max_tmp] ...
-                    = deal(age_norm1{ii}(jj, :));
-                for kk = find(isnan(age_norm1{ii}(jj, :)))
-                    if ~isempty(find(age_norm1{ii}(1:(jj - 1), kk), 1, 'last'))
-                        age_min_tmp(jj) ...
-                            = age_norm1{ii}(find(age_norm1{ii}(1:(jj - 1), kk), 1, 'last'), kk);
-                    end
-                    if ~isempty(find(age_norm1{ii}((jj + 1):end, kk), 1))
-                        age_max_tmp(jj) ...
-                            = age_norm1{ii}(find(age_norm1{ii}((jj + 1):end, kk), 1), kk);
-                    end
-                end
-                [age_all_min{jj}, age_all_max{jj}] ...
-                    = deal([age_all_min{jj}; age_min_tmp'], [age_all_max{jj}; age_max_tmp']);
-            end
-        end
-        if ~isempty(age_uncert_norm1{ii})
-            [x_all_age_uncert_cat, y_all_age_uncert_cat] ...
-                    = deal([x_all_age_uncert_cat; x_pk{ii}(ind_decim_mid{ii})'], [y_all_age_uncert_cat; y_pk{ii}(ind_decim_mid{ii})']);
-            for jj = 1:num_depth_norm
-                age_uncert_all{jj} ...
-                    = [age_uncert_all{jj}; age_uncert_norm1{ii}(jj, :)'];
-            end
-        end
-        if ~isempty(depth_iso1{ii})
-            [x_all_depth_cat, y_all_depth_cat, thick_cat] ...
-                    = deal([x_all_depth_cat; x_pk{ii}(ind_decim_mid{ii})'], [y_all_depth_cat; y_pk{ii}(ind_decim_mid{ii})'], [thick_cat; double(thick_decim{ii}')]);
-            for jj = 1:num_age_iso
-                depth_all{jj} ...
-                    = [depth_all{jj}; depth_iso1{ii}(jj, :)'];
-                [depth_min_tmp, depth_max_tmp] ...
-                        = deal(depth_iso1{ii}(jj, :));
-                for kk = find(isnan(depth_iso1{ii}(jj, :)))
-                    if ~isempty(find(depth_iso1{ii}(1:(jj - 1), kk), 1, 'last'))
-                        depth_min_tmp(jj) ...
-                            = depth_iso1{ii}(find(depth_iso1{ii}(1:(jj - 1), kk), 1, 'last'), kk);
-                    end
-                    if ~isempty(find(depth_iso1{ii}((jj + 1):end, kk), 1))
-                        depth_max_tmp(jj) ...
-                            = depth_iso1{ii}(find(depth_iso1{ii}((jj + 1):end, kk), 1), kk);
-                    end
-                end
-                [depth_all_min{jj}, depth_all_max{jj}] ...
-                    = deal([depth_all_min{jj}; depth_min_tmp'], [depth_all_max{jj}; depth_max_tmp']);
-            end
-        end
-        if ~isempty(depth_uncert_iso1{ii})
-            [x_all_depth_uncert_cat, y_all_depth_uncert_cat] ...
-                    = deal([x_all_depth_uncert_cat; x_pk{ii}(ind_decim_mid{ii})'], [y_all_depth_uncert_cat; y_pk{ii}(ind_decim_mid{ii})']);
-            for jj = 1:num_age_iso
-                depth_uncert_all{jj} ...
-                    = [depth_uncert_all{jj}; depth_uncert_iso1{ii}(jj, :)'];
-            end
-        end
-    end
-    
-    % concatenate and remove the bad stuff prior to gridding
-    for ii = 1:num_depth_norm
-        [x_all_age{ii}, x_all_age_min{ii}, x_all_age_max{ii}] ...
-                            = deal(x_all_age_cat);
-        [y_all_age{ii}, y_all_age_min{ii}, y_all_age_max{ii}] ...
-                            = deal(y_all_age_cat);
-        ind_good            = find(~isnan(age_all{ii}));
-        [x_all_age{ii}, y_all_age{ii}, age_all{ii}] ...
-                            = deal(x_all_age{ii}(ind_good), y_all_age{ii}(ind_good), age_all{ii}(ind_good));
-        if do_nye_norm
-            age_diff_all{ii}= age_diff_all{ii}(ind_good);
-        end
-        [xy_all, ind_unique]= unique([x_all_age{ii} y_all_age{ii}], 'rows');
-        [x_all_age{ii}, y_all_age{ii}, age_all{ii}] ...
-                            = deal(xy_all(:, 1), xy_all(:, 2), age_all{ii}(ind_unique));
-        if do_nye_norm
-            age_diff_all{ii}= age_diff_all{ii}(ind_unique);
-        end
-        ind_good            = find(~isnan(age_all_min{ii}));
-        [x_all_age_min{ii}, y_all_age_min{ii}, age_all_min{ii}] ...
-                            = deal(x_all_age_min{ii}(ind_good), y_all_age_min{ii}(ind_good), age_all_min{ii}(ind_good));
-        [xy_all, ind_unique]= unique([x_all_age_min{ii} y_all_age_min{ii}], 'rows');
-        [x_all_age_min{ii}, y_all_age_min{ii}, age_all_min{ii}] ...
-                            = deal(xy_all(:, 1), xy_all(:, 2), age_all_min{ii}(ind_unique));
-        ind_good            = find(~isnan(age_all_max{ii}));
-        [x_all_age_max{ii}, y_all_age_max{ii}, age_all_max{ii}] ...
-                            = deal(x_all_age_max{ii}(ind_good), y_all_age_max{ii}(ind_good), age_all_max{ii}(ind_good));
-        [xy_all, ind_unique]= unique([x_all_age_max{ii} y_all_age_max{ii}], 'rows');
-        [x_all_age_max{ii}, y_all_age_max{ii}, age_all_max{ii}] ...
-                            = deal(xy_all(:, 1), xy_all(:, 2), age_all_max{ii}(ind_unique));
-        [x_all_age_uncert{ii}, y_all_age_uncert{ii}] ...
-                            = deal(x_all_age_uncert_cat, y_all_age_uncert_cat);
-        ind_good            = find(~isnan(age_uncert_all{ii}));
-        [x_all_age_uncert{ii}, y_all_age_uncert{ii}, age_uncert_all{ii}] ...
-                            = deal(x_all_age_uncert{ii}(ind_good), y_all_age_uncert{ii}(ind_good), age_uncert_all{ii}(ind_good));
-        [xy_all, ind_unique]= unique([x_all_age_uncert{ii} y_all_age_uncert{ii}], 'rows');
-        [x_all_age_uncert{ii}, y_all_age_uncert{ii}, age_uncert_all{ii}] ...
-                            = deal(xy_all(:, 1), xy_all(:, 2), age_uncert_all{ii}(ind_unique));
-    end
-    
-    for ii = 1:num_age_iso
-        [x_all_depth{ii}, x_all_depth_min{ii}, x_all_depth_max{ii}] ...
-                            = deal(x_all_depth_cat);
-        [y_all_depth{ii}, y_all_depth_min{ii}, y_all_depth_max{ii}] ...
-                            = deal(y_all_depth_cat);
-        [thick_all_curr, thick_all_min_curr, thick_all_max_curr] ...
-                            = deal(thick_cat);
-        ind_good            = find(~isnan(depth_all{ii}) & ~isnan(thick_all_curr));
-        [x_all_depth{ii}, y_all_depth{ii}, depth_all{ii}, thick_all_curr] ...
-                            = deal(x_all_depth{ii}(ind_good), y_all_depth{ii}(ind_good), depth_all{ii}(ind_good), thick_all_curr(ind_good));
-        [xy_all, ind_unique]= unique([x_all_depth{ii} y_all_depth{ii}], 'rows', 'stable');
-        [x_all_depth{ii}, y_all_depth{ii}, depth_all{ii}, thick_all_curr] ...
-                            = deal(xy_all(:, 1), xy_all(:, 2), depth_all{ii}(ind_unique), thick_all_curr(ind_unique));
-        depth_all{ii}       = depth_all{ii} ./ thick_all_curr;
-        ind_good            = find(~isnan(depth_all_min{ii}) & ~isnan(thick_all_min_curr));
-        [x_all_depth_min{ii}, y_all_depth_min{ii}, depth_all_min{ii}, thick_all_min_curr] ...
-                            = deal(x_all_depth_min{ii}(ind_good), y_all_depth_min{ii}(ind_good), depth_all_min{ii}(ind_good), thick_all_min_curr(ind_good));
-        [xy_all, ind_unique]= unique([x_all_depth_min{ii} y_all_depth_min{ii}], 'rows', 'stable');
-        [x_all_depth_min{ii}, y_all_depth_min{ii}, depth_all_min{ii}, thick_all_min_curr] ...
-                            = deal(xy_all(:, 1), xy_all(:, 2), depth_all_min{ii}(ind_unique), thick_all_min_curr(ind_unique));
-        depth_all_min{ii}   = depth_all_min{ii} ./ thick_all_min_curr;
-        ind_good            = find(~isnan(depth_all_max{ii}) & ~isnan(thick_all_max_curr));
-        [x_all_depth_max{ii}, y_all_depth_max{ii}, depth_all_max{ii}, thick_all_max_curr] ...
-                            = deal(x_all_depth_max{ii}(ind_good), y_all_depth_max{ii}(ind_good), depth_all_max{ii}(ind_good), thick_all_max_curr(ind_good));
-        [xy_all, ind_unique]= unique([x_all_depth_max{ii} y_all_depth_max{ii}], 'rows', 'stable');
-        [x_all_depth_max{ii}, y_all_depth_max{ii}, depth_all_max{ii}, thick_all_max_curr] ...
-                            = deal(xy_all(:, 1), xy_all(:, 2), depth_all_max{ii}(ind_unique), thick_all_max_curr(ind_unique));
-        depth_all_max{ii}   = depth_all_max{ii} ./ thick_all_max_curr;
-        [x_all_depth_uncert{ii}, y_all_depth_uncert{ii}, thick_uncert_curr] ...
-                            = deal(x_all_depth_uncert_cat, y_all_depth_uncert_cat, thick_cat);
-        ind_good            = find(~isnan(depth_uncert_all{ii}) & ~isnan(thick_uncert_curr));
-        [x_all_depth_uncert{ii}, y_all_depth_uncert{ii}, depth_uncert_all{ii}, thick_uncert_curr] ...
-                            = deal(x_all_depth_uncert{ii}(ind_good), y_all_depth_uncert{ii}(ind_good), depth_uncert_all{ii}(ind_good), thick_uncert_curr(ind_good));
-        [xy_all, ind_unique]= unique([x_all_depth_uncert{ii} y_all_depth_uncert{ii}], 'rows', 'stable');
-        [x_all_depth_uncert{ii}, y_all_depth_uncert{ii}, depth_uncert_all{ii}, thick_uncert_curr] ...
-                            = deal(xy_all(:, 1), xy_all(:, 2), depth_uncert_all{ii}(ind_unique), thick_uncert_curr(ind_unique));
-        depth_uncert_all{ii}= depth_uncert_all{ii} ./ thick_uncert_curr;
-    end
-    
-    clear *_cat
-    
-    % use Nye normalization and Gaussian fits to remove major anomalies from age_norm1 sets to be gridded
-    if do_nye_norm
-        for ii = 1:(num_depth_norm - 1)
-            fit_curr        = fit((min(age_diff_all{ii}):0.1:max(age_diff_all{ii}))', histcounts(age_diff_all{ii}, min(age_diff_all{ii}):0.1:max(age_diff_all{ii}))', ['gauss' num2str(num_gauss(ii))]); % Gaussian fit to histogram of age differences from Nye model
-            switch num_gauss(ii)
-                case 1
-                    age_diff_range ...
-                            = norminv([0.05 0.99], fit_curr.b1, fit_curr.c1); % lower/upper bounds of acceptable Nye differences
-                case 2
-                    age_diff_range ...
-                            = zeros(2);
-                    age_diff_range(1, :) ...
-                            = norminv([0.05 0.99], fit_curr.b1, fit_curr.c1);
-                    age_diff_range(2, :) ...
-                            = norminv([0.05 0.99], fit_curr.b2, fit_curr.c2);
-                    age_diff_range ...
-                            = [min(age_diff_range(:, 1)) max(age_diff_range(:, 2))]; % take min/max of the two fits' lower/upper bounds, respectively
-            end
-            ind_good        = find((age_diff_all{ii} >= age_diff_range(1)) & (age_diff_all{ii} <= age_diff_range(2))); % indices of ages with Nye differences within spec
-            [x_all_age{ii}, y_all_age{ii}, age_all{ii}, age_diff_all{ii}] ...
-                            = deal(x_all_age{ii}(ind_good), y_all_age{ii}(ind_good), age_all{ii}(ind_good), age_diff_all{ii}(ind_good));
-            [xy_all, ~, ind_common] ...
-                            = intersect([x_all_age{ii} y_all_age{ii}], [x_all_age_min{ii} y_all_age_min{ii}], 'rows', 'stable');
-            [x_all_age_min{ii}, y_all_age_min{ii}, age_all_min{ii}] ...
-                            = deal(xy_all(:, 1), xy_all(:, 2), age_all_min{ii}(ind_common));
-            [xy_all, ~, ind_common] ...
-                            = intersect([x_all_age{ii} y_all_age{ii}], [x_all_age_max{ii} y_all_age_max{ii}], 'rows', 'stable');
-            [x_all_age_max{ii}, y_all_age_max{ii}, age_all_max{ii}] ...
-                            = deal(xy_all(:, 1), xy_all(:, 2), age_all_max{ii}(ind_common));
-        end
-    end
-%%    
-    if parallel_check
-        disp('...fixed-depth layers...')
-        parfor ii = 1:num_depth_norm
-            disp([num2str(ii) '/' num2str(num_depth_norm) '...'])
-            try
-                age_interpolant ...
-                            = scatteredInterpolant(x_all_age{ii}, y_all_age{ii}, age_all{ii}, 'natural', 'none');
-                age_norm2(:, :, ii) ...
-                            = age_interpolant(x_grd, y_grd);
-                age_uncert_interpolant ...
-                            = scatteredInterpolant(x_all_age_uncert{ii}, y_all_age_uncert{ii}, age_uncert_all{ii}, 'natural', 'none');
-                age_uncert_norm2(:, :, ii) ...
-                            = age_uncert_interpolant(x_grd, y_grd);
-            catch
-                disp([num2str(depth_norm(ii)) ' isopach failed...'])
-            end
-        end
-        disp('...fixed-age layers...')
-        parfor ii = 1:num_age_iso
-            disp([num2str(ii) '/' num2str(num_age_iso) '...'])
-            try
-                depth_interpolant ...
-                            = scatteredInterpolant(x_all_depth{ii}, y_all_depth{ii}, depth_all{ii}, 'natural', 'none');
-                depth_iso2(:, :, ii) ...
-                            = depth_interpolant(x_grd, y_grd) .* thick_grd;
-                depth_uncert_interpolant ...
-                            = scatteredInterpolant(x_all_depth_uncert{ii}, y_all_depth_uncert{ii}, depth_uncert_all{ii}, 'natural', 'none');
-                depth_uncert_iso2(:, :, ii) ...
-                            = depth_uncert_interpolant(x_grd, y_grd) .* thick_grd;
-            catch
-                disp([num2str(age_iso(ii)) '-ka isochrone failed...'])
-            end
-        end
-    else
-        disp('...fixed-depth layers...')
-        for ii = 1:num_depth_norm
-            disp([num2str(ii) '/' num2str(num_depth_norm) '...'])
-            try
-                age_interpolant ...
-                            = scatteredInterpolant(x_all_age{ii}, y_all_age{ii}, age_all{ii}, 'natural', 'none');
-                age_norm2(:, :, ii) ...
-                            = age_interpolant(x_grd, y_grd);
-                age_uncert_interpolant ...
-                            = scatteredInterpolant(x_all_age_uncert{ii}, y_all_age_uncert{ii}, age_uncert_all{ii}, 'natural', 'none');
-                age_uncert_norm2(:, :, ii) ...
-                            = age_uncert_interpolant(x_grd, y_grd);
-            catch
-                disp([num2str(depth_norm(ii)) ' isopach failed...'])
-            end
-        end
-        disp('...fixed-age layers...')
-        for ii = 1:num_age_iso
-            disp([num2str(ii) '/' num2str(num_age_iso) '...'])
-            try
-                depth_interpolant ...
-                            = scatteredInterpolant(x_all_depth{ii}, y_all_depth{ii}, depth_all{ii}, 'natural', 'none');
-                depth_iso2(:, :, ii) ...
-                            = depth_interpolant(x_grd, y_grd) .* thick_grd;
-                depth_uncert_interpolant ...
-                            = scatteredInterpolant(x_all_depth_uncert{ii}, y_all_depth_uncert{ii}, depth_uncert_all{ii}, 'natural', 'none');
-                depth_uncert_iso2(:, :, ii) ...
-                            = depth_uncert_interpolant(x_grd, y_grd) .* thick_grd;
-            catch
-                disp([num2str(age_iso(ii)) '-ka isochrone failed...'])
-            end
-        end
-    end
-    
-    % trim bad ages/depths
-    age_norm2((age_norm2 < 0) | (age_norm2 > age_max)) ...
-                            = NaN;
-    age_uncert_norm2(age_uncert_norm2 < 0) ...
-                            = NaN;
-    depth_iso2(depth_iso2 < 0) ...
-                            = NaN;
-    depth_iso2(depth_iso2 > thick_grd(:, :, ones(1, 1, num_age_iso))) ...
-                            = NaN;
-    depth_uncert_iso2(depth_uncert_iso2 < 0) ...
-                            = NaN;
-    
-    disp('...done 2-D gridding age.')
-%%
-    if do_save
-        disp('Saving 2-D age grids...')
-    	save([dir_mat 'age_grd2.mat'], '-v7.3', 'age_norm2', 'age_uncert_norm2', 'age_iso', 'depth_iso2', 'depth_norm', 'depth_uncert_iso2', 'num_age_iso', 'num_depth_norm', 'x_grd', 'y_grd')
-    	disp('Saved 2-D age grids as mat/age_grd2.mat.')
-    end
-%%
 end
 
 if parallel_check
