@@ -22,7 +22,7 @@
 %   parallelization for those loops that can use it.
 %   
 % Joe MacGregor (NASA)
-% Last updated: 13 August 2024
+% Last updated: 23 August 2024
 
 %% Intialize variables
 
@@ -165,7 +165,7 @@ push_param					= {	'Load data (l)'				[0.005 0.965 0.06 0.03]		@load_data		'b';
 %								'Next (n)'					[0.6775 0.925 0.035 0.03]	@pk_next		'm';
 %								'Last (b)'					[0.64 0.925 0.035 0.03]		@pk_last		'm';
 %								'Split (x)'					[0.8475 0.925 0.035 0.03]	@pk_split		'm';
-% 								'Shift z (h)'				[0.885 0.925 0.035 0.03]	@pk_shift		'm';								
+% 								'Shift z (h)'				[0.885 0.925 0.035 0.03]	@pk_shift		'm';
 								'Test (t)'					[0.855 0.885 0.035 0.03]	@misctest		'r';
 								'Cross (v)'					[0.96 0.965 0.035 0.03]		@pk_cross		'm';
 								'Save (s)'					[0.965 0.925 0.03 0.03]		@pk_save		'g';
@@ -823,7 +823,7 @@ disp_group.SelectedObject = disp_check(1);
         pk_done             = true;
         status_box.String = 'Continuing pick loading...';
 		pause(0.1)
-
+		
         % plot layers in twtt
         update_pk_color
 		p_pk				= deal(gobjects(1, pk.num_layer));
@@ -938,23 +938,21 @@ disp_group.SelectedObject = disp_check(1);
             warning('off', 'MATLAB:polyfit:RepeatedPointsOrRescale')
             warning('off', 'MATLAB:polyfit:PolyNotUnique')
 		end
-                
-        ind_z_curr  = pk_ind_z;
+        
+        ind_z_curr			= pk_ind_z;
         if surf_avail
-            ind_z_curr ...
-                    = [smoothdata(ind_surf, 'rlowess', ceil(length_smooth / median(diff(1e-3 .* data_cat.dist_lin), 'omitnan'))); ind_z_curr];
+            ind_z_curr		= [smoothdata(ind_surf, 'rlowess', ceil(length_smooth / median(diff(1e-3 .* data_cat.dist_lin), 'omitnan'))); ind_z_curr];
         end
 		if bed_avail
-			ind_z_curr ...
-					= [ind_z_curr; smoothdata(ind_bed, 'rlowess', ceil(length_smooth / median(diff(1e-3 .* data_cat.dist_lin), 'omitnan')))];
+			ind_z_curr		= [ind_z_curr; smoothdata(ind_bed, 'rlowess', ceil(length_smooth / median(diff(1e-3 .* data_cat.dist_lin), 'omitnan')))];
 		end
         
-        ind_x_pk    = sum(~isnan(ind_z_curr), 2); % length of each layer
-		ind_x_pk	= sum(~isnan(ind_z_curr) .* ind_x_pk(:, ones(1, data_cat.num_trace))); % layer locations multiplied with length of each layer
-        ind_x_pk    = find((ind_x_pk == max(ind_x_pk)), 1); % first trace in the record that has the most+longest layers
-        ind_z_pk    = ind_z_curr(:, ind_x_pk); % depth of all layers at reference trace (including NaN)
-        tmp1        = ind_z_curr(~isnan(ind_z_pk), :); % depth of ALL layers that are not NaN at the reference trace
-        tmp2        = tmp1(:, ind_x_pk); % depths of non-NaN layers at reference trace
+        ind_x_pk			= sum(~isnan(ind_z_curr), 2); % length of each layer
+		ind_x_pk			= sum(~isnan(ind_z_curr) .* ind_x_pk(:, ones(1, data_cat.num_trace))); % layer locations multiplied with length of each layer
+        ind_x_pk			= find((ind_x_pk == max(ind_x_pk)), 1); % first trace in the record that has the most+longest layers
+        ind_z_pk			= ind_z_curr(:, ind_x_pk); % depth of all layers at reference trace (including NaN)
+        tmp1				= ind_z_curr(~isnan(ind_z_pk), :); % depth of ALL layers that are not NaN at the reference trace
+        tmp2				= tmp1(:, ind_x_pk); % depths of non-NaN layers at reference trace
 		
         % polyfit to layers
         tmp3                = find(sum(~isnan(tmp1)) > ord_poly); % traces where it will be worthwhile to do the polynomial
@@ -1197,7 +1195,7 @@ disp_group.SelectedObject = disp_check(1);
                             = interp1(ind_z_flat(~isnan(ind_z_flat(:, ii)), ii), find(~isnan(ind_z_flat(:, ii))), pk_ind_z(~isnan(pk_ind_z(:, ii)), ii), 'nearest');
 			end
         end
-        		
+        
         disp_check(4).Visible = 'on';
 		disp_group.SelectedObject = disp_check(4);
         pk_select
@@ -1718,7 +1716,7 @@ disp_group.SelectedObject = disp_check(1);
 							= interp1(ind_z_flat(~isnan(ind_z_flat(:, ii)), ii), find(~isnan(ind_z_flat(:, ii))), pk_ind_z(~isnan(pk_ind_z(:, ii)), ii), 'nearest', 'extrap');
 					end
 					pk_ind_z_flat((pk_ind_z_flat < 1) | (pk_ind_z_flat > num_sample_trim)) ...
-							= NaN;					
+							= NaN;
 				end
 				
 			case 'norm'
@@ -1750,7 +1748,7 @@ disp_group.SelectedObject = disp_check(1);
                             = round(ind_z_flat(sub2ind([num_sample_trim data_cat.num_trace], pk_ind_z_flat(ii, ~isnan(pk_ind_z_flat(ii, :))), find(~isnan(pk_ind_z_flat(ii, :))))));
 				end
                 pk_ind_z((pk_ind_z < 1) | (pk_ind_z > num_sample_trim)) ...
-                            = NaN;				
+                            = NaN;
 				if norm_done
 					tmp1	= (1:num_sample_trim)'; % normalization vector
 					tmp2	= (tmp1(:, ones(1, data_cat.num_trace)) - ind_surf_smooth(ones(num_sample_trim, 1), :)) ./ ind_thick_smooth(ones(num_sample_trim, 1), :); % normalization matrix
@@ -1769,7 +1767,7 @@ disp_group.SelectedObject = disp_check(1);
 		
         pk_check			= true;
         update_pk_color
-
+		
         % make colors bolder
 		for ii = tmp3:pk.num_layer
 			p_pk(ii).Color = pk_color(ii, :);
@@ -1790,7 +1788,7 @@ disp_group.SelectedObject = disp_check(1);
 %% Propagate layer from pick
 
     function pk_prop(src, event)
-
+		
         switch disp_type
             case 'twtt'
                 [~, pk_ind_z(curr_layer, ind_x_pk)] ...
@@ -1928,7 +1926,7 @@ disp_group.SelectedObject = disp_check(1);
 									= max(amp((pk_ind_z(curr_layer, (ii - 1)) - pk.num_win):(pk_ind_z(curr_layer, (ii - 1)) + pk.num_win), ii));
 								pk_ind_z(curr_layer, ii) ...
 									= pk_ind_z(curr_layer, (ii - 1)) - ((pk.num_win + 1) - pk_ind_z(curr_layer, ii));
-							end							
+							end
 						case 'norm'
 							for ii = tmp4
 								[~, pk_ind_z_norm(curr_layer, ii)] ...
@@ -2099,7 +2097,7 @@ disp_group.SelectedObject = disp_check(1);
 		else
 			tmp1			= [];
 		end
-
+		
 		switch disp_type
             case 'twtt'
                 if (surf_avail && bed_avail)
@@ -2155,7 +2153,7 @@ disp_group.SelectedObject = disp_check(1);
                     ax_radar.YLim = (1e6 .* [min(data_cat.twtt_surf) max(data_cat.twtt_surf)]);
                 elseif (curr_layer == (pk.num_layer + 2))
 					reset_dist_min
-					reset_dist_max					
+					reset_dist_max
                     ax_radar.YLim = (1e6 .* [min(data_cat.twtt_bed) max(data_cat.twtt_bed)]);
 				else
 					ax_radar.XLim = 1e-3 .* data_cat.dist_lin([find(~isnan(pk_ind_z(curr_layer, :)), 1) find(~isnan(pk_ind_z(curr_layer, :)), 1, 'last')]);
@@ -2180,7 +2178,7 @@ disp_group.SelectedObject = disp_check(1);
 				else
 					ax_radar.XLim = 1e-3 .* data_cat.dist_lin([find(~isnan(pk_ind_z(curr_layer, :)), 1) find(~isnan(pk_ind_z(curr_layer, :)), 1, 'last')]);
                     ax_radar.YLim = (1e6 .* data_cat.twtt([min(pk_ind_z_norm(curr_layer, :)) max(pk_ind_z_norm(curr_layer, :))]));
-				end				
+				end
             case 'flat'
                 if (curr_layer == (pk.num_layer + 1))
 					reset_dist_min
@@ -2766,7 +2764,7 @@ disp_group.SelectedObject = disp_check(1);
                             = interp1(ind_z_flat(~isnan(ind_z_flat(:, ii)), ii), find(~isnan(ind_z_flat(:, ii))), ind_surf(ii), 'nearest', 'extrap');
                 end
             end
-            		
+			
             amp_depth       = NaN(num_sample_trim, data_cat.num_trace, 'single');
             for ii = find(~isnan(ind_surf))
                 amp_depth(1:(num_sample_trim - ind_surf(ii) + 1), ii) ...
@@ -2803,7 +2801,7 @@ disp_group.SelectedObject = disp_check(1);
                             = pk_ind_z(tmp1, isnan(ind_bed));
             data_cat.twtt_bed(isnan(data_cat.twtt_bed) & ~isnan(pk_ind_z(tmp1, :))) ...
                             = data_cat.twtt(pk_ind_z(tmp1, (isnan(data_cat.twtt_bed) & ~isnan(pk_ind_z(tmp1, :)))))';
-
+			
             if flat_done
                 ind_bed_flat= NaN(1, data_cat.num_trace);
                 for ii = find(sum(isnan(ind_z_flat)) > ord_poly)
@@ -2828,7 +2826,7 @@ disp_group.SelectedObject = disp_check(1);
 			if norm_done
 				do_norm
 			end
-
+			
         else
             
             % replace NaN values in first layer with those in the second layer
@@ -2998,7 +2996,7 @@ disp_group.SelectedObject = disp_check(1);
 %% Shift z position of a layer (deals with older imported layers that were offset)
 
     function pk_shift(source, eventdata)
-
+		
         if ~pk_done
             status_box.String = 'No layers to shift yet. Load picks first.';
             return
@@ -3007,13 +3005,13 @@ disp_group.SelectedObject = disp_check(1);
             status_box.String = 'Cannot shift surface or bed.';
             return
 		end
-
+		
 		[pk_gui.KeyPressFcn, pk_gui.WindowButtonDownFcn] = deal('');
-
+		
         status_box.String = ['Vertically shift layer ' num2str(curr_layer) ' up (U) in the ice column or down (D)? (Q: cancel)...'];
         pause(0.1)
 		waitforbuttonpress
-
+		
         if strcmpi(pk_gui.CurrentCharacter, 'Q')
 			pk_gui.KeyPressFcn = @keypress; pk_gui.WindowButtonDownFcn = @mouse_click;
             status_box.String = 'Layer shifting canceled.';
@@ -3108,41 +3106,41 @@ disp_group.SelectedObject = disp_check(1);
 							= deal((1e-3 .* data_cat.dist_lin(~isnan(pk_ind_z_flat(ii, :)))), (1e6 .* data_cat.twtt(pk_ind_z_flat(ii, ~isnan(pk_ind_z_flat(ii, :))))'));
 				end
 		end
-
+		
 		if (length(tmp3) > 1)
 			status_box.String = 'All layers shifted.';
 		else
 			status_box.String = ['Layer #' num2str(curr_layer) ' shifted.'];
 		end
-
+		
 		pk_cross
 		pk_sort
-
+		
 		pk_gui.KeyPressFcn = @keypress; pk_gui.WindowButtonDownFcn = @mouse_click;
     end
 
 %% Assign current layer to surface or bed
 
-    function pk_surfbed(src, event) %#ok<DEFNU>
+    function pk_surfbed(src, event)
 
         if ~(pk_done && pk.num_layer && curr_layer)
             status_box.String = 'No picked layers to assign to surface or bed.';
             return
         end
-
+		
         [pk_gui.KeyPressFcn, pk_gui.WindowButtonDownFcn] = deal('');
         status_box.String = 'Assign current layer? S: surface; B: bed; otherwise: no...';
         waitforbuttonpress
-
+		
 		if strcmpi(pk_gui.CurrentCharacter, 'S')
-
+			
             status_box.String = 'Assigning layer to surface...';
-
+			
             ind_surf        = pk_ind_z(curr_layer, :);
             data_cat.twtt_surf = NaN(1, data_cat.num_trace);
             data_cat.twtt_surf(~isnan(pk_ind_z(curr_layer, :))) ...
                             = data_cat.twtt(pk_ind_z(curr_layer, ~isnan(pk_ind_z(curr_layer, :))))'; % fix concatenated data traveltime
-
+			
             pk_del_breakout
             [depth_avail, surf_avail] ...
 							= deal(true);
@@ -3152,7 +3150,7 @@ disp_group.SelectedObject = disp_check(1);
                         = amp(ind_surf(ii):num_sample_trim, ii); % shift data up to surface
             end
             disp_check(2).Visible = 'on';
-
+			
 			if bed_avail
 				do_norm
 			end
@@ -3166,14 +3164,14 @@ disp_group.SelectedObject = disp_check(1);
 				ind_surf_flat((ind_surf_flat < 1) | (ind_surf_flat > num_sample_trim)) ...
                             = NaN;
 			end
-
+			
             curr_layer      = pk.num_layer + 1;
             layer_list.String = [num2cell(1:pk.num_layer) 'surface' 'bed']; layer_list.Value = (pk.num_layer + 1);
             show_surfbed
 			update_pk_plot
             pk_gui.KeyPressFcn = @keypress; pk_gui.WindowButtonDownFcn = @mouse_click;
             status_box.String = 'Layer assigned to surface.';
-
+			
         elseif strcmpi(pk_gui.CurrentCharacter, 'B')
 			
             status_box.String = 'Assigning layer to bed...';
@@ -3211,7 +3209,7 @@ disp_group.SelectedObject = disp_check(1);
 		end
 		
 		update_pk_color
-		p_pk(curr_layer).Color = pk_color(curr_layer, :);		
+		p_pk(curr_layer).Color = pk_color(curr_layer, :);
     end
 
 %% Save layer picks
@@ -3268,7 +3266,7 @@ disp_group.SelectedObject = disp_check(1);
         
         status_box.String = 'Saving picks...';
 		pause(0.1)
-
+		
 		pk_sort
 		
         tmp1                = pk;
@@ -3472,7 +3470,6 @@ disp_group.SelectedObject = disp_check(1);
         end
         twtt_min_edit.String = sprintf('%3.1f', (1e6 * twtt_min_ref));
         twtt_min              = twtt_min_ref;
-
         update_twtt_range
     end
 
@@ -3585,7 +3582,7 @@ disp_group.SelectedObject = disp_check(1);
                 cb_max_slide.Value = tmp1(2);
             end
         end
-        [db_min, db_max]	= deal(tmp1(1), tmp1(2));				
+        [db_min, db_max]	= deal(tmp1(1), tmp1(2));
         update_db_range
         cb_max_slide.Enable = 'off';
         drawnow
@@ -3972,7 +3969,7 @@ disp_group.SelectedObject = disp_check(1);
 		end
         [p_data.XData, p_data.CData] = deal((1e-3 .* data_cat.dist_lin), amp_depth);
         disp_type           = 'depth';
-		update_pk_plot		
+		update_pk_plot
         cb_def
     end
 
@@ -4014,7 +4011,7 @@ disp_group.SelectedObject = disp_check(1);
 		end
         [p_data.XData, p_data.CData] = deal((1e-3 .* data_cat.dist_lin), amp_flat);
         disp_type           = 'flat';
-		update_pk_plot		
+		update_pk_plot
 		cb_def
     end
 
@@ -4453,8 +4450,7 @@ disp_group.SelectedObject = disp_check(1);
             cb_max_slide.Value = tmp4(2);
             cb_min_edit.String = sprintf('%3.0f', tmp4(1));
             cb_max_edit.String = sprintf('%3.0f', tmp4(2));
-            [db_min, db_max] ...
-                            = deal(tmp4(1), tmp4(2));
+            [db_min, db_max]= deal(tmp4(1), tmp4(2));
 			ax_radar.CLim = tmp4;
         end
     end
@@ -4491,11 +4487,11 @@ disp_group.SelectedObject = disp_check(1);
 				pk_trimx
             case 'a'
                 pk_adj
-            % case 'b'
-			% 	pk_surfbed
+            case 'b'
+				pk_surfbed
             case 'c'
 				pk_focus
-			case {'d' 'backspace'}
+			case 'd'
                 pk_del
             case 'e'
                 reset_xy
@@ -4525,7 +4521,7 @@ disp_group.SelectedObject = disp_check(1);
 					switch disp_type
 						case {'twtt' 'depth'}
 							twtt_min = data_cat.twtt(min(pk_ind_z, [], 'all', 'omitnan'));
-							twtt_max = data_cat.twtt(max(pk_ind_z, [], 'all', 'omitnan'));							
+							twtt_max = data_cat.twtt(max(pk_ind_z, [], 'all', 'omitnan'));
 						case 'norm'
 							twtt_min = data_cat.twtt(min(pk_ind_z_norm, [], 'all', 'omitnan'));
 							twtt_max = data_cat.twtt(max(pk_ind_z_norm, [], 'all', 'omitnan'));
@@ -4542,9 +4538,9 @@ disp_group.SelectedObject = disp_check(1);
 						case {'twtt' 'depth'}
 							tmp1 = sum(~isnan(pk_ind_z));
 						case 'norm'
-							tmp1 = sum(~isnan(pk_ind_z_norm));							
+							tmp1 = sum(~isnan(pk_ind_z_norm));
 						case 'flat'
-							tmp1 = sum(~isnan(pk_ind_z_flat));							
+							tmp1 = sum(~isnan(pk_ind_z_flat));
 					end
 					tmp1	= [find(tmp1, 1) find(tmp1, 1, 'last')];
 					dist_min = data_cat.dist_lin(tmp1(1));
@@ -4582,36 +4578,36 @@ disp_group.SelectedObject = disp_check(1);
 					status_box.String = 'Crossing layers checking turned on.';
 					pk_cross
 				end
-            % case 'w'
-            %     if (cmap_curr == 1)
-            %         cmap_curr = 2;
-            %     else
-            %         cmap_curr = 1;
-            %     end
-            %     change_cmap
+            case 'w'
+                if (cmap_curr == 1)
+                    cmap_curr = 2;
+                else
+                    cmap_curr = 1;
+                end
+                change_cmap
             case 'x'
                 pk_split
-            % case 'y'
-			% 	if twttfix_check
-            %         twttfix_check = false;
-				% 	status_box.String = 'Vertical scale free.';
-            %     else
-            %         twttfix_check = true;
-				% 	status_box.String = 'Vertical scale fixed.';
-			% 	end
+            case 'y'
+				if twttfix_check
+                    twttfix_check = false;
+					status_box.String = 'Vertical scale free.';
+                else
+                    twttfix_check = true;
+					status_box.String = 'Vertical scale fixed.';
+				end
             case 'z'
 				zoom_on
-            % case 'slash'
-			% 	switch ord_poly
-            %         case 2
-            %             ord_poly ...
-            %                 = 3;
-            %             status_box.String = 'Flattening polynomial switched to 3rd order';
-            %         case 3
-            %             ord_poly ...
-            %                 = 2;
-            %             status_box.String = 'Flattening polynomial switched to 2nd order.';
-			% 	end
+            case 'slash'
+				switch ord_poly
+                    case 2
+                        ord_poly ...
+                            = 3;
+                        status_box.String = 'Flattening polynomial switched to 3rd order';
+                    case 3
+                        ord_poly ...
+                            = 2;
+                        status_box.String = 'Flattening polynomial switched to 2nd order.';
+				end
 			case 'equal'
 				tmp1		= interp1(data_cat.dist_lin, ind_num_trace, [dist_min dist_max], 'nearest');
 				if (~isempty(find(~isnan(ind_surf(tmp1(1):tmp1(2))), 1)) && ~isempty(find(~isnan(ind_bed(tmp1(1):tmp1(2))), 1)) && any(strcmp(disp_type, {'twtt' 'depth' 'norm' 'flat'})))
@@ -4738,7 +4734,6 @@ disp_group.SelectedObject = disp_check(1);
 		
 		pk_gui.KeyPressFcn = @keypress; pk_gui.WindowButtonDownFcn = @mouse_click;
 		status_box.String = 'Test done.';
-    end
-
+	end
 %%
 end
