@@ -7,7 +7,7 @@ function fencegui
 %   concatenated datasets using PICKGUI.
 % 
 % Joe MacGregor (NASA)
-% Last updated: 25 June 2024
+% Last updated: 5 September 2024
 
 %% Intialize variables
 
@@ -23,7 +23,7 @@ load([path_match file_match], 'layer_match_list');
 % depth defaults
 [depth_min_ref, depth_max_ref] ...
                             = deal(0, 3500);
-[depth_min, depth_max]      = deal(0, 3500);
+[depth_min, depth_max]      = deal(depth_min_ref, depth_max_ref);
 
 % distance defaults
 dist_int_half				= 10e3;
@@ -35,9 +35,9 @@ dist_int_half				= 10e3;
 [db_min, db_max]            = deal(repmat(-80, 1, 2), repmat(-20, 1, 2));
 
 % some default values
-speed_vacuum                = 299792458; % m/s
-permitt_ice                 = 3.15;
-speed_ice                   = speed_vacuum / sqrt(permitt_ice);
+speed_vacuum                = 299792458; % speed of light in the vacuum, m/s
+permitt_ice                 = 3.15; % real part of relative permittivity of pure ice at RF
+speed_ice                   = speed_vacuum / sqrt(permitt_ice); % RF ice speed, m/s
 colors_def                  = [0    0       0.75;
                                0    0       1;
                                0    0.25    1;
@@ -52,7 +52,7 @@ colors_def                  = [0    0       0.75;
                                1    0.50    0;
                                1    0.25    0;
                                1    0       0;
-                               0.75 0       0];
+                               0.75 0       0]; % RGB layer colors
 
 % allocate a bunch of variables
 [data_check, data_done, distfix_check, grid_check, pk_check, pk_done, zfix_check] ...
@@ -184,7 +184,7 @@ status_box					= annotation('textbox', [0.69 0.965 0.30 0.03], 'String', '', 'Co
 
 rad_group                   = uibuttongroup('Position', [0.48 0.925 0.05 0.03], 'SelectionChangeFcn', @rad_radio);
 uicontrol(fgui, 'Style', 'text', 'parent', rad_group, 'Units', 'normalized', 'Position', [0 0.6 0.9 0.3], 'FontSize', size_font)
-rad_check(1)                = uicontrol(fgui, 'Style', 'radio', 'String', 'M', 'Units', 'normalized', 'Position', [0.01 0.1 0.45 0.8], 'parent', rad_group, 'FontSize', size_font, 'HandleVisibility', 'off');
+rad_check(1)                = uicontrol(fgui, 'Style', 'radio', 'String', 'P', 'Units', 'normalized', 'Position', [0.01 0.1 0.45 0.8], 'parent', rad_group, 'FontSize', size_font, 'HandleVisibility', 'off');
 rad_check(2)                = uicontrol(fgui, 'Style', 'radio', 'String', 'I', 'Units', 'normalized', 'Position', [0.51 0.1 0.45 0.8], 'parent', rad_group, 'FontSize', size_font, 'HandleVisibility', 'off');
 rad_group.SelectedObject = rad_check(1);
 
@@ -256,7 +256,8 @@ linkaxes(ax, 'y')
         [curr_rad, curr_rad_alt] ...
                             = deal(2, 1);
 		if ~strcmp(int_list.String, 'none')
-			file_pk{curr_rad}   = ['Data_' int_list.String{int_list.Value} '_pk.mat'];
+			file_pk{curr_rad} ...
+							= ['Data_' int_list.String{int_list.Value} '_pk.mat'];
 		else
 			status_box.String = 'No later intersections!';
 			return
@@ -298,7 +299,7 @@ linkaxes(ax, 'y')
             return
         end
 		
-		% get rid of intersecting picks/data if moving on to another primary transect
+		% get rid of intersecting picks/data if moving on to another primary segment
 		if (curr_rad == 1)
 			curr_rad		= 2;
 			clear_plots
@@ -353,7 +354,7 @@ linkaxes(ax, 'y')
                 tmp1        = find(int_all(:, 1) == curr_pk(1));
                 tmp2        = cell(length(tmp1), 1);
 				for ii = 1:length(tmp1)
-					tmp2{ii}= name_pk{int_all(tmp1(ii), 4)};
+					tmp2{ii}= name_pk{int_all(tmp1(ii), 3)};
 				end
 				if ~isempty(unique(tmp2))
 					int_list.String = unique(tmp2);
@@ -363,13 +364,13 @@ linkaxes(ax, 'y')
 					int_count_edit.String = '0 /';
 				end
 				int_list.Value = 1; int_count_edit.String = [num2str(int_list.Value) ' /'];
-
+				
             case 2 % figure out intersections
-                
-                tmp1        = find(ismember(int_all(:, [1 4]), curr_pk(1:2), 'rows'));
-                tmp2        = find(ismember(int_all(:, [4 1]), curr_pk(1:2), 'rows'));
-                curr_ind_int= [int_all(tmp1, [2 5]); int_all(tmp2, [5 2])];
-
+				
+                tmp1        = find(ismember(int_all(:, [1 3]), curr_pk(1:2), 'rows'));
+                tmp2        = find(ismember(int_all(:, [3 1]), curr_pk(1:2), 'rows'));
+                curr_ind_int= [int_all(tmp1, [2 4]); int_all(tmp2, [4 2])];
+				
 				% check intersections for layers
 				tmp5		= [];
 				for ii = 1:size(curr_ind_int, 1)
@@ -439,7 +440,7 @@ linkaxes(ax, 'y')
 		
         % get new min/max limits
         [dist_min_ref(curr_rad), dist_max_ref(curr_rad), dist_min(curr_rad), dist_max(curr_rad)] ...
-                            = deal((1e-3 * min(dist_lin{curr_rad})), (1e-3 * max(dist_lin{curr_rad})), (1e-3 * min(dist_lin{curr_rad})), (1e-3 * max(dist_lin{curr_rad})));
+                            = deal(min(dist_lin{curr_rad}), max(dist_lin{curr_rad}), min(dist_lin{curr_rad}), max(dist_lin{curr_rad}));
         
 		dist_min_slide(curr_rad).Min = 1e-3 * dist_min_ref(curr_rad); dist_min_slide(curr_rad).Max = 1e-3 * dist_max_ref(curr_rad); dist_min_slide(curr_rad).Value = 1e-3 * dist_min_ref(curr_rad);
 		dist_max_slide(curr_rad).Min = 1e-3 * dist_min_ref(curr_rad); dist_max_slide(curr_rad).Max = 1e-3 * dist_max_ref(curr_rad); dist_max_slide(curr_rad).Value = 1e-3 * dist_max_ref(curr_rad);
@@ -448,7 +449,7 @@ linkaxes(ax, 'y')
         
         [pk_check(curr_rad), pk_done(curr_rad)] ...
 							= deal(true);
-        
+		
         % intersection plots
         if (curr_rad == 2)
 			for ii = 1:2
@@ -471,10 +472,9 @@ linkaxes(ax, 'y')
             if ~isempty(ind_layer{1})
                 [p_int2{2}(ind_layer{1}(:, 1)).Marker] = deal('s');
             end
-            if ~isempty(ind_layer{2})
+			if ~isempty(ind_layer{2})
                 [p_int2{1}(ind_layer{2}(:, 1)).Marker] = deal('s');
-            end
-            
+			end
             for ii = find(ind_layer{1}(:, 2) == curr_pk(2))' % match to current segment
                 % if (length(find((ind_layer{1}(:, end) == ind_layer{1}(ii, end)))) > 1)
                 %     tmp1= find((ind_layer{1}(:, end) == ind_layer{1}(ii, end)));
@@ -522,7 +522,7 @@ linkaxes(ax, 'y')
 		if isnumeric(file_data{curr_rad})
             [file_data{curr_rad}, path_data] ...
                             = deal('');
-		end        
+		end
         if isempty(file_data{curr_rad})
             status_box.String = 'No radar data loaded.';
             return
@@ -664,7 +664,7 @@ linkaxes(ax, 'y')
                     layer_list(1).Value = curr_layer(1);
             end
 		end
-
+		
         if (nearest_check.Value && all(pk_done) && isempty(tmp1))
             if any(~isnan(depth_layer{curr_rad_alt}(:, curr_ind_int(curr_int, curr_rad_alt))))
                 [~, curr_layer(curr_rad_alt)] ...
@@ -700,34 +700,33 @@ linkaxes(ax, 'y')
         [dist_min(curr_rad), dist_max(curr_rad)] ...
                             = deal(tmp1(1), tmp1(2));
         if (dist_min(curr_rad) < (1e3 * dist_min_slide(curr_rad).Min))
-            dist_min_slide(curr_rad).Value = 1e-3 * dist_min_slide(curr_rad).Min;
+            dist_min_slide(curr_rad).Value = dist_min_slide(curr_rad).Min;
         elseif (dist_min(curr_rad) > dist_min_slide(curr_rad).Max)
-            dist_min_slide(curr_rad).Value = 1e-3 * dist_min_slide(curr_rad).Max;
+            dist_min_slide(curr_rad).Value = dist_min_slide(curr_rad).Max;
         else
             dist_min_slide(curr_rad).Value = 1e-3 * dist_min(curr_rad);
         end
         if (dist_max(curr_rad) < (1e3 * dist_max_slide(curr_rad).Min))
-            dist_max_slide(curr_rad).Value = 1e-3 * dist_max_slide(curr_rad).Min;
-        elseif (dist_max(curr_rad) > dist_max_slide(curr_rad).Max)
-            dist_max_slide(curr_rad).Value = 1e-3 * dist_max_slide(curr_rad).Max;
+            dist_max_slide(curr_rad).Value = dist_max_slide(curr_rad).Min;
+        elseif (dist_max(curr_rad) > (1e3 * dist_max_slide(curr_rad).Max))
+            dist_max_slide(curr_rad).Value = dist_max_slide(curr_rad).Max;
         else
             dist_max_slide(curr_rad).Value = 1e-3 * dist_max(curr_rad);
         end
         dist_min_edit(curr_rad).String = sprintf('%3.1f', (1e-3 * dist_min(curr_rad)));
         dist_max_edit(curr_rad).String = sprintf('%3.1f', (1e-3 * dist_max(curr_rad)));
         ax(curr_rad).YLim = [min(depth_layer{curr_rad}(curr_layer(curr_rad), :), [], 'omitnan') max(depth_layer{curr_rad}(curr_layer(curr_rad), :), [], 'omitnan')];
-        tmp1        = ax_radar.Ylim;
-        [tmp1(1), tmp1(2)] ...
-                    = deal((tmp1(1) - diff(tmp1)), (tmp1(2) + diff(tmp1)));
+        tmp1				= ax_radar.Ylim;
+        [tmp1(1), tmp1(2)]	= deal((tmp1(1) - diff(tmp1)), (tmp1(2) + diff(tmp1)));
         if (tmp1(1) < depth_min_ref)
-            tmp1(1) = depth_min_ref;
+            tmp1(1)			= depth_min_ref;
         end
         if (tmp1(2) > depth_max_ref)
-            tmp1(2) = depth_max_ref;
+            tmp1(2)			= depth_max_ref;
         end
         ax(curr_rad).YLim = tmp1;
         [depth_min, depth_max] ...
-                    = deal(tmp1(1), tmp1(2));
+							= deal(tmp1(1), tmp1(2));
         if ((depth_max_ref - (depth_max - depth_min_ref)) < z_min_slide.Min)
             z_min_slide.Value = z_min_slide.Min;
         elseif ((depth_max_ref - (depth_max - depth_min_ref)) > z_min_slide.Max)
@@ -1447,7 +1446,7 @@ linkaxes(ax, 'y')
             depth_max		= tmp1(2);
 		end
         narrow_cb
-        switch curr_rad
+		switch curr_rad
             case 1
                 curr_rad	= 2;
                 narrow_cb
@@ -1456,7 +1455,7 @@ linkaxes(ax, 'y')
                 curr_rad	= 1;
                 narrow_cb
                 curr_rad	= 2;
-        end        
+		end
     end
 
 %% Plot data (depth)
@@ -1561,17 +1560,17 @@ linkaxes(ax, 'y')
                             = deal((dist_lin{1}(curr_ind_int(curr_int, 1)) - dist_int_half), (dist_lin{1}(curr_ind_int(curr_int, 1)) + dist_int_half), ...
 								   (dist_lin{2}(curr_ind_int(curr_int, 2)) - dist_int_half), (dist_lin{2}(curr_ind_int(curr_int, 2)) + dist_int_half));
         if (dist_min(1) < dist_min_ref(1))
-            dist_min(1) = dist_min_ref(1);
+            dist_min(1)		= dist_min_ref(1);
         end
         if (dist_min(2) < dist_min_ref(2))
-            dist_min(2) = dist_min_ref(2);
+            dist_min(2)		= dist_min_ref(2);
         end
         if (dist_max(1) > dist_max_ref(1))
-            dist_max(1) = dist_max_ref(1);
+            dist_max(1)		= dist_max_ref(1);
         end
-        if (dist_max(2) > dist_max_ref(2))
-            dist_max(2) = dist_max_ref(2);
-        end
+		if (dist_max(2) > dist_max_ref(2))
+            dist_max(2)		= dist_max_ref(2);
+		end
         ax(1).XLim = 1e-3 .* [dist_min(1) dist_max(1)];
         ax(2).XLim = 1e-3 .* [dist_min(2) dist_max(2)];
         dist_min_slide(1).Value = 1e-3 * dist_min(1);
@@ -1653,7 +1652,7 @@ linkaxes(ax, 'y')
 
     function rad_radio(~, event)
         switch event.NewValue.String
-            case 'M'
+            case 'P'
                 [curr_rad, curr_rad_alt] ...
                             = deal(1, 2);
                 status_box.String = 'Primary segment now selected/active.';
@@ -1788,10 +1787,6 @@ linkaxes(ax, 'y')
                 else
                     nearest_check.Value = 1;
 				end
-            case 'w'
-                pk_select_gui1
-            case 'x'
-                pk_select_gui2
             case 'y'
                 if (curr_int < num_int)
                     intnum_list.Value = (curr_int + 1);
