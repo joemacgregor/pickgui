@@ -22,7 +22,7 @@
 %   parallelization for those loops that can use it.
 %   
 % Joe MacGregor (NASA)
-% Last updated: 23 August 2024
+% Last updated: 30 September 2024
 
 %% Intialize variables
 
@@ -105,6 +105,7 @@ p_pk						= deal(gobjects(0));
 path_data					= '/Users/jamacgre/OneDrive - NASA/data/gris_strat2/arctic_cat_r1/';
 path_pk						= '/Users/jamacgre/OneDrive - NASA/data/gris_strat2/arctic_cat_pk_rev_r1/';
 cmap_curr					= 1;
+narrow_ax					= [dist_min dist_max twtt_min twtt_max];
 
 if ispc % windows switch GUI element size
     size_font               = 14;
@@ -169,7 +170,7 @@ push_param					= {	'Load data (l)'				[0.005 0.965 0.06 0.03]		@load_data		'b';
 								'Test (t)'					[0.855 0.885 0.035 0.03]	@misctest		'r';
 								'Cross (v)'					[0.96 0.965 0.035 0.03]		@pk_cross		'm';
 								'Save (s)'					[0.965 0.925 0.03 0.03]		@pk_save		'g';
-%								'Reset x/y (e)'				[0.945 0.885 0.05 0.03]		@reset_xy		'r';
+%								'Reset x/y (e)'				[0.945 0.885 0.05 0.03]		@reset_xz		'r';
 								'Reset dB'					[0.955 0.03 0.04 0.03]		@reset_db		'r';
 %								'Zoom on (z)'				[0.21 0.885 0.045 0.03]		@zoom_on		'b';
 								'Zoom off'					[0.26 0.885 0.04 0.03]		@zoom_off		'b';};
@@ -1634,7 +1635,7 @@ disp_group.SelectedObject = disp_check(1);
                 
             elseif strcmpi(char(button), 'E')
                 
-                reset_xy
+                reset_xz
                 
             elseif strcmpi(char(button), 'W')
                 
@@ -3229,7 +3230,7 @@ disp_group.SelectedObject = disp_check(1);
 			end
         end
         
-        reset_xy
+        reset_xz
         pause(0.1)
         
         if isempty(path_pk)
@@ -3737,7 +3738,7 @@ disp_group.SelectedObject = disp_check(1);
 
 %% Reset both distance (x) and two-way traveltime (y)
 
-    function reset_xy(src, event)
+    function reset_xz(src, event)
         reset_twtt_min
         reset_twtt_max
         reset_dist_min
@@ -4402,7 +4403,8 @@ disp_group.SelectedObject = disp_check(1);
 %% Narrow color axis to +/- 2 standard deviations of current mean value
 
     function narrow_cb(src, event)
-        if cbfix_check2
+        if (cbfix_check2 && ~isequal(narrow_ax, [ax_radar.XLim ax_radar.YLim]))
+			disp('here')
             tmp1            = zeros(2);
             tmp1(1, :)      = interp1(data_cat.dist_lin, ind_num_trace, [dist_min dist_max], 'nearest', 'extrap');
             tmp1(2, :)      = interp1(data_cat.twtt, 1:num_sample_trim, [twtt_min twtt_max], 'nearest', 'extrap');
@@ -4452,6 +4454,7 @@ disp_group.SelectedObject = disp_check(1);
             cb_max_edit.String = sprintf('%3.0f', tmp4(2));
             [db_min, db_max]= deal(tmp4(1), tmp4(2));
 			ax_radar.CLim = tmp4;
+			narrow_ax		= [ax_radar.XLim ax_radar.YLim];
         end
     end
 
@@ -4494,7 +4497,7 @@ disp_group.SelectedObject = disp_check(1);
 			case 'd'
                 pk_del
             case 'e'
-                reset_xy
+                reset_xz
             case 'f'
                 flatten
             case 'g'

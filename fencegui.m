@@ -7,7 +7,7 @@ function fencegui
 %   concatenated datasets using PICKGUI.
 % 
 % Joe MacGregor (NASA)
-% Last updated: 5 September 2024
+% Last updated: 30 September 2024
 
 %% Intialize variables
 
@@ -57,7 +57,7 @@ colors_def                  = [0    0       0.75;
 % allocate a bunch of variables
 [data_check, data_done, distfix_check, grid_check, pk_check, pk_done, zfix_check] ...
 							= deal(false(1, 2));
-[amp_depth, colors, depth_bed, depth_layer, depth_ref, dist_lin, file_data, file_pk, file_pk_short, ind_layer, layer_str, p_core, p_core_name, p_int1, p_int2, p_pk, twtt] ...
+[amp_depth, colors, depth_bed, depth_layer, depth_ref, dist_lin, file_data, file_pk, file_pk_short, ind_layer, layer_str, narrow_ax, p_core, p_core_name, p_int1, p_int2, p_pk, twtt] ...
                             = deal(cell(1, 2));
 [curr_layer, curr_pk, num_layer, num_sample, num_trace] ...
                             = deal(zeros(1, 2));
@@ -71,6 +71,8 @@ match_done					= false;
 
 size_font					= 18;
 width_slide					= 0.02;
+
+tmp_list=[];
 
 %% draw GUI
 
@@ -220,7 +222,7 @@ linkaxes(ax, 'y')
     function clear_data(src, event)
         [data_done(curr_rad), pk_done(curr_rad), match_done] ...
                             = deal(false);
-        [amp_depth{curr_rad}, colors{curr_rad}, depth_bed{curr_rad}, depth_layer{curr_rad}, depth_ref{curr_rad}, dist_lin{curr_rad}, file_pk_short{curr_rad}, ind_layer{curr_rad}, layer_str{curr_rad}, twtt{curr_rad}]	...
+        [amp_depth{curr_rad}, colors{curr_rad}, depth_bed{curr_rad}, depth_layer{curr_rad}, depth_ref{curr_rad}, dist_lin{curr_rad}, file_pk_short{curr_rad}, ind_layer{curr_rad}, layer_str{curr_rad}, narrow_ax{curr_rad}, twtt{curr_rad}] ...
 							= deal([]);
         [curr_layer(curr_rad), curr_pk(curr_rad), num_layer(curr_rad), num_sample(curr_rad), num_trace(curr_rad), curr_ind_int, ii, ind_x_pk, ind_y_pk, jj, num_int, tmp1, tmp2, tmp3, tmp4, tmp5] ...
                             = deal(0);
@@ -268,7 +270,7 @@ linkaxes(ax, 'y')
 	end
 
     function load_pk_breakout(src, event)
-        
+		
         rad_group.SelectedObject = rad_check(curr_rad);
         
         if ((curr_rad == 2) && ~pk_done(1))
@@ -352,6 +354,7 @@ linkaxes(ax, 'y')
             case 1 % primary
                 
                 tmp1        = find(int_all(:, 1) == curr_pk(1));
+				% tmp2=tmp_list;
                 tmp2        = cell(length(tmp1), 1);
 				for ii = 1:length(tmp1)
 					tmp2{ii}= name_pk{int_all(tmp1(ii), 3)};
@@ -465,10 +468,9 @@ linkaxes(ax, 'y')
             for ii = 1:num_layer(2)
                 p_int2{1}(ii) = line(ax(1), (1e-3 * dist_lin{1}(curr_ind_int(:, 1))), depth_layer{2}(ii, curr_ind_int(:, 2)), 'Marker', 'o', 'Color', 'k', 'LineWidth', 1, 'MarkerSize', 12, 'MarkerFaceColor', colors{2}(ii, :), 'LineStyle', 'none', 'Visible', 'off');
             end
-            for ii = 1:num_layer(1)
+			for ii = 1:num_layer(1)
                 p_int2{2}(ii) = line(ax(2), (1e-3 * dist_lin{2}(curr_ind_int(:, 2))), depth_layer{1}(ii, curr_ind_int(:, 1)), 'Marker', 'o', 'Color', 'k', 'LineWidth', 1, 'MarkerSize', 12, 'MarkerFaceColor', colors{1}(ii, :), 'LineStyle', 'none', 'Visible', 'off');
-            end
-            
+			end
             if ~isempty(ind_layer{1})
                 [p_int2{2}(ind_layer{1}(:, 1)).Marker] = deal('s');
             end
@@ -488,9 +490,9 @@ linkaxes(ax, 'y')
             end
             [int_check(:).Value] = deal(1);
         end
-        
-        update_z_range
-        update_dist_range
+		
+        ax(curr_rad).XLim = 1e-3 .* [dist_min(curr_rad) dist_max(curr_rad)];
+		ax(curr_rad).YLim = [depth_min depth_max];
 		
         if all(pk_done)
             intnum_list.Value = 1;
@@ -664,9 +666,9 @@ linkaxes(ax, 'y')
                     layer_list(1).Value = curr_layer(1);
             end
 		end
-		
+
         if (nearest_check.Value && all(pk_done) && isempty(tmp1))
-            if any(~isnan(depth_layer{curr_rad_alt}(:, curr_ind_int(curr_int, curr_rad_alt))))
+			if any(~isnan(depth_layer{curr_rad_alt}(:, curr_ind_int(curr_int, curr_rad_alt))))
                 [~, curr_layer(curr_rad_alt)] ...
                             = min(abs(depth_layer{curr_rad}(curr_layer(curr_rad), curr_ind_int(curr_int, curr_rad)) - depth_layer{curr_rad_alt}(:, curr_ind_int(curr_int, curr_rad_alt))));
                 [curr_rad, curr_rad_alt] ...
@@ -674,7 +676,12 @@ linkaxes(ax, 'y')
                 layer_list(curr_rad).Value = curr_layer(curr_rad);
                 tmp1        = 'reselect';
                 pk_select
-            end
+                [curr_rad, curr_rad_alt] ...
+                            = deal(curr_rad_alt, curr_rad);
+        		rad_group.SelectedObject = rad_check(curr_rad);
+        		curr_layer(curr_rad) ...
+							= layer_list(curr_rad).Value;				
+			end
         else
             status_box.String = deal(['Layer #' num2str(curr_layer(curr_rad)) ' selected.']);
         end
@@ -716,7 +723,7 @@ linkaxes(ax, 'y')
         dist_min_edit(curr_rad).String = sprintf('%3.1f', (1e-3 * dist_min(curr_rad)));
         dist_max_edit(curr_rad).String = sprintf('%3.1f', (1e-3 * dist_max(curr_rad)));
         ax(curr_rad).YLim = [min(depth_layer{curr_rad}(curr_layer(curr_rad), :), [], 'omitnan') max(depth_layer{curr_rad}(curr_layer(curr_rad), :), [], 'omitnan')];
-        tmp1				= ax_radar.Ylim;
+        tmp1				= ax(curr_rad).YLim;
         [tmp1(1), tmp1(2)]	= deal((tmp1(1) - diff(tmp1)), (tmp1(2) + diff(tmp1)));
         if (tmp1(1) < depth_min_ref)
             tmp1(1)			= depth_min_ref;
@@ -952,9 +959,15 @@ linkaxes(ax, 'y')
         
         % add new match set for these sub-segments, then reorder and remove any repeated rows
         layer_match_list    = [layer_match_list; repmat(curr_pk(1), size(ind_layer{1}, 1), 1) ind_layer{1}; repmat(curr_pk(2), size(ind_layer{2}, 1), 1) ind_layer{2}];
-        layer_match_list    = sortrows(unique(layer_match_list, 'rows'), [1 3 2 4]);
 		
-        status_box.String = 'Saving primary layer ID list...';
+		tmp1				= find(layer_match_list(:, 3) < layer_match_list(:, 1));
+		layer_match_list(tmp1, :) ...
+							= layer_match_list(tmp1, [3 4 1 2]);
+		
+        layer_match_list    = sortrows(unique(layer_match_list, 'rows'), [1 3 2 4]);
+
+
+        status_box.String = 'Saving matching layer list...';
         pause(0.05)
         try
             save([path_match file_match], '-v7.3', 'layer_match_list')
@@ -1369,23 +1382,23 @@ linkaxes(ax, 'y')
     function update_dist_range(src, event)
 		rad_group.SelectedObject = rad_check(curr_rad);
         ax(curr_rad).XLim = 1e-3 .* [dist_min(curr_rad) dist_max(curr_rad)];
-        % narrow_cb
+        narrow_cb
     end
 
     function update_z_range(src, event)
         rad_group.SelectedObject = rad_check(curr_rad);
 		ax(curr_rad).YLim = [depth_min depth_max];
-        % narrow_cb
-        % switch curr_rad
-        %     case 1
-        %         curr_rad	= 2;
-        %         narrow_cb
-        %         curr_rad	= 1;
-        %     case 2
-        %         curr_rad	= 1;
-        %         narrow_cb
-        %         curr_rad	= 2;
-        % end
+        narrow_cb
+        switch curr_rad
+            case 1
+                curr_rad	= 2;
+                narrow_cb
+                curr_rad	= 1;
+            case 2
+                curr_rad	= 1;
+                narrow_cb
+                curr_rad	= 2;
+        end
     end
 
 %% Adjust slider limits after panning or zooming
@@ -1476,8 +1489,6 @@ linkaxes(ax, 'y')
 			p_data(curr_rad) = imagesc(ax(curr_rad), (1e-3 .* dist_lin{curr_rad}), depth_ref{curr_rad}, amp_depth{curr_rad}, [db_min(curr_rad) db_max(curr_rad)]);
 		end
 		ax(curr_rad).YLim = [depth_min depth_max];
-        reset_xz
-        narrow_cb
         show_data
         show_pk
     end
@@ -1546,9 +1557,9 @@ linkaxes(ax, 'y')
 %% Change intersection
 
     function change_int(src, event)
-        if ~(num_int && (curr_ind_int(1) ~= 0))
+		if ~(num_int && (curr_ind_int(1) ~= 0))
             return
-        end
+		end
         curr_int            = intnum_list.Value;
         for ii = 1:2
             [p_int1{ii}(isgraphics(p_int1{ii})).LineWidth] = deal(2);
@@ -1606,6 +1617,9 @@ linkaxes(ax, 'y')
 %% Narrow color axis to +/- 2 standard deviations of current mean value
 
     function narrow_cb(src, event)
+		if isequal(narrow_ax{curr_rad}, [ax(curr_rad).XLim ax(curr_rad).YLim])
+			return
+		end
         rad_group.SelectedObject = rad_check(curr_rad);
         if ~data_done(curr_rad)
             return
@@ -1646,6 +1660,7 @@ linkaxes(ax, 'y')
         cb_min_edit(curr_rad).String = sprintf('%3.0f', db_min(curr_rad));
         cb_max_edit(curr_rad).String = sprintf('%3.0f', db_max(curr_rad));
         ax(curr_rad).CLim = [db_min(curr_rad) db_max(curr_rad)];
+		narrow_ax{curr_rad}	= [ax(curr_rad).XLim ax(curr_rad).YLim];
     end
 
 %% Switch active segment
@@ -1761,18 +1776,22 @@ linkaxes(ax, 'y')
             case 'o'
                 pk_focus
 			case 'p'
-				if (int_list.Value < length(int_list.String))
-					if match_done
-						pk_save
-					else
-						int_list.Value = int_list.Value + 1;
-						int_count_edit.String = [num2str(int_list.Value) ' /'];
-						load_pk2
-						load_data
-					end
+				if (curr_int < num_int)
+					status_box.String = 'Review all intersections first.';
 				else
-					pk_save
-					status_box.String = 'End of intersecting list.';
+					if (int_list.Value < length(int_list.String))
+						if match_done
+							pk_save
+						else
+							int_list.Value = int_list.Value + 1;
+							int_count_edit.String = [num2str(int_list.Value) ' /'];
+							load_pk2
+							load_data
+						end
+					else
+						pk_save
+						status_box.String = 'End of intersecting list.';
+					end
 				end
             case 't'
                 if (curr_int > 1)
@@ -1973,7 +1992,7 @@ linkaxes(ax, 'y')
 %% Test something
 
     function misctest(src, event)
-		
+		get(ax(curr_rad))
 		fgui.KeyPressFcn = @keypress; fgui.WindowButtonDownFcn = @mouse_click;
         status_box.String = 'Test done.';
     end
