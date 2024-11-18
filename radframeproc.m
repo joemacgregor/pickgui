@@ -324,6 +324,8 @@ if (length(ind_unique_pos) < num_trace)
 		ind_unique			= ind_unique_pos;
 	end
 	do_unique				= true;
+	disp(length(ind_unique))
+	disp(num_trace)	
 	warning('Non-unique positions detected!')
 end
 if ~do_unique

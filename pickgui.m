@@ -22,7 +22,7 @@
 %   parallelization for those loops that can use it.
 %   
 % Joe MacGregor (NASA)
-% Last updated: 30 September 2024
+% Last updated: 1 November 2024
 
 %% Intialize variables
 
@@ -75,7 +75,7 @@ pk_color_def				= [0    0       0.75;
                                0.75 0       0];
 
 if (license('checkout', 'distrib_computing_toolbox') && ~nargin)
-    pool_check          = gcp('nocreate');
+    pool_check				= gcp('nocreate');
     if isempty(pool_check)
         try
             parpool(4);
@@ -461,7 +461,6 @@ disp_group.SelectedObject = disp_check(1);
         end
         
         if isfield(data_cat, 'twtt_bed')
-            ind_bed         = NaN(1, data_cat.num_trace);
             if ~isempty(find((~isnan(data_cat.twtt_bed) & ~isinf(data_cat.twtt_bed)), 1))
                 ind_bed(~isnan(data_cat.twtt_bed) & ~isinf(data_cat.twtt_bed)) ...
                             = interp1(data_cat.twtt, 1:num_sample_trim, data_cat.twtt_bed(~isnan(data_cat.twtt_bed) & ~isinf(data_cat.twtt_bed)), 'nearest', 'extrap');
@@ -4404,7 +4403,6 @@ disp_group.SelectedObject = disp_check(1);
 
     function narrow_cb(src, event)
         if (cbfix_check2 && ~isequal(narrow_ax, [ax_radar.XLim ax_radar.YLim]))
-			disp('here')
             tmp1            = zeros(2);
             tmp1(1, :)      = interp1(data_cat.dist_lin, ind_num_trace, [dist_min dist_max], 'nearest', 'extrap');
             tmp1(2, :)      = interp1(data_cat.twtt, 1:num_sample_trim, [twtt_min twtt_max], 'nearest', 'extrap');

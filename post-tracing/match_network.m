@@ -1,7 +1,7 @@
 % MATCH_NETWORK Testing layer match network for overlap sequentially.
 % 
 % Joe MacGregor (NASA)
-% Last updated: 19 July 2024
+% Last updated: 11 November 2024
 
 clear
 
@@ -14,7 +14,7 @@ load([dir_mat 'pk_cat.mat'], 'depth', 'dist', 'file_pk', 'ind_trace_layer', 'num
 [x_pk, y_pk]				= deal(x, y);
 clear x y
 load([dir_mat 'int_all_cat.mat'], 'int_all')
-load([dir_mat 'layer_match_list.mat'], 'layer_match_list', 'depth_diff_match', 'int_match')
+load([dir_mat 'layer_match_list.mat'], 'layer_match_list')%, 'depth_diff_match', 'int_match')
 
 % BedMachine v5
 BM5                         = struct;
@@ -44,6 +44,7 @@ clear depth depth_tmp
 speed_vacuum                = 299792458; % m/s
 permitt_ice                 = 3.15; % dimensionless
 speed_ice                   = speed_vacuum / sqrt(permitt_ice); % m/s
+dist_int_max                = 0.5e3; % +/- range to extract local layer depths, m
 
 ind_bed_cutoff				= 10; % number of samples below which to blank the bed in radargrams
 dist_smooth					= 100e3; % smoothing distance for median subtraction, m
@@ -71,7 +72,38 @@ colors_def                  = [0    0       0.75;
                                0.75 0       0];
 num_color_def				= size(colors_def, 1);
 
-%%
+%% max depth differences between matched layers
+
+depth_diff_match			= zeros(size(layer_match_list, 1), 1);
+
+% catalog depth differences
+for ii = 1:size(layer_match_list, 1)
+	
+	% current file_pk indices
+	[jj, kk]				= deal(layer_match_list(ii, 1), layer_match_list(ii, 3));
+		
+	% intersections with current file
+	int_curr				= [int_all(((int_all(:, 1) == jj) & (int_all(:, 4) == kk)), [2 5]); int_all(((int_all(:, 4) == jj) & (int_all(:, 1) == kk)), [5 2])];
+	
+	% loop through all the file's intersections and get layer depth difference there
+	for ll = 1:size(int_curr, 1)
+		
+		% get current horizontal indices of intersection and environs
+		ind_curr1			= interp1(dist{jj}, 1:num_trace(jj), (dist{jj}(int_curr(ll, 1)) + [-dist_int_max dist_int_max]), 'nearest', 'extrap');
+		ind_curr2			= interp1(dist{kk}, 1:num_trace(kk), (dist{kk}(int_curr(ll, 2)) + [-dist_int_max dist_int_max]), 'nearest', 'extrap');
+		
+		% get full horizontal index set in sparse pk_cat space
+		[~, ind_curr1, ~]	= intersect(ind_trace_layer{jj}, ind_curr1(1):ind_curr1(2));
+		[~, ind_curr2, ~]	= intersect(ind_trace_layer{kk}, ind_curr2(1):ind_curr2(2));
+		
+		if (isempty(ind_curr1) || isempty(ind_curr2))
+			continue
+		end
+		
+		% preserve maximum depth difference
+		depth_diff_match(ii)= max([depth_diff_match(ii) abs(mean(depth_pk{jj}(layer_match_list(ii, 2), ind_curr1), 'omitnan') - mean(depth_pk{kk}(layer_match_list(ii, 4), ind_curr2), 'omitnan'))]);
+	end
+end
 
 disp('Assigning layer IDs sequentially...')
 
@@ -207,7 +239,6 @@ num_bin                     = num_bin(logical(num_bin));
 num_bin_total				= length(num_bin);
 
 disp('Evaluating each bin for overlapping layers...')
-
 % cell of logical vectors with overlap evaluation for each transect (match?)
 layer_overlap               = cell(1, num_bin_total);
 
@@ -222,10 +253,10 @@ for ii = 1:num_bin_total
 	mm						= 1;
 
     % evaluate all segments within bin
-    for jj = 1:size(seg_unique, 1)
+    for jj = 1:length(seg_unique)
         
         % indices within layer_bin that from current segment
-        ind_layer_risk        = find(layer_bin{ii}(:, 1) == seg_unique(jj, :));
+        ind_layer_risk        = find(layer_bin{ii}(:, 1) == seg_unique(jj));
         
 		% skip if scalar
 		if isscalar(ind_layer_risk)
@@ -237,7 +268,8 @@ for ii = 1:num_bin_total
 		
         for kk = 1:(length(ind_layer_risk) - 1)
 			ll_curr			= (kk + 1):length(ind_layer_risk);
-			diff_depth_test = find(sum((abs(depth_pk{seg_unique(jj)}(layer_bin{ii}(ind_layer_risk(kk .* ones(length(ll_curr), 1)), 2), :) - depth_pk{seg_unique(jj)}(layer_bin{ii}(ind_layer_risk(ll_curr), 2), :)) > diff_threshold), 2));
+			diff_depth_test = find(sum((abs(depth_pk{seg_unique(jj)}(layer_bin{ii}(ind_layer_risk(kk .* ones(length(ll_curr), 1)), 2), :) - ...
+											depth_pk{seg_unique(jj)}(layer_bin{ii}(ind_layer_risk(ll_curr), 2), :)) > diff_threshold), 2));
 			if ~isempty(diff_depth_test)
 				ind_bin_bad([kk ll_curr(diff_depth_test)]) ...
                         = true;
@@ -256,6 +288,7 @@ for ii = 1:num_bin_total
     end
 end
 
+
 % number of layers with overlaps in each bin
 num_overlap                 = zeros(1, length(layer_bin));
 for ii = 1:length(layer_bin)
@@ -265,8 +298,10 @@ end
 beep
 
 %% work through each bin where find(num_overlap)>0
+%1     2     4     6    15    38    39    52
 
-curr_bin					= 1;
+
+curr_bin					= 5;
 
 % get _curr values to shorten a bit
 layer_bin_curr				= layer_bin{curr_bin};
@@ -379,8 +414,8 @@ pg.NodeFontSize				= 14;
 pg.EdgeColor				= grays(discretize(depth_diff_match_curr, depth_diff_range), :);
 pg.LineWidth				= 2 .* discretize(depth_diff_match_curr, depth_diff_range);
 pg.EdgeLabel				= edge_label;
-pg.EdgeFontWeight			= 'bold';
-pg.EdgeFontSize				= 10;
+% pg.EdgeFontWeight			= 'bold';
+% pg.EdgeFontSize				= 10;
 % pg.EdgeLabelColor			= 'm';
 pg.MarkerSize				= node_size;
 title(['bin #' num2str(curr_bin) ', ' num2str(num_overlap(curr_bin)) '/' num2str(num_bin_curr) ' layers overlap, ' sprintf('%4.0f', depth_mean_range(1)) '-' sprintf('%4.0f', depth_mean_range(end)) ' m depth range'], 'FontWeight', 'bold', 'FontSize', 16)
@@ -393,7 +428,7 @@ end
 
 %% list matches of specific nodes and format in easy way to put into i2u
 
-for ii = []
+for ii = [310]
 	a = reshape(sort([neighbors(layer_match_graph, ii)'; ii(ones(1, length(find(layer_match_simple_curr == ii))))]), 1, (2 * length(find(layer_match_simple_curr == ii))));
 	as = '';
 	for ii = 1:length(a)
@@ -407,7 +442,7 @@ end
 
 %% match pairs to potentially remove, test by whiting out
 
-i2u							= [];
+i2u							= [57 161];
 highlight(pg, i2u(:, 1), i2u(:, 2), 'EdgeColor', 'w', 'EdgeLabelColor', 'w')
 
 %% remove match pairs that cause overlap
@@ -417,10 +452,11 @@ layer_match_list(ind2unmatch, :) ...
 							= [];
 layer_match_simple(ind2unmatch, :) ...
 							= [];
-depth_diff_match(ind2unmatch) ...
-							= [];
-int_match(ind2unmatch)		= [];
-save([dir_mat 'layer_match_list.mat'], '-append', 'layer_match_list', 'depth_diff_match', 'int_match')
+% depth_diff_match(ind2unmatch) ...
+% 							= [];
+% int_match(ind2unmatch)		= [];
+% save([dir_mat 'layer_match_list.mat'], '-append', 'layer_match_list', 'depth_diff_match', 'int_match')
+save([dir_mat 'layer_match_list.mat'], '-append', 'layer_match_list')
 disp(i2u)
 disp('DONE saving')
 

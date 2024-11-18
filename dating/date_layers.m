@@ -3,7 +3,7 @@
 % of overlapping dated layers.
 % 
 % Joe MacGregor (NASA)
-% Last updated: 14 August 2024
+% Last updated: 29 October 2024
 
 clear
 
@@ -25,7 +25,7 @@ age_uncert_frac_max			= 50e-2; % maximum fraction of age uncertainty at which po
 dist_int_max				= 250; % m, +/- range to extract core-intersecting layer depths
 thick_diff_max				= 0.2; % fraction of ice thickness within which overlapping layer must lie
 layer_diff_max				= 1; % fraction of layer thickness within which overlapping layer must lie
-num_depth_norm				= 20; % number of normalized depths
+num_depth_norm				= 10; % number of normalized depths
 age_iso						= 1e3 .* [3 8 9 11.7 12.8 14.7 19 29 57 115]'; % isochrone ages, a
 num_age_iso					= length(age_iso); % number of isochrones to calculate
 thick_diff_max_iso			= 0.2; % fraction of ice thickness within which overlapping layer must lie (for age_norm1)
@@ -37,7 +37,6 @@ depth_shallow_max			= 0.2; % maximum fraction of ice thickness to attempt shallo
 num_date_loop_max			= 10; % maximum number of dating loops
 age_max						= 1.5e5; % maximum permitted reflector age, a
 campaign_ord				= [22 18 20 28 21 29 30 6 7 8 4 9 5 4 14 16 17 12 11 15 19 3 1 2 23 25]; % order in which to analyze campaigns based on their overall data quality
-num_gauss					= [ones(1, 15) (2 .* ones(1, 8)) 1]; % number of Gaussians to use to fit Nye differences of normalized ages
 
 if strcmp(interp_type, 'quasi Nye')
     qn_tol                  = 1e-2; % residual tolerance, m
@@ -84,22 +83,22 @@ for ii = 1:num_file_pk
 end
 clear depth
 
-% % start core pool if possible
-% if license('checkout', 'distrib_computing_toolbox')
-%     pool_check              = gcp('nocreate');
-%     if isempty(pool_check)
-%         try
-%             pool            = parpool('local', 4); % start 4 cores (no need to get crazy here)
-%         catch
-%             pool            = parpool('local');
-%         end
-%     end
-%     num_pool                = pool.NumWorkers; % number of workers the pool (will be less than 4 if less than that available)
-%     parallel_check          = true; % flag for parallelization
-% else
+% start core pool if possible
+if license('checkout', 'distrib_computing_toolbox')
+    pool_check              = gcp('nocreate');
+    if isempty(pool_check)
+        try
+            pool            = parpool('local', 4); % start 4 cores (no need to get crazy here)
+        catch
+            pool            = parpool('local');
+        end
+    end
+    num_pool                = pool.NumWorkers; % number of workers the pool (will be less than 4 if less than that available)
+    parallel_check          = true; % flag for parallelization
+else
     num_pool                = 0;
     parallel_check          = false;
-% end
+end
 
 % load core depth-age scales
 core                        = cell(1, num_core);
@@ -190,7 +189,17 @@ if do_date
         
         for mm = find(~isnan(depth_curr))' % loop through each of the merged file's layers, only interpolate age if layer present at/near core intersection
             
-            age_core_curr	= interp1(core{kk}.depth, core{kk}.age, depth_curr(mm), 'spline'); % interpolated age at core intersection
+			% start with spline interpolation
+            age_core_curr	= interp1(core{kk}.depth, core{kk}.age, depth_curr(mm), 'spline', NaN); % interpolated age at core intersection (spline within)
+			if isnan(age_core_curr)
+				age_core_curr ...
+							= interp1(core{kk}.depth, core{kk}.age, depth_curr(mm), 'linear', 'extrap'); % linear extrapolation where necessary
+			end
+			
+			% bad age from inter/extrapolation
+			if ((age_core_curr < 0) || (age_core_curr > age_max))
+				continue
+			end
 			
 			% age-overturned
 			if ~age_check(age{jj}, age_uncert{jj}, mm, age_core_curr, age_uncert_frac_max, depth_pk{jj}, file_pk{jj})
@@ -230,7 +239,7 @@ if do_date
             
             % depth-induced uncertainty
             age_uncert_depth_curr ...
-							= 0.5 * sum(abs(interp1(core{kk}.depth, core{kk}.age, (depth_curr(mm) + [depth_uncert -depth_uncert]), 'linear') - repmat(age_core{jj}(mm, kk), 1, 2)));
+							= 0.5 * sum(abs(interp1(core{kk}.depth, core{kk}.age, (depth_curr(mm) + [depth_uncert -depth_uncert]), 'spline', NaN) - repmat(age_core{jj}(mm, kk), 1, 2)));
 			if isnan(age_uncert_depth(mm, kk))
                 age_uncert_depth(mm, kk) ...
 							= age_uncert_depth_curr;
@@ -242,13 +251,13 @@ if do_date
 		
         % core-reported age uncertainty
         age_uncert_interp_curr ...
-						= interp1(core{kk}.depth, core{kk}.age_uncert, depth_curr(~isnan(depth_curr)), 'linear');
+							= interp1(core{kk}.depth, core{kk}.age_uncert, depth_curr(~isnan(depth_curr)), 'linear', 'extrap');
         if isnan(age_uncert_radar(mm, kk))
             age_uncert_interp(~isnan(depth_curr), kk) ...
-						= age_uncert_interp_curr;
+							= age_uncert_interp_curr;
         else
             age_uncert_interp(~isnan(depth_curr), kk) ...
-						= mean([age_uncert_interp_curr age_uncert_interp(~isnan(depth_curr), kk)], 2, 'omitnan');
+							= mean([age_uncert_interp_curr age_uncert_interp(~isnan(depth_curr), kk)], 2, 'omitnan');
         end
         
         % order in which layers were dated

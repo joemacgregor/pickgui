@@ -1,12 +1,11 @@
 % MERGE_CAT_PK Merge picks into a single .mat file.
 % 
 % Joe MacGregor (NASA/GSFC)
-% Last updated: 17 July 2024
+% Last updated: 11 October 2024
 
 clear
 
 do_save						= true;
-plotting					= false;
 
 dir_in                      = '/Users/jamacgre/OneDrive - NASA/data/gris_strat2/arctic_cat_pk_rev_r1/';
 dir_cat						= '/Users/jamacgre/OneDrive - NASA/data/gris_strat2/arctic_cat_r1/';
@@ -21,8 +20,7 @@ speed_vacuum                = 299792458; % m/s
 permitt_ice                 = 3.15; % dimensionless
 speed_ice                   = speed_vacuum / sqrt(permitt_ice); % m/s
 
-load([dir_mat 'xyz_all.mat'], 'campaign', 'num_campaign', 'num_segment', 'segment')
-load('/Users/jamacgre/OneDrive - NASA/research/matlab/greenland/mat/grl_coast.mat', 'num_coast', 'x_coast', 'y_coast')
+load([dir_mat 'xyz_all.mat'], 'campaign', 'num_campaign', 'segment')
 
 % BedMachine v5
 BM5                         = struct;
@@ -183,7 +181,7 @@ for ii = 1:num_file_pk
 	% identify small layers (<num_ind_layer_min), of which there should be none now
 	len_layer				= sum(~isnan(depth{ii}), 2);
 	if ~isempty(find((len_layer < num_ind_layer_min), 1))
-		ind_layer_long		= find(len_layer >= num_ind_layer_min)';
+		% ind_layer_long		= find(len_layer >= num_ind_layer_min)';
 		error('SHORT LAYER(S)!')
 	end
 	
@@ -244,15 +242,4 @@ if do_save
 								 'ind_z', 'int', 'int_bed', 'int_surf', 'lat', 'lon', 'num_decim', 'num_file_pk', 'num_frame', 'num_layer', 'num_layer_max_decim', 'num_sample', 'num_trace', 'num_trace_layer', 'pk_empty', 'thick', ...
 								 'thick_decim', 'twtt_ice', 'x', 'y')
     disp(['Saved merged picks in ' dir_mat ' as pk_cat.mat.'])
-end
-
-%%
-if plotting
-%%
-    set(0, 'DefaultFigureWindowStyle', 'default') %#ok<UNRCH>
-
-%%
-    set(0, 'DefaultFigureWindowStyle', 'docked')
-
-%%
 end

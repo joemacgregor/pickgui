@@ -7,7 +7,7 @@ function fencegui
 %   concatenated datasets using PICKGUI.
 % 
 % Joe MacGregor (NASA)
-% Last updated: 30 September 2024
+% Last updated: 12 November 2024
 
 %% Intialize variables
 
@@ -72,7 +72,7 @@ match_done					= false;
 size_font					= 18;
 width_slide					= 0.02;
 
-tmp_list=[];
+tmp_list					= [];
 
 %% draw GUI
 
@@ -242,7 +242,7 @@ linkaxes(ax, 'y')
 				file_pk{curr_rad} ...
 							= tmp1(tmp2 + 1).name;
 			else
-				status_box.string = 'Reached end of directory';
+				status_box.String = 'Reached end of directory';
 				return
 			end
 		else
@@ -353,11 +353,25 @@ linkaxes(ax, 'y')
             
             case 1 % primary
                 
-                tmp1        = find(int_all(:, 1) == curr_pk(1));
-				% tmp2=tmp_list;
-                tmp2        = cell(length(tmp1), 1);
-				for ii = 1:length(tmp1)
-					tmp2{ii}= name_pk{int_all(tmp1(ii), 3)};
+				if isempty(tmp_list)
+					tmp1    = find((int_all(:, 3) == curr_pk(1)));
+					tmp2    = find((int_all(:, 1) == curr_pk(1)));
+                	tmp3    = cell((length(tmp1) + length(tmp2)), 1);
+					for ii = 1:length(tmp1)
+						tmp3{ii} ...
+							= name_pk{int_all(tmp1(ii), 1)};
+					end
+					for ii = (length(tmp1) + 1):(length(tmp1) + length(tmp2))
+						tmp3{ii} ...
+							= name_pk{int_all(tmp2(ii - length(tmp1)), 3)};
+					end
+					tmp2	= tmp3;
+				else
+					tmp2	= cell(1, length(tmp_list));
+					for ii = 1:length(tmp2)
+						tmp2{ii} ...
+							= tmp_list{ii}(6:(end - 7));
+					end
 				end
 				if ~isempty(unique(tmp2))
 					int_list.String = unique(tmp2);
@@ -396,7 +410,9 @@ linkaxes(ax, 'y')
 						int_list.Value = int_list.Value + 1;
 						int_count_edit.String = [num2str(int_list.Value) ' /'];
 						load_pk2
-						load_data
+						if num_int
+							load_data
+						end
 					else
 						pk_save
 						status_box.String = 'End of intersecting list.';
@@ -680,7 +696,7 @@ linkaxes(ax, 'y')
                             = deal(curr_rad_alt, curr_rad);
         		rad_group.SelectedObject = rad_check(curr_rad);
         		curr_layer(curr_rad) ...
-							= layer_list(curr_rad).Value;				
+							= layer_list(curr_rad).Value;
 			end
         else
             status_box.String = deal(['Layer #' num2str(curr_layer(curr_rad)) ' selected.']);
@@ -1992,7 +2008,7 @@ linkaxes(ax, 'y')
 %% Test something
 
     function misctest(src, event)
-		get(ax(curr_rad))
+		
 		fgui.KeyPressFcn = @keypress; fgui.WindowButtonDownFcn = @mouse_click;
         status_box.String = 'Test done.';
     end

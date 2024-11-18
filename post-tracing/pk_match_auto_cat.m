@@ -1,11 +1,11 @@
 % PK_MATCH_AUTO_CAT Automatically determine matching layers within merged radar segments.
 % 
 % Joe MacGregor (NASA)
-% Last updated: 18 July 2024
+% Last updated: 4 November 2024
 
 clear
 
-do_save                     = true;
+do_save                     = false;
 
 dir_mat						= '/Users/jamacgre/OneDrive - NASA/research/matlab/pickgui_v2/mat/';
 dist_int_max                = 0.5e3; % +/- range to extract local layer depths, m
@@ -48,10 +48,10 @@ disp('Auto-populating fenced list...')
 for ii = 1:size(int_all, 1)
 	
 	[jj, kk]				= deal(int_all(ii, 1), int_all(ii, 4));
-	
-	if ~campaign_match(pk_cat.ind_campaign(jj), pk_cat.ind_campaign(kk))
-        continue
-	end
+		
+	% if ~campaign_match(pk_cat.ind_campaign(jj), pk_cat.ind_campaign(kk))
+    %     continue
+	% end
 	
 	if ~isempty(find((pk_cat.num_trace([jj kk]) == 0), 1))
 		disp('EMPTY MERGED FILE')

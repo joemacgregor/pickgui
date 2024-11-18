@@ -4,7 +4,7 @@
 %   segment and all other segments.
 % 
 % Joe MacGregor (NASA)
-% Last updated: 16 July 2024
+% Last updated: 5 November 2024
 
 clear
 
@@ -19,14 +19,21 @@ plotting                    = false;
 
 % get x/y for traced segments
 load([dir_mat 'xyz_all.mat'], 'num_campaign')
-pk_cat						= load([dir_mat 'pk_cat.mat'], 'dist', 'file_pk', 'ind_campaign', 'ind_pk_merge', 'num_file_pk', 'x', 'y');
-[dist, file_pk, ind_campaign, ind_pk_merge, num_file_pk, x, y] ...
-							= deal(pk_cat.dist, pk_cat.file_pk, pk_cat.ind_campaign, pk_cat.ind_pk_merge(:, 1:2), pk_cat.num_file_pk, pk_cat.x, pk_cat.y);
-dist_diff					= cell(1, pk_cat.num_file_pk);
+pk_cat						= load([dir_mat 'pk_cat.mat'], 'depth', 'dist', 'file_pk', 'ind_campaign', 'ind_trace_layer', 'num_file_pk', 'num_layer', 'num_trace', 'x', 'y');
+[dist, file_pk, ind_campaign, num_file_pk, x, y] ...
+							= deal(pk_cat.dist, pk_cat.file_pk, pk_cat.ind_campaign, pk_cat.num_file_pk, pk_cat.x, pk_cat.y);
+[dist_diff, depth_pk]		= deal(cell(1, pk_cat.num_file_pk));
 for ii = 1:pk_cat.num_file_pk
 	file_pk{ii}				= file_pk{ii}(6:(end - 7));
 	dist_diff{ii}			= diff(dist{ii});
+	depth_tmp				= full(pk_cat.depth{ii});
+	depth_tmp(~depth_tmp)	= NaN;
+	depth_pk{ii}			= NaN(pk_cat.num_layer(ii), pk_cat.num_trace(ii));
+	depth_pk{ii}(:, pk_cat.ind_trace_layer{ii}) ...
+							= depth_tmp;	
 end
+clear depth_tmp
+pk_cat						= rmfield(pk_cat, 'depth');
 
 %%
 
@@ -198,9 +205,37 @@ if do_int
 		end
 	end
 
+%% remove intersections with no nearby layers
+	
+	depth_pk_simple			= cell(1, num_file_pk);
+	for ii = 1:num_file_pk
+		depth_pk_simple{ii} = find(sum(~isnan(depth_pk{ii}), 1));
+	end
+	
+	dist_int_check			= 10e3;
+	
+	int_all_empty			= false(size(int_all, 1), 1);
+	for ii = 1:size(int_all, 1)
+		if ~mod(ii, 1e3)
+			disp(ii)
+		end
+		[jj, kk]			= deal(int_all(ii, 1), int_all(ii, 4));
+		ind_curr1			= interp1(dist{jj}, 1:pk_cat.num_trace(jj), (dist{jj}(int_all(ii, 2)) + [-dist_int_check dist_int_check]), 'nearest', 'extrap');
+		ind_curr2			= interp1(dist{kk}, 1:pk_cat.num_trace(kk), (dist{kk}(int_all(ii, 5)) + [-dist_int_check dist_int_check]), 'nearest', 'extrap');
+		if (isempty(intersect(depth_pk_simple{jj}, ind_curr1(1):ind_curr1(2))) || isempty(intersect(depth_pk_simple{kk}, ind_curr2(1):ind_curr2(2))))
+			int_all_empty(ii) ...
+							= true;
+			continue
+		end
+	end
+	
+	int_all(int_all_empty, :) ...
+							= [];
+
 %%	
 	if do_save
-    	save([dir_mat 'int_all_cat'], 'int_all', 'num_int')
+		save([dir_mat 'int_all_cat'], 'int_all')
+    	% save([dir_mat 'int_all_cat'], 'int_all', 'num_int')
     	disp(['Done calculating all intersections and saved in ' dir_mat '.'])
 	end
 	
