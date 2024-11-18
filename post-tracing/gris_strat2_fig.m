@@ -1,7 +1,7 @@
 % GRIS_STRAT2_FIG Figures for Greenland radiostratigraphy v2 manuscript.
 % 
 % Joe MacGregor (NASA)
-% Last updated: 14 November 2024
+% Last updated: 18 November 2024
 
 clear
 
@@ -95,7 +95,6 @@ campaign_priority			= [1 1 1 2 2 2 2 2 2 1 1 2 NaN 1 1 2 2 3 1 3 2 3 2 NaN 2 NaN
 ind_campaign_ignore			= [13 24 26 27]; % campaigns to ignore (not NASA or NSF)
 
 %%
-
 
 DTU							= shaperead('/Users/jamacgre/OneDrive - NASA/research/funding/greenland_layers_v2/misc/all_radar_flightlines_map_ai_20200708/shapefile/all_radar_flightlines_map_geo_vec_ai_01.shp');
 
@@ -246,7 +245,8 @@ if plotting
 		end
 		switch ii
 			case 1
-				[~, ind_priority_sort]	= sort(campaign_priority);
+				[~, ind_priority_sort] ...
+							= sort(campaign_priority);
 				for jj = setdiff(ind_priority_sort, ind_campaign_ignore, 'stable')
         			for kk = 1:num_segment(jj)
 						line(x{jj}{kk}(1:20:end), y{jj}{kk}(1:20:end), 'LineWidth', 2, 'Color', color_priority(campaign_priority(jj), :))
@@ -573,12 +573,13 @@ if plotting
     		text(300e3, -3180e3, '0', 'Color', 'k', 'FontSize', 18)
     		text(520e3, -3180e3, '200 km', 'Color', 'k', 'FontSize', 18)
 			if (ii == 1)
-				title(['(' letters(jj) ') ' num2str(age_iso(ind_age_iso(jj))) ' ka'], 'Color', 'k', 'FontSize', 24, 'FontWeight', 'bold')
+				title([num2str(age_iso(ind_age_iso(jj))) ' ka'], 'Color', 'k', 'FontSize', 24, 'FontWeight', 'bold')
 			end
-    		text(-542e3, -3238e3, '60\circN', 'Color', 'k', 'FontSize', 18, 'Rotation', -10)
-    		text(-330e3, -3250e3, '50\circW', 'Color', 'k', 'FontSize', 18, 'Rotation', 82)
-    		text(552e3, -2750e3, '65\circN', 'Color', 'k', 'FontSize', 18, 'Rotation', 15)
-    		text(750e3, -2975e3, '30\circW', 'Color', 'k', 'FontSize', 18, 'Rotation', -75)
+			text(-575e3, -800e3, ['(' letters(jj + ((ii - 1) * 4)) ')'], 'Color', 'k', 'FontSize', 24, 'FontWeight', 'bold', 'BackgroundColor', 'w', 'EdgeColor', 'k')
+    		text(-625e3, -3205e3, '60\circN', 'Color', 'k', 'FontSize', 18, 'Rotation', -10)
+    		text(-340e3, -3270e3, '50\circW', 'Color', 'k', 'FontSize', 18, 'Rotation', 82)
+    		text(525e3, -2755e3, '65\circN', 'Color', 'k', 'FontSize', 18, 'Rotation', 15)
+    		text(725e3, -2910e3, '30\circW', 'Color', 'k', 'FontSize', 18, 'Rotation', -75)
 			if (jj == length(ind_age_iso))
 				tick_str	= cell(1, (num_color + 1));
 				for kk = 1:(num_color + 1)
@@ -655,12 +656,13 @@ if plotting
     		text(300e3, -3180e3, '0', 'Color', 'k', 'FontSize', 18)
     		text(520e3, -3180e3, '200 km', 'Color', 'k', 'FontSize', 18)
 			if (ii == 1)
-				title(['(' letters(jj) ') ' num2str(depth_norm(ind_depth_norm(jj))) '% depth'], 'Color', 'k', 'FontSize', 24, 'FontWeight', 'bold')
+				title([num2str(depth_norm(ind_depth_norm(jj))) '% depth'], 'Color', 'k', 'FontSize', 24, 'FontWeight', 'bold')
 			end
-    		text(-542e3, -3238e3, '60\circN', 'Color', 'k', 'FontSize', 18, 'Rotation', -10)
-    		text(-330e3, -3250e3, '50\circW', 'Color', 'k', 'FontSize', 18, 'Rotation', 82)
-    		text(552e3, -2750e3, '65\circN', 'Color', 'k', 'FontSize', 18, 'Rotation', 15)
-    		text(750e3, -2975e3, '30\circW', 'Color', 'k', 'FontSize', 18, 'Rotation', -75)
+			text(-575e3, -800e3, ['(' letters(jj + ((ii - 1) * 4)) ')'], 'Color', 'k', 'FontSize', 24, 'FontWeight', 'bold', 'BackgroundColor', 'w', 'EdgeColor', 'k')
+    		text(-625e3, -3205e3, '60\circN', 'Color', 'k', 'FontSize', 18, 'Rotation', -10)
+    		text(-340e3, -3270e3, '50\circW', 'Color', 'k', 'FontSize', 18, 'Rotation', 82)
+    		text(525e3, -2755e3, '65\circN', 'Color', 'k', 'FontSize', 18, 'Rotation', 15)
+    		text(725e3, -2910e3, '30\circW', 'Color', 'k', 'FontSize', 18, 'Rotation', -75)
 			tick_str			= cell(1, (num_color + 1));
 			for kk = 1:(num_color + 1)
             	tick_str{kk}	= num2str(range_tmp(kk));

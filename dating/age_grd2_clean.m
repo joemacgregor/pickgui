@@ -1,7 +1,7 @@
 % AGE_GRD2_CLEAN Clean up Python-generated isochrone and normalized ages.
 % 
 % Joe MacGregor
-% Last updated: 13 November 2024
+% Last updated: 18 November 2024
 
 clear
 
@@ -46,8 +46,7 @@ BM5.mask_gris(BM5.mask_combo == 2) ...
 
 %%
 
-load([dir_mat 'depth_iso_krige.mat'], 'age_iso', 'depth_iso', 'depth_iso_std', 'depth_iso_uncert', 'idx_inside_trim_iso_nohull', 'xx_grd', 'yy_grd')
-depth_iso_uncert_tot		= sqrt((depth_iso_std .^ 2) + (depth_iso_uncert .^ 2));
+load([dir_mat 'depth_iso_krige.mat'], 'age_iso', 'depth_iso', 'depth_iso_uncert_tot', 'idx_inside_trim_iso_nohull', 'xx_grd', 'yy_grd')
 
 num_age_iso					= length(age_iso);
 
