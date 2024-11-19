@@ -125,7 +125,7 @@ end
 
 data_cat					= load('/Users/jamacgre/OneDrive - NASA/data/gris_strat2/arctic_cat_r1/Data_20170413_01_035-058.mat');
 ind_pk_cat					= find(contains(pk_cat.file_pk, 'Data_20170413_01_035-058'));
-data_cat_extra				= load('/Users/jamacgre/OneDrive - NASA/research/matlab/pickgui_v2/mat/Data_20170413_01_035-059_pk_plots.mat');
+data_cat_extra				= load('/Users/jamacgre/OneDrive - NASA/research/matlab/pickgui_v2/mat/Data_20170413_01_035-058_pk_plots.mat');
 
 depth_norm_plot				= linspace(0, 1, data_cat.num_sample);
 
@@ -325,12 +325,12 @@ if plotting
 					ind_good = find(~isnan(data_cat.layer_ARESELP(jj).ind_z));
 					line((1e-3 .* (data_cat.dist_lin(ind_good) - data_cat.dist_lin(ind_range(1)))), depth_vec(data_cat.layer_ARESELP(jj).ind_z(ind_good) - ind_surf(ind_good) + 1), 'Color', 'c', 'LineWidth', 1, 'LineStyle', '--')
 				end
-				line((1e-3 .* (data_cat.dist_lin - data_cat.dist_lin(ind_range(1)))), depth_vec(ind_bed - ind_surf + 1), 'Color', 'r', 'LineWidth', 2)				
+				line((1e-3 .* (data_cat.dist_lin - data_cat.dist_lin(ind_range(1)))), depth_vec(ind_bed - ind_surf + 1), 'Color', 'r', 'LineWidth', 2)
 			case 2
 				imagesc((1e-3 .* (data_cat.dist_lin - data_cat.dist_lin(ind_range(1)))), depth_vec, data_cat_extra.amp_depth, [db_min db_max])
 				for jj = 1:pk_cat.num_layer(ind_pk_cat)
 					ind_good = find(~isnan(depth_pk{ind_pk_cat}(jj, :)));
-					line((1e-3 .* (data_cat.dist_lin(ind_good) - data_cat.dist_lin(ind_range(1)))), depth_pk{ind_pk_cat}(jj, ind_good), 'Marker', '.', 'Color', 'b', 'MarkerSize', 6, 'LineStyle', 'none')
+					line((1e-3 .* (data_cat.dist_lin(ind_good) - data_cat.dist_lin(ind_range(1)))), (depth_pk{ind_pk_cat}(jj, ind_good) + FDM_corr{ind_pk_cat}(ind_good)), 'Marker', '.', 'Color', 'b', 'MarkerSize', 6, 'LineStyle', 'none')
 				end
 			case 3
 				imagesc((1e-3 .* (data_cat.dist_lin - data_cat.dist_lin(ind_range(1)))), depth_norm_plot, data_cat_extra.amp_norm, [db_min db_max])
@@ -414,13 +414,13 @@ if plotting
 	for jj = 1:pk_cat.num_layer(ind_pk_core)
 		ind_good = find(~isnan(depth_pk{ind_pk_core}(jj, :)));
 		if (age_type{ind_pk_core}(jj) <= 0.5)
-			line(data_cat_core.dist_lin(ind_good), (elev_surf_grd_core(ind_good) - depth_pk{ind_pk_core}(jj, ind_good)), 'Marker', '.', 'Color', ([227 74 51] ./ 255), 'MarkerSize', 10, 'LineStyle', 'none')
+			line(data_cat_core.dist_lin(ind_good), (elev_surf_grd_core(ind_good) - depth_pk{ind_pk_core}(jj, ind_good) + FDM_corr{ind_pk_core}(ind_good)), 'Marker', '.', 'Color', ([227 74 51] ./ 255), 'MarkerSize', 10, 'LineStyle', 'none', 'Tag', num2str(jj))
 		elseif (age_type{ind_pk_core}(jj) == 1)
-			line(data_cat_core.dist_lin(ind_good), (elev_surf_grd_core(ind_good) - depth_pk{ind_pk_core}(jj, ind_good)), 'Marker', '.', 'Color', ([253 187 132] ./ 255), 'MarkerSize', 8, 'LineStyle', 'none')
+			line(data_cat_core.dist_lin(ind_good), (elev_surf_grd_core(ind_good) - depth_pk{ind_pk_core}(jj, ind_good) + FDM_corr{ind_pk_core}(ind_good)), 'Marker', '.', 'Color', ([253 187 132] ./ 255), 'MarkerSize', 8, 'LineStyle', 'none')
 		elseif (age_type{ind_pk_core}(jj) > 1)
-			line(data_cat_core.dist_lin(ind_good), (elev_surf_grd_core(ind_good) - depth_pk{ind_pk_core}(jj, ind_good)), 'Marker', '.', 'Color', ([254 232 200] ./ 255), 'MarkerSize', 6, 'LineStyle', 'none')
+			line(data_cat_core.dist_lin(ind_good), (elev_surf_grd_core(ind_good) - depth_pk{ind_pk_core}(jj, ind_good) + FDM_corr{ind_pk_core}(ind_good)), 'Marker', '.', 'Color', ([254 232 200] ./ 255), 'MarkerSize', 6, 'LineStyle', 'none')
 		else
-			line(data_cat_core.dist_lin(ind_good), (elev_surf_grd_core(ind_good) - depth_pk{ind_pk_core}(jj, ind_good)), 'Marker', '.', 'Color', 'w', 'MarkerSize', 4, 'LineStyle', 'none')
+			line(data_cat_core.dist_lin(ind_good), (elev_surf_grd_core(ind_good) - depth_pk{ind_pk_core}(jj, ind_good) + FDM_corr{ind_pk_core}(ind_good)), 'Marker', '.', 'Color', 'w', 'MarkerSize', 4, 'LineStyle', 'none')
 		end
 	end
 	line(data_cat_core.dist_lin(ones(1, 2) .* 109638), [200 elev_surf_grd_core(109638)], 'Color', 'm', 'LineWidth', 3)	
@@ -442,13 +442,13 @@ if plotting
 	for jj = 1:pk_cat.num_layer(ind_pk_norm)
 		ind_good = find(~isnan(depth_pk{ind_pk_norm}(jj, :)));
 		if (age_type{ind_pk_norm}(jj) <= 0.5)
-			line(data_cat_norm.dist_lin(ind_good), (elev_surf_grd_norm(ind_good) - depth_pk{ind_pk_norm}(jj, ind_good)), 'Marker', '.', 'Color', ([227 74 51] ./ 255), 'MarkerSize', 10, 'LineStyle', 'none')
+			line(data_cat_norm.dist_lin(ind_good), (elev_surf_grd_norm(ind_good) - depth_pk{ind_pk_norm}(jj, ind_good) + FDM_corr{ind_pk_norm}(ind_good)), 'Marker', '.', 'Color', ([227 74 51] ./ 255), 'MarkerSize', 10, 'LineStyle', 'none')
 		elseif (age_type{ind_pk_norm}(jj) == 1)
-			line(data_cat_norm.dist_lin(ind_good), (elev_surf_grd_norm(ind_good) - depth_pk{ind_pk_norm}(jj, ind_good)), 'Marker', '.', 'Color', ([253 187 132] ./ 255), 'MarkerSize', 8, 'LineStyle', 'none')
+			line(data_cat_norm.dist_lin(ind_good), (elev_surf_grd_norm(ind_good) - depth_pk{ind_pk_norm}(jj, ind_good) + FDM_corr{ind_pk_norm}(ind_good)), 'Marker', '.', 'Color', ([253 187 132] ./ 255), 'MarkerSize', 8, 'LineStyle', 'none')
 		elseif (age_type{ind_pk_norm}(jj) > 1)
-			line(data_cat_norm.dist_lin(ind_good), (elev_surf_grd_norm(ind_good) - depth_pk{ind_pk_norm}(jj, ind_good)), 'Marker', '.', 'Color', ([254 232 200] ./ 255), 'MarkerSize', 6, 'LineStyle', 'none')
+			line(data_cat_norm.dist_lin(ind_good), (elev_surf_grd_norm(ind_good) - depth_pk{ind_pk_norm}(jj, ind_good) + FDM_corr{ind_pk_norm}(ind_good)), 'Marker', '.', 'Color', ([254 232 200] ./ 255), 'MarkerSize', 6, 'LineStyle', 'none')
 		else
-			line(data_cat_norm.dist_lin(ind_good), (elev_surf_grd_norm(ind_good) - depth_pk{ind_pk_norm}(jj, ind_good)), 'Marker', '.', 'Color', 'w', 'MarkerSize', 4, 'LineStyle', 'none')
+			line(data_cat_norm.dist_lin(ind_good), (elev_surf_grd_norm(ind_good) - depth_pk{ind_pk_norm}(jj, ind_good) + FDM_corr{ind_pk_norm}(ind_good)), 'Marker', '.', 'Color', 'w', 'MarkerSize', 4, 'LineStyle', 'none')
 		end
 	end
 	% for jj = 1:8
