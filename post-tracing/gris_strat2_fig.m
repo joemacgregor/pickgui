@@ -1,7 +1,7 @@
 % GRIS_STRAT2_FIG Figures for Greenland radiostratigraphy v2 manuscript.
 % 
 % Joe MacGregor (NASA)
-% Last updated: 18 November 2024
+% Last updated: 26 November 2024
 
 clear
 
@@ -14,10 +14,15 @@ load([dir_mat 'xyz_all.mat'], 'campaign', 'num_campaign', 'num_segment', 'segmen
 pk_cat						= load([dir_mat 'pk_cat.mat'], 'depth', 'file_pk', 'ind_campaign', 'ind_decim', 'ind_decim_mid', 'ind_trace_layer', 'num_decim', 'num_file_pk', 'num_layer', 'num_trace', 'thick', 'x', 'y');
 load([dir_gl 'grl_coast.mat'], 'num_coast', 'x_coast', 'y_coast')
 load([dir_mat 'core_int.mat'], 'name_core', 'num_core', 'x_core', 'y_core')
-load([dir_mat 'date_all.mat'], 'age', 'age_uncert')
+load([dir_mat 'date_all.mat'], 'age', 'age_type', 'age_uncert')
 load([dir_mat 'age_grd2_clean.mat'], 'age_iso', 'age_norm_smooth', 'age_norm_uncert_tot_smooth', 'depth_iso_smooth', 'depth_iso_uncert_tot_smooth', 'depth_norm', 'num_age_iso', 'num_depth_norm', 'x_grd', 'y_grd')
 [xx_grd, yy_grd]			= meshgrid(x_grd, y_grd);
-load([dir_mat 'date_all.mat'])
+
+% v1 stratigraphy
+age_grd2_v1					= load([dir_gl 'age_grd2_krige.mat'], 'age_iso', 'depth_iso2', 'depth_norm', 'num_age_iso', 'num_depth_norm', 'x_grd', 'y_grd');
+age_grd2_v1_alt				= load([dir_gl 'age_grd2_krige_alt.mat'], 'age_norm2_alt');
+age_grd2_v1.age_norm2		= age_grd2_v1_alt.age_norm2_alt;
+clear age_grd2_v1_alt
 
 [x_min, x_max, y_min, y_max]= deal(-632e3, 846e3, -3344e3, -670e3);
 letters						= 'a':'z';
@@ -34,6 +39,7 @@ BM5.x                       = double(ncread('/Users/jamacgre/OneDrive - NASA/res
 BM5.y                       = double(flipud(ncread('/Users/jamacgre/OneDrive - NASA/research/data/greenland/BedMachine/BedMachineGreenland-v5.nc', 'y'))); % projected y, m
 BM5.mask_gris               = double(rot90(ncread('/Users/jamacgre/OneDrive - NASA/research/data/greenland/BedMachine/BedMachineGreenland-v5.nc', 'mask'))); % ice mask
 BM5.elev_surf				= double(rot90(ncread('/Users/jamacgre/OneDrive - NASA/research/data/greenland/BedMachine/BedMachineGreenland-v5.nc', 'surface'))); % surface elevation, m
+BM5.thick					= double(rot90(ncread('/Users/jamacgre/OneDrive - NASA/research/data/greenland/BedMachine/BedMachineGreenland-v5.nc', 'thickness'))); % ice thickness, m
 
 % simplified masks for whole Greenland maps
 BM5.mask_combo              = BM5.mask_gris;
@@ -69,8 +75,10 @@ num_M19                     = length(M19);
 [paral, merid, x_paral, y_paral, x_merid, y_merid] ...
                             = graticule_greenland([x_min x_max], [y_min y_max], 5, 10);
 
+age_type_lim				= [0 1 10 Inf];
+
 % simplify filenames and unsparsify depth (much simpler), and correct for firn
-[depth_pk, depth_norm_pk, num_layer_pk, FDM_corr] ...
+[depth_pk, depth_norm_pk, num_layer_pk, num_layer_type, FDM_corr] ...
 							= deal(cell(1, pk_cat.num_file_pk));
 for ii = 1:pk_cat.num_file_pk
 	depth_tmp				= full(pk_cat.depth{ii});
@@ -79,9 +87,24 @@ for ii = 1:pk_cat.num_file_pk
 	depth_pk{ii}(:, pk_cat.ind_trace_layer{ii}) ...
 							= depth_tmp;
 	num_layer_pk{ii}		= NaN(1, pk_cat.num_decim(ii));
+	num_layer_type{ii}		= zeros(length(age_type_lim), pk_cat.num_decim(ii));
 	depth_pk_tmp			= ~isnan(depth_pk{ii});
+	ind_age_type			= cell(length(age_type_lim), 1);
+	for jj = 1:length(age_type_lim)
+		if (jj == 1)
+			ind_age_type{jj}= find(age_type{ii} == age_type_lim(jj));
+		elseif (jj == length(age_type_lim))
+			ind_age_type{jj}= find(isnan(age_type{ii}));
+		else
+			ind_age_type{jj}= find((age_type{ii} > age_type_lim(jj - 1)) & (age_type{ii} <= age_type_lim(jj)));
+		end
+	end
 	for jj = 1:pk_cat.num_decim(ii)
 		num_layer_pk{ii}(jj)= length(find(sum(depth_pk_tmp(:, pk_cat.ind_decim{ii}(jj):pk_cat.ind_decim{ii}(jj + 1)), 2)));
+		for kk = find(cellfun(@numel, ind_age_type))'
+			num_layer_type{ii}(kk, jj) ...
+							= length(find(sum(depth_pk_tmp(ind_age_type{kk}, pk_cat.ind_decim{ii}(jj):pk_cat.ind_decim{ii}(jj + 1)), 2)));
+		end
 	end
 	ind_FDM_curr			= interp1(FDM.time_dt, 1:FDM.num_time_dt, datetime(str2double(pk_cat.file_pk{ii}(6:13)), 'ConvertFrom', 'yyyymmdd'), 'nearest'); % time index for flight in FDM time vector
 	FDM_corr{ii}			= interp2(FDM.x, FDM.y, squeeze(FDM.FAC(:, :, ind_FDM_curr)), pk_cat.x{ii}(ones(pk_cat.num_layer(ii), 1), :), pk_cat.y{ii}(ones(pk_cat.num_layer(ii), 1), :), 'linear', 0);
@@ -93,6 +116,11 @@ clear depth
 
 campaign_priority			= [1 1 1 2 2 2 2 2 2 1 1 2 NaN 1 1 2 2 3 1 3 2 3 2 NaN 2 NaN NaN 3 2 2];
 ind_campaign_ignore			= [13 24 26 27]; % campaigns to ignore (not NASA or NSF)
+
+% clean-up v1
+age_grd2_v1.depth_iso2		= age_grd2_v1.depth_iso2 .* repmat(interp2(BM5.x, BM5.y, BM5.thick, (1e3 .* age_grd2_v1.x_grd), (1e3 .* age_grd2_v1.y_grd)), 1, 1, age_grd2_v1.num_age_iso); % dimensionalize
+[age_grd2_v1.age_norm2(age_grd2_v1.age_norm2 == 0), age_grd2_v1.depth_iso2(age_grd2_v1.depth_iso2 == 0)] ...
+                            = deal(NaN);
 
 %%
 
@@ -703,7 +731,9 @@ if plotting
 	age_tmp					= cellfun(@transpose, age, 'UniformOutput', false);
 	age_tmp					= 1e-3 .* [age_tmp{:}];
 	age_tmp					= age_tmp(~isnan(age_tmp));
+
 %%
+
 	figure('Position', [10 10 600 1000], 'Color', 'w')
 	subplot('Position', [0.12 0.56 0.84 0.42])
 	histogram(depth_norm_pk_tmp, 0:5:100, 'Normalization', 'percentage', 'LineWidth', 1.5, 'FaceColor', 'b', 'FaceAlpha', 0.5)
@@ -730,6 +760,154 @@ if plotting
 	set(gca, 'FontSize', 20, 'FontWeight', 'bold', 'XTick', [15 50 100 150])
 	text(18, 1.85, '(c)', 'FontSize', 24, 'FontWeight', 'bold', 'Color', 'k')
 	box on
+
+%% V2-V1
+
+	[~, ind_age_iso]		= intersect(age_iso, [11.7 29 57 115]);
+	[~, ind_age_iso_v1]		= intersect(age_grd2_v1.age_iso, (1e3 .* [11.7 29 57 115]));
+	[~, ind_depth_norm]		= intersect(depth_norm, 20:20:80);
+	[~, ind_depth_norm_v1]	= intersect(round(1e2 .* age_grd2_v1.depth_norm), 20:20:80);
+	num_color				= 10;
+    color_fig				= [([135 206 235] ./ 255); ([159 89 39] ./ 255); 0.9 0.9 0.9; redblue(num_color, 0.5)];
+    figure('Position', [100 100 1800 1300], 'Color', 'w')
+    colormap(color_fig)
+    range_all				= [-250 250; -5 5];
+	range_tmp				= NaN(1, (num_color + 1));
+	for ii = 1:2
+		range_tmp(ii, :)	= linspace(range_all(ii, 1), range_all(ii, 2), (num_color + 1));
+	end
+	ax						= gobjects(2, 4);
+	for ii = 1:2
+		for jj = 1:4
+    		ax(ii, jj)      = subplot('Position', [(0.01 + ((jj - 1) * 0.235)) (0.52 - (0.50 * (ii - 1))) 0.23 0.45]);
+    		hold on
+    		axis equal
+    		axis([x_min x_max y_min y_max])
+    		imagesc(BM5.x, BM5.y, BM5.mask_combo_plot, [0 2])
+			switch ii
+				case 1
+					plot_tmp= 2 + discretize((squeeze(depth_iso_smooth(:, :, ind_age_iso(jj))) - interp2((1e3 .* age_grd2_v1.x_grd), (1e3 .* flipud(age_grd2_v1.y_grd)), squeeze(age_grd2_v1.depth_iso2(:, :, ind_age_iso_v1(jj))), xx_grd, yy_grd)), [-Inf range_tmp(ii, 2:(end - 1)) Inf]);
+				case 2
+					plot_tmp= 2 + discretize((1e-3 .* (squeeze(age_norm_smooth(:, :, ind_depth_norm(jj))) - interp2((1e3 .* age_grd2_v1.x_grd), (1e3 .* flipud(age_grd2_v1.y_grd)), squeeze(age_grd2_v1.age_norm2(:, :, ind_depth_norm_v1(jj))), xx_grd, yy_grd))), [-Inf range_tmp(ii, 2:(end - 1)) Inf]);
+			end
+			imagesc(xx_grd(1, :), flipud(yy_grd(:, 1)), plot_tmp, 'AlphaData', ~isnan(plot_tmp))
+    		for kk = 1:length(x_paral)
+        		line(x_paral{kk}, y_paral{kk}, 'Color', 'k', 'LineStyle', '--', 'LineWidth', 1)
+    		end
+    		for kk = 1:length(x_merid)
+        		line(x_merid{kk}, y_merid{kk}, 'Color', 'k', 'LineStyle', '--', 'LineWidth', 1)
+    		end
+			for kk = 1:num_coast
+        		line((1e3 .* x_coast{kk}), (1e3 .* y_coast{kk}), 'Color', 'k', 'linewidth', 1)
+			end
+			for kk = 1:length(M19)
+				line(M19(kk).X, M19(kk).Y, 'LineWidth', 2, 'Color', 'k')
+			end
+			line(x_core, y_core, 'Color', 'k', 'Marker', '^', 'MarkerSize', 10, 'MarkerFaceColor', 'm', 'LineStyle', 'none', 'LineWidth', 1)
+    		[ax(ii, jj).FontSize, ax(ii, jj).XTick, ax(ii, jj).YTick] ...
+							= deal(20, [], []);
+			clim([0 size(color_fig, 1)])
+    		fill((1e3 .* [325 425 425 325]), (1e3 .* [-3230 -3230 -3260 -3260]), 'k')
+    		fill((1e3 .* [425 525 525 425]), (1e3 .* [-3230 -3230 -3260 -3260]), 'w', 'EdgeColor', 'k')
+    		text(300e3, -3180e3, '0', 'Color', 'k', 'FontSize', 18)
+    		text(520e3, -3180e3, '200 km', 'Color', 'k', 'FontSize', 18)
+			switch ii
+				case 1
+					title([num2str(age_iso(ind_age_iso(jj))) ' ka'], 'Color', 'k', 'FontSize', 24, 'FontWeight', 'bold')
+				case 2
+					title([num2str(depth_norm(ind_depth_norm(jj))) '% depth'], 'Color', 'k', 'FontSize', 24, 'FontWeight', 'bold')					
+			end
+			text(-575e3, -800e3, ['(' letters(jj + ((ii - 1) * 4)) ')'], 'Color', 'k', 'FontSize', 24, 'FontWeight', 'bold', 'BackgroundColor', 'w', 'EdgeColor', 'k')
+    		text(-625e3, -3205e3, '60\circN', 'Color', 'k', 'FontSize', 18, 'Rotation', -10)
+    		text(-340e3, -3270e3, '50\circW', 'Color', 'k', 'FontSize', 18, 'Rotation', 82)
+    		text(525e3, -2755e3, '65\circN', 'Color', 'k', 'FontSize', 18, 'Rotation', 15)
+    		text(725e3, -2910e3, '30\circW', 'Color', 'k', 'FontSize', 18, 'Rotation', -75)
+			if (jj == length(ind_age_iso))
+				tick_str	= cell(1, (num_color + 1));
+				for kk = 1:(num_color + 1)
+            		tick_str{kk} ...
+							= num2str(range_tmp(ii, kk));
+				end
+				if (ii == 1)
+					tick_str{1} ...
+							= ['≤' tick_str{1}];
+				end
+				tick_str{end} ...
+							= ['≥' tick_str{end}];
+				colorbar('FontSize', 20, 'Limits', [3 (num_color + 3)], 'YTick', (3:(num_color + 3)), 'YTickLabel', tick_str, 'TickLength', 0.03, 'Position', [0.95 (0.52 - (0.50 * (ii - 1))) 0.01 0.45])
+				switch ii
+					case 1
+						text((x_max - 170e3), (y_max + 130e3), 'depth difference (m)', 'FontSize', 20)
+					case 2
+						text((x_max - 130e3), (y_max + 130e3), 'age difference (ka)', 'FontSize', 20)
+				end
+			end
+    		grid off
+    		box on
+		end
+	end
+
+%% LAYER TYPE
+
+	num_color				= 5;
+    color_fig				= [([135 206 235] ./ 255); ([159 89 39] ./ 255); 0.9 0.9 0.9; parula(6)];
+    figure('Position', [100 100 1600 650], 'Color', 'w')
+    colormap(color_fig)
+	range_tmp				= [0 25];
+	ax						= gobjects(1, 4);
+	titles					= {'core dated' 'matched to core-dated' 'interpolated age' 'undated'};
+	for ii = 1:4
+		ax(ii)				= subplot('Position', [(0.01 + ((ii - 1) * 0.235)) 0.02 0.23 0.91]);
+		hold on
+		axis equal
+		axis([x_min x_max y_min y_max])
+		imagesc(BM5.x, BM5.y, BM5.mask_combo_plot, [0 2])
+		for jj = 1:length(x_paral)
+    		line(x_paral{jj}, y_paral{jj}, 'Color', 'k', 'LineStyle', '--', 'LineWidth', 1)
+		end
+		for jj = 1:length(x_merid)
+    		line(x_merid{jj}, y_merid{jj}, 'Color', 'k', 'LineStyle', '--', 'LineWidth', 1)
+		end
+		for jj = 1:num_coast
+    		line((1e3 .* x_coast{jj}), (1e3 .* y_coast{jj}), 'Color', 'k', 'linewidth', 1)
+		end
+		for jj = 1:length(M19)
+			line(M19(jj).X, M19(jj).Y, 'LineWidth', 2, 'Color', 'k')
+		end
+		line(x_core, y_core, 'Color', 'm', 'Marker', '^', 'MarkerSize', 10, 'LineStyle', 'none', 'LineWidth', 2)
+		for jj = setdiff(1:num_campaign, ind_campaign_ignore)
+			for kk = 1:num_segment(jj)
+				line(x{jj}{kk}(1:20:end), y{jj}{kk}(1:20:end), 'LineWidth', 1, 'Color', 'k')
+			end
+		end
+		[x_cat, y_cat, num_layer_cat] ...
+							= deal([]);
+		for jj = 1:pk_cat.num_file_pk
+			ind_good		= find(num_layer_type{jj}(ii, :) > 0);
+			[x_cat, y_cat, num_layer_cat] ...
+							= deal([x_cat pk_cat.x{jj}(pk_cat.ind_decim_mid{jj}(ind_good))], [y_cat pk_cat.y{jj}(pk_cat.ind_decim_mid{jj}(ind_good))], [num_layer_cat num_layer_type{jj}(ii, ind_good)]);
+		end
+		[~, ind_sort]		= sort(num_layer_cat);
+		scatter(x_cat(ind_sort), y_cat(ind_sort), 10, color_fig(interp1(((0:5:25) + (diff(0:5:30) ./ 2)), 4:9, num_layer_cat(ind_sort), 'nearest', 'extrap'), :), 'filled')
+		[ax(ii).FontSize, ax(ii).XTick, ax(ii).YTick] ...
+							= deal(20, [], []);
+		clim([0 size(color_fig, 1)])
+		fill((1e3 .* [325 425 425 325]), (1e3 .* [-3230 -3230 -3260 -3260]), 'k')
+		fill((1e3 .* [425 525 525 425]), (1e3 .* [-3230 -3230 -3260 -3260]), 'w', 'EdgeColor', 'k')
+		text(300e3, -3180e3, '0', 'Color', 'k', 'FontSize', 18)
+		text(520e3, -3180e3, '200 km', 'Color', 'k', 'FontSize', 18)
+		title(['(' letters(ii) ') ' titles{ii}], 'Color', 'k', 'FontSize', 24, 'FontWeight', 'bold')
+		text(-625e3, -3205e3, '60\circN', 'Color', 'k', 'FontSize', 18, 'Rotation', -10)
+		text(-340e3, -3270e3, '50\circW', 'Color', 'k', 'FontSize', 18, 'Rotation', 82)
+		text(525e3, -2755e3, '65\circN', 'Color', 'k', 'FontSize', 18, 'Rotation', 15)
+		text(725e3, -2910e3, '30\circW', 'Color', 'k', 'FontSize', 18, 'Rotation', -75)
+		if (ii == 4)
+			colorbar('FontSize', 20, 'Limits', [3 9], 'YTick', 3:9, 'YTickLabel', {'1' '5' '10' '15' '20' '25' '>30'}, 'TickLength', 0.0175)
+			text((x_max - 170e3), (y_max + 130e3), '# reflections', 'FontSize', 20)
+		end
+		grid off
+		box on
+	end
 
 %%
 end
