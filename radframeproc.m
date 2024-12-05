@@ -23,7 +23,7 @@ function data_cat			= radframeproc(dir_in, file_in, dir_cat, file_cat, do_norm, 
 %	*instead* of saving it.
 % 
 % Joe MacGregor (NASA)
-% Last updated: 12 August 2024
+% Last updated: 4 December 2024
 
 if ~license('test', 'map_toolbox')
 	error('radframeproc:mapping', 'Mapping Toolbox license is required.')
@@ -296,7 +296,7 @@ amp							= 10 .* log10(abs(amp));
 % address missing GNSS data by dropping those points altogether
 if (~isempty(find(isnan(lat), 1)) || ~isempty(find(isnan(lon), 1)))
 	ind_good_gnss			= find(~isnan(lat) & ~isnan(lon));
-	warning('NaN latitudes or longitudes detected!')
+	warning(['NaN latitudes or longitudes detected! (' num2str(num_trace - length(ind_good_gnss)) '/' num2str(num_trace) ')'])
 else
 	ind_good_gnss			= 1:num_trace;
 end
@@ -304,19 +304,29 @@ end
 % measurement time, slow time GPS time (not UTC), s
 time						= [radar_data(:).time];
 
+% project lat/lon to polar stereographic
+if (lat(1) > 0)
+	[x, y]					= projfwd(projcrs(3413), lat, lon); % EPSG:3413 for Greenland
+else	
+	[x, y]					= projfwd(projcrs(3031), lat, lon); % EPSG:3031 for Antarctica
+end
+
 % search for unique times/positions
 do_unique					= false;
 [~, ind_unique_time]		= unique(time, 'stable');
 if (length(ind_unique_time) < num_trace) % parts of 19990513_01 particularly challenging on time
+	ind_unique				= ind_unique_time;
 	do_unique				= true;
-	warning('Non-unique measurement times detected!')
+	warning(['Non-unique measurement times detected! (' num2str(num_trace - length(ind_unique)) '/' num2str(num_trace) ')'])
 end
-if do_tol % 2010-2013 looking at you
-	[~, ind_unique_pos]		= uniquetol([lat' lon'], (0.5 * median(diff(cumsum([0 distance([lat(1:(end - 1))' lon(1:(end - 1))'], [lat(2:end)' lon(2:end)'], wgs84Ellipsoid)'])))), 'ByRows', true, 'DataScale', 1);
+
+if do_tol % 2010-2013 looking at you when we did unpleasant overlapping frames
+	[~, ind_unique_pos]		= uniquetol([x' y'], (0.5 * median(diff(cumsum([0 distance([lat(1:(end - 1))' lon(1:(end - 1))'], [lat(2:end)' lon(2:end)'], wgs84Ellipsoid)'])))), 'ByRows', true, 'DataScale', 1);
 	ind_unique_pos			= sort(ind_unique_pos);
 else
-	[~, ind_unique_pos]		= unique([lat' lon'], 'rows', 'stable');
+	[~, ind_unique_pos]		= unique([x' y'], 'rows', 'stable');
 end
+
 if (length(ind_unique_pos) < num_trace)
 	if do_unique
 		ind_unique			= intersect(ind_unique_time, ind_unique_pos);
@@ -324,13 +334,13 @@ if (length(ind_unique_pos) < num_trace)
 		ind_unique			= ind_unique_pos;
 	end
 	do_unique				= true;
-	disp(length(ind_unique))
-	disp(num_trace)	
-	warning('Non-unique positions detected!')
+	warning(['Non-unique positions detected! (' num2str(num_trace - length(ind_unique_pos)) '/' num2str(num_trace) ')'])
 end
+
 if ~do_unique
 	ind_unique				= 1:num_trace;
 end
+
 ind_good					= intersect(ind_good_gnss, ind_unique);
 
 if (length(ind_good) < num_trace)
@@ -341,19 +351,13 @@ else
 end
 
 if do_fix
-	[amp, lat, lon, time]	= deal(amp(:, ind_good), lat(ind_good), lon(ind_good), time(ind_good));	
+	[amp, lat, lon, time, x, y]	...
+							= deal(amp(:, ind_good), lat(ind_good), lon(ind_good), time(ind_good), x(ind_good), y(ind_good));
 end
 
 % distance
 dist						= cumsum([0 distance([lat(1:(end - 1))' lon(1:(end - 1))'], [lat(2:end)' lon(2:end)'], wgs84Ellipsoid)']); % great-circle distance, m
 dist_lin					= interp1([1 num_trace], dist([1 end]), 1:num_trace); % simplified monotonic distance, m
-
-% project lat/lon to polar stereographic
-if (lat(1) > 0)
-	[x, y]					= projfwd(projcrs(3413), lat, lon); % EPSG:3413 for Greenland
-else	
-	[x, y]					= projfwd(projcrs(3031), lat, lon); % EPSG:3031 for Antarctica
-end
 
 % aircraft elevation
 elev_air					= [radar_data(:).elev_air];
