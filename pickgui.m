@@ -22,7 +22,7 @@
 %   parallelization for those loops that can use it.
 %   
 % Joe MacGregor (NASA)
-% Last updated: 1 November 2024
+% Last updated: 28 July 2025
 
 %% Intialize variables
 
@@ -89,23 +89,29 @@ else
 end
 
 % pre-allocate a bunch of variables
-[bed_avail, cbfix_check1, cross_pass, depth_avail, distfix_check, flat_done, grid_check, load_done, load_flat, norm_done, pk_check, pk_done, surf_avail, surfbed_check, trim_done, twttfix_check] ...
+[bed_avail, cbfix_check1, clutter_avail, cross_pass, depth_avail, distfix_check, flat_done, grid_check, load_done, load_flat, norm_done, pk_check, pk_done, surf_avail, surfbed_check, trim_done, twttfix_check] ...
                             = deal(false);
-[cbfix_check2, cross_check]	= deal(true);
+[cbfix_check2, cross_check, int_core_check]	...
+							= deal(true);
 [amp, amp_depth, amp_flat, amp_norm, data_cat, button, curr_chunk, curr_layer, dist_chunk, ii, ind_bed, ind_bed_flat, ind_bed_norm, ind_bed_smooth, ind_num_trace, ind_surf, ind_surf_flat, ind_surf_norm, ind_surf_smooth, ...
  ind_thick_smooth, ind_x_pk, ind_z_curr, ind_z_flat, ind_z_mat, ind_z_pk, jj, kk, num_chunk, num_sample_trim, pk_color, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8] ...
 							= deal(NaN);
 [p_bed, p_data, p_surf, pk_fig] ...
                             = deal(gobjects(1));
-p_pk						= deal(gobjects(0));
+[p_core, p_int, p_pk]		= deal(gobjects(0));
 [pk_ind_z, pk_ind_z_norm, pk_ind_z_flat] ...
 							= deal([]);
 [file_data, file_pk] ... % path_data, path_pk
                             = deal('');
-path_data					= '/Users/jamacgre/OneDrive - NASA/data/gris_strat2/arctic_cat_r1/';
-path_pk						= '/Users/jamacgre/OneDrive - NASA/data/gris_strat2/arctic_cat_pk_rev_r1/';
+path_data					= '/Users/jamacgre/OneDrive - NASA/data/AntArchitecture/ant_cat/';
+path_pk						= '/Users/jamacgre/OneDrive - NASA/data/AntArchitecture/ant_cat_pk/';
+path_int					= '/Users/jamacgre/OneDrive - NASA/research/matlab/pickgui_v2/mat/';
 cmap_curr					= 1;
 narrow_ax					= [dist_min dist_max twtt_min twtt_max];
+
+if ~isempty(path_int)
+	load([path_int 'int_cat_core_ant.mat'], 'file_cat', 'int_all', 'int_core')
+end
 
 if ispc % windows switch GUI element size
     size_font               = 14;
@@ -155,24 +161,24 @@ dist_max_edit               = annotation('textbox', [0.59 0.005 0.04 0.03], 'Str
 push_param					= {	'Load data (l)'				[0.005 0.965 0.06 0.03]		@load_data		'b';
 								'Trim z'					[0.07 0.965 0.04 0.03]		@trim_z			'b';
 								'Load picks (i)'			[0.30 0.965 0.06 0.03]		@pk_load		'b';
-%								'Pop fig. (q)'				[0.92 0.925 0.04 0.03]		@pop_fig		'g';
-%								'Flatten (f)'				[0.42 0.925 0.04 0.03]		@flatten		'm';
-%								'Semi-automatically (p/3)'	[0.46 0.925 0.09 0.03]		@pk_auto		'm';
-%								'Delete (d)'				[0.80 0.885 0.05 0.03]		@pk_del			'r';
-%								'Adjust (a)'				[0.7625 0.925 0.0425 0.03]	@pk_adj			'm';
-%								'Merge (m)'					[0.805 0.925 0.04 0.03]		@pk_merge		'm';
-%								'Focus (c)'					[0.715 0.925 0.045 0.03]	@pk_focus		'm';
-%								'Surf./bed (b/4)'			[0.72 0.885 0.05 0.03]		@pk_surfbed		'm';
-%								'Next (n)'					[0.6775 0.925 0.035 0.03]	@pk_next		'm';
-%								'Last (b)'					[0.64 0.925 0.035 0.03]		@pk_last		'm';
-%								'Split (x)'					[0.8475 0.925 0.035 0.03]	@pk_split		'm';
-% 								'Shift z (h)'				[0.885 0.925 0.035 0.03]	@pk_shift		'm';
+								'Pop fig. (q)'				[0.92 0.925 0.04 0.03]		@pop_fig		'g';
+								'Flatten (f)'				[0.42 0.925 0.04 0.03]		@flatten		'm';
+								'Semi-automatically (p/3)'	[0.46 0.925 0.09 0.03]		@pk_auto		'm';
+								'Delete (d)'				[0.80 0.885 0.05 0.03]		@pk_del			'r';
+								'Adjust (a)'				[0.7625 0.925 0.0425 0.03]	@pk_adj			'm';
+								'Merge (m)'					[0.805 0.925 0.04 0.03]		@pk_merge		'm';
+								'Focus (c)'					[0.715 0.925 0.045 0.03]	@pk_focus		'm';
+								'Surf./bed (b/4)'			[0.72 0.885 0.05 0.03]		@pk_surfbed		'm';
+								'Next (n)'					[0.6775 0.925 0.035 0.03]	@pk_next		'm';
+								'Last (b)'					[0.64 0.925 0.035 0.03]		@pk_last		'm';
+								'Split (x)'					[0.8475 0.925 0.035 0.03]	@pk_split		'm';
+								'Shift z (h)'				[0.885 0.925 0.035 0.03]	@pk_shift		'm';
 								'Test (t)'					[0.855 0.885 0.035 0.03]	@misctest		'r';
 								'Cross (v)'					[0.96 0.965 0.035 0.03]		@pk_cross		'm';
 								'Save (s)'					[0.965 0.925 0.03 0.03]		@pk_save		'g';
-%								'Reset x/y (e)'				[0.945 0.885 0.05 0.03]		@reset_xz		'r';
+								'Reset x/y (e)'				[0.945 0.885 0.05 0.03]		@reset_xz		'r';
 								'Reset dB'					[0.955 0.03 0.04 0.03]		@reset_db		'r';
-%								'Zoom on (z)'				[0.21 0.885 0.045 0.03]		@zoom_on		'b';
+								'Zoom on (z)'				[0.21 0.885 0.045 0.03]		@zoom_on		'b';
 								'Zoom off'					[0.26 0.885 0.04 0.03]		@zoom_off		'b';};
 
 for ii = 1:size(push_param, 1)
@@ -225,10 +231,11 @@ length_pk_max_check         = uicontrol(pk_gui, 'Style', 'checkbox', 'Units', 'n
 % display buttons
 disp_group                  = uibuttongroup('Position', [0.005 0.885 0.20 0.03], 'SelectionChangeFcn', @disp_radio);
 uicontrol(pk_gui, 'Style', 'text', 'Parent', disp_group, 'Units', 'normalized', 'Position', [0 0.6 0.9 0.3], 'FontSize', size_font)
-disp_check_param			= {'twtt'	0.01;
-							   'depth'  0.15;
-							   'norm'	0.33;
-							   'flat'	0.74};
+disp_check_param			= {'twtt'		0.01;
+							   'depth'		0.15;
+							   'norm'		0.33;
+							   'clutter'	0.55;
+							   'flat'		0.77};
 disp_check					= gobjects(1, size(disp_check_param, 1));
 for ii = 1:size(disp_check_param, 1) %#ok<*FXUP>
 	disp_check(ii)          = uicontrol(pk_gui, 'Style', 'radio', 'String', disp_check_param{ii, 1}, 'Units', 'normalized', 'Position', [disp_check_param{ii, 2} 0.1 0.2 0.8], 'Parent', disp_group, 'FontSize', size_font, ...
@@ -259,15 +266,17 @@ disp_group.SelectedObject = disp_check(1);
 		 ind_surf_smooth, ind_thick_smooth, ind_x_pk, ind_z_curr, ind_z_flat, ind_z_mat, ind_z_pk, jj, kk, num_chunk, num_sample_trim, pk_color, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8] ...
                             = deal(0);
 		pk.ind_trim_start	= 1;
-        [bed_avail, cross_pass, depth_avail, flat_done, load_done, load_flat, norm_done, pk_done, surf_avail, trim_done] ...
+        [bed_avail, clutter_avail, cross_pass, depth_avail, flat_done, load_done, load_flat, norm_done, pk_done, surf_avail, trim_done] ...
                             = deal(false);
-		cross_check			= true;
+		[cross_check, int_core_check] ...
+							= deal(true);
         [pk_ind_z, pk_ind_z_norm, pk_ind_z_flat] ...
 							= deal([]);
 		amp_flat		    = NaN;
 		[p_bed, p_data, p_surf, pk_fig] ...
                             = deal(gobjects(1));
-		p_pk				= deal(line([], []));
+		[p_core, p_int, p_pk] ...
+							= deal(line([], []));
         file_pk				= '';
         pk.num_win		    = num_win_ref;
         num_win_edit.String = num2str(pk.num_win);
@@ -342,6 +351,8 @@ disp_group.SelectedObject = disp_check(1);
 			try
                 [data_cat.amp, data_cat.lat, data_cat.lon, data_cat.num_trace, data_cat.twtt, data_cat.elev_air, data_cat.num_sample, data_cat.file_in] ...
 							= deal(single(tmp1.Data), tmp1.Latitude, tmp1.Longitude, length(tmp1.Latitude), tmp1.Time, tmp1.Elevation, length(tmp1.Time), file_data(1:(end - 4)));
+				file_box.String ...
+							= file_data(1:(end - 4));
             catch
                 status_box.String = 'Selected file does not contain expected variables.';
                 pk_gui.KeyPressFcn = @keypress; pk_gui.WindowButtonDownFcn = @mouse_click;
@@ -364,6 +375,14 @@ disp_group.SelectedObject = disp_check(1);
                 data_cat.twtt_bed ...
 							= NaN(1, data_cat.num_trace);
                 status_box.String = 'Selected file does not contain the Bottom variable. Setting bed pick to NaN.';
+			end
+			
+			% add cluttergram if available			
+			if isfield(tmp1, 'Clutter')
+				data_cat.clutter ...
+							= tmp1.Clutter;
+				clutter_avail ...
+							= true;
 			end
 			
         	% convert to dB
@@ -400,11 +419,21 @@ disp_group.SelectedObject = disp_check(1);
             end
             [disp_check(2:end).Visible, areselp_push.Visible] = deal('off');
             clear_plots
+			if any(isgraphics(p_core))
+				delete(p_core(isgraphics(p_core)))
+			end
+			if any(isgraphics(p_int))
+				delete(p_int(isgraphics(p_int)))
+			end
             clear_data
             load_done       = false;
 			disp_type       = 'twtt';
             twttfix_check	= false;
 			disp_group.SelectedObject = disp_check(1);
+			if isfield(data_cat, 'Clutter')
+				clutter_avail ...
+							= true;
+			end			
             pause(0.1)
         end
 		
@@ -483,6 +512,39 @@ disp_group.SelectedObject = disp_check(1);
 		
 		if (~isnan(data_cat.ind_trim_surf) && ~isnan(data_cat.ind_trim_bed))
 			trim_done		= true;
+		end
+		
+		if ~isempty(path_int)
+			tmp1			= find(contains(file_cat, file_data));
+			if ~isempty(tmp1)
+				tmp2		= [int_all((int_all(:, 1) == tmp1), 2); int_all((int_all(:, 3) == tmp1), 4)];
+				if ~isempty(tmp2)
+					p_int	= gobjects(1, length(tmp2));
+					for ii = 1:length(tmp2)
+						p_int(ii) ...
+							= line((1e-3 .* data_cat.dist_lin(tmp2([ii ii]))), (1e6 .* [twtt_min_ref twtt_max_ref]), 'Color', 'w', 'LineWidth', 2, 'LineStyle', '--', 'Visible', 'on');
+					end
+				end
+				tmp2		= int_core((int_core(:, 1) == tmp1), 2);
+				if ~isempty(tmp2)
+					p_core	= gobjects(1, length(tmp2));
+					for ii = 1:length(tmp2)
+						p_core(ii) ...
+							= line((1e-3 .* data_cat.dist_lin(tmp2([ii ii]))), (1e6 .* [twtt_min_ref twtt_max_ref]), 'Color', 'm', 'LineWidth', 2, 'LineStyle', '--', 'Visible', 'on');
+					end
+				end
+			end
+		end
+		
+		if clutter_avail
+            disp_check(4).Visible = 'on';
+            data_cat.clutter(isinf(data_cat.clutter)) ...
+                            = NaN;
+			data_cat.clutter= interp1([min(data_cat.clutter, [], 'all') max(data_cat.clutter, [], 'all')], [db_min db_max], data_cat.clutter);
+			if (num_sample_trim > size(data_cat.clutter, 1))
+                data_cat.clutter ...
+							= [data_cat.clutter; NaN((num_sample_trim - size(data_cat.clutter, 1)), size(data_cat.clutter, 2))];
+			end
 		end
 		
         layer_list.String = {'surface' 'bed'}; layer_list.Value = 1;
@@ -594,6 +656,17 @@ disp_group.SelectedObject = disp_check(1);
         [twtt_min_slide.Min, twtt_max_slide.Min] = deal(1e6 * twtt_min_ref);  [twtt_min_slide.Max, twtt_max_slide.Max] ...
 							= deal(1e6 * twtt_max_ref); twtt_min_slide.Value = (1e6 * twtt_max_ref); twtt_max_slide.Value = (1e6 * twtt_min_ref);
 		
+		if any(isgraphics(p_int))
+			for ii = find(isgraphics(p_int))
+				p_int(ii).YData = 1e6 .* [twtt_min_ref twtt_max_ref];
+			end
+		end
+		if any(isgraphics(p_core))
+			for ii = find(isgraphics(p_core))
+				p_core(ii).YData = 1e6 .* [twtt_min_ref twtt_max_ref];
+			end
+		end
+
         update_twtt_range
 		update_pk_plot
         status_box.String = ['Data trimmed off before ' num2str((1e6 * data_cat.twtt(1)), '%2.1f') ' us and after ' num2str((1e6 * data_cat.twtt(end)), '%2.1f') ' us.'];
@@ -819,6 +892,17 @@ disp_group.SelectedObject = disp_check(1);
         twtt_min_edit.String = sprintf('%3.1f', (1e6 * twtt_min_ref));
         twtt_max_edit.String = sprintf('%3.1f', (1e6 * twtt_max_ref));
 		ax_radar.YLim		= 1e6 .* [twtt_min_ref twtt_max_ref];
+		
+		if any(isgraphics(p_int))
+			for ii = find(isgraphics(p_int))
+				p_int(ii).YData = 1e6 .* [twtt_min_ref twtt_max_ref];
+			end
+		end
+		if any(isgraphics(p_core))
+			for ii = find(isgraphics(p_core))
+				p_core(ii).YData = 1e6 .* [twtt_min_ref twtt_max_ref];
+			end
+		end
 		
         pk_done             = true;
         status_box.String = 'Continuing pick loading...';
@@ -1196,8 +1280,8 @@ disp_group.SelectedObject = disp_check(1);
 			end
         end
         
-        disp_check(4).Visible = 'on';
-		disp_group.SelectedObject = disp_check(4);
+        disp_check(5).Visible = 'on';
+		disp_group.SelectedObject = disp_check(5);
         pk_select
         disp_type           = 'flat';
         plot_flat
@@ -2079,7 +2163,7 @@ disp_group.SelectedObject = disp_check(1);
 		ind_x_pk    = interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, ind_x_pk, 'nearest', 'extrap');
 		
 		switch disp_type
-            case {'twtt' 'flat' 'norm'}
+			case {'twtt' 'norm' 'clutter' 'flat'}
                 ind_z_pk   = interp1(data_cat.twtt, 1:num_sample_trim, (1e-6 * ind_z_pk), 'nearest', 'extrap');
             case 'depth'
                 ind_z_pk   = interp1(data_cat.twtt, 1:num_sample_trim, (1e-6 * (ind_z_pk + (1e6 * (data_cat.twtt_surf(ind_x_pk) - data_cat.twtt(1))))), 'nearest', 'extrap');
@@ -2087,7 +2171,7 @@ disp_group.SelectedObject = disp_check(1);
 		
 		if pk.num_layer
 			switch disp_type
-				case {'twtt' 'depth'}
+				case {'twtt' 'depth' 'clutter'}
 					tmp1	= pk_ind_z(:, ind_x_pk);
 				case 'norm'
 					tmp1	= pk_ind_z_norm(:, ind_x_pk);
@@ -2099,7 +2183,7 @@ disp_group.SelectedObject = disp_check(1);
 		end
 		
 		switch disp_type
-            case 'twtt'
+			case {'twtt' 'clutter'}
                 if (surf_avail && bed_avail)
                     tmp1    = [tmp1; ind_surf(ind_x_pk); ind_bed(ind_x_pk)];
 				elseif surf_avail
@@ -2146,7 +2230,7 @@ disp_group.SelectedObject = disp_check(1);
             return
         end
 		switch disp_type
-            case 'twtt'
+			case {'twtt' 'clutter'}
                 if (curr_layer == (pk.num_layer + 1))
 					reset_dist_min
 					reset_dist_max
@@ -2320,31 +2404,28 @@ disp_group.SelectedObject = disp_check(1);
     function pk_del_breakout(src, event)
         if (curr_layer == (pk.num_layer + 1))
             if isgraphics(p_surf)
-                delete(p_surf)
+                [p_surf.XData, p_surf.YData] = deal(NaN);
             end
             [ind_surf, ind_surf_flat, ind_surf_smooth, data_cat.twtt_surf] ...
-                                = deal(NaN(1, data_cat.num_trace));
+                            = deal(NaN(1, data_cat.num_trace));
             [norm_done, surf_avail] ...
 							= deal(false);
         elseif (curr_layer == (pk.num_layer + 2))
             if isgraphics(p_bed)
-                delete(p_bed)
+                [p_bed.XData, p_bed.YData] = deal(NaN);
             end
             [ind_bed, ind_bed_flat, ind_bed_smooth, data_cat.twtt_bed] ...
-                                = deal(NaN(1, data_cat.num_trace));
+                            = deal(NaN(1, data_cat.num_trace));
             [bed_avail, norm_done] ...
-								= deal(false);
+							= deal(false);
         else
-            tmp1                = setdiff(1:pk.num_layer, curr_layer);
+            tmp1            = setdiff(1:pk.num_layer, curr_layer);
             if isgraphics(p_pk(curr_layer))
-                delete(p_pk(curr_layer))
+                [p_pk(curr_layer).XData, p_pk(curr_layer).YData] = deal(NaN);
             end
             [pk.num_layer, pk_ind_z, p_pk, pk_ind_z_norm, pk_ind_z_flat] ...
                             = deal((pk.num_layer - 1), pk_ind_z(tmp1, :), p_pk(tmp1), pk_ind_z_norm(tmp1, :), pk_ind_z_flat(tmp1, :));
-            curr_layer      = curr_layer - 1;
-            if (curr_layer < 1)
-                curr_layer  = 1;
-            end
+            curr_layer      = max([1 (curr_layer - 1)]);
             if pk.num_layer
                 layer_list.String = [num2cell(1:pk.num_layer) 'surface' 'bed']; layer_list.Value = curr_layer;
             else
@@ -2870,6 +2951,10 @@ disp_group.SelectedObject = disp_check(1);
 
     function pk_split(source, eventdata)
         
+		if ~any(strcmp(disp_type, {'twtt' 'depth' 'norm' 'flat'}))
+            status_box.String = 'Must be in twtt, depth, norm or flat to split layers.';
+            return
+		end
         if ~pk_done
             status_box.String = 'No layers to split yet. Load picks first.';
             return
@@ -3122,7 +3207,7 @@ disp_group.SelectedObject = disp_check(1);
 %% Assign current layer to surface or bed
 
     function pk_surfbed(src, event)
-
+		
         if ~(pk_done && pk.num_layer && curr_layer)
             status_box.String = 'No picked layers to assign to surface or bed.';
             return
@@ -3144,10 +3229,10 @@ disp_group.SelectedObject = disp_check(1);
             pk_del_breakout
             [depth_avail, surf_avail] ...
 							= deal(true);
-            amp_depth   = NaN(num_sample_trim, data_cat.num_trace, 'single');
+            amp_depth		= NaN(num_sample_trim, data_cat.num_trace, 'single');
             for ii = find(~isnan(ind_surf))
                 amp_depth(1:(num_sample_trim - ind_surf(ii) + 1), ii) ...
-                        = amp(ind_surf(ii):num_sample_trim, ii); % shift data up to surface
+							= amp(ind_surf(ii):num_sample_trim, ii); % shift data up to surface
             end
             disp_check(2).Visible = 'on';
 			
@@ -3209,7 +3294,6 @@ disp_group.SelectedObject = disp_check(1);
 		end
 		
 		update_pk_color
-		p_pk(curr_layer).Color = pk_color(curr_layer, :);
     end
 
 %% Save layer picks
@@ -3927,6 +4011,8 @@ disp_group.SelectedObject = disp_check(1);
                 plot_depth
 			case 'norm'
 				plot_norm
+			case 'clutter'
+				plot_clutter
             case 'flat'
                 plot_flat
         end
@@ -3994,6 +4080,19 @@ disp_group.SelectedObject = disp_check(1);
         disp_type           = 'norm';
 		update_pk_plot
 		cb_def
+	end
+
+%% Plot cluttergram
+
+    function plot_clutter(src, event)
+		if (cmap_curr ~= 1)
+            cmap_curr = 1;
+            change_cmap
+		end
+        [p_data.XData, p_data.CData] = deal((1e-3 .* data_cat.dist_lin), data_cat.clutter);
+        disp_type           = 'clutter';
+		update_pk_plot
+		cb_def
     end
 
 %% Plot layer-flattened radargram
@@ -4032,7 +4131,7 @@ disp_group.SelectedObject = disp_check(1);
 		
 		switch disp_type
 			
-			case 'twtt'
+			case {'twtt' 'clutter'}
 				
 				for ii = 1:pk.num_layer
 					tmp1	= find(~isnan(pk_ind_z(ii, :)));
@@ -4087,6 +4186,7 @@ disp_group.SelectedObject = disp_check(1);
                     [p_bed.XData, p_bed.YData] = deal((1e-3 .* data_cat.dist_lin(~isnan(tmp1))), (1e6 .* data_cat.twtt(tmp1(~isnan(tmp1)))'));
 				end
 		end
+		show_int_core
 		show_surfbed
 		show_pk
 	end
@@ -4150,13 +4250,35 @@ disp_group.SelectedObject = disp_check(1);
 		norm_done			= true;
 	end
 
+%% Show intersections
+
+	 function show_int_core(src, event)
+		if int_core_check
+			if any(isgraphics(p_int))
+				[p_int(isgraphics(p_int)).Visible] = deal('on');
+				uistack(p_int(isgraphics(p_int)), 'top')
+			end
+			if any(isgraphics(p_core))
+				[p_core(isgraphics(p_core)).Visible] = deal('on');
+				uistack(p_core(isgraphics(p_core)), 'top')
+			end
+		else
+			if any(isgraphics(p_int))
+				[p_int(isgraphics(p_int)).Visible] = deal('off');
+			end
+			if any(isgraphics(p_core))
+				[p_core(isgraphics(p_core)).Visible] = deal('off');
+			end
+		end
+	end
+
 %% Show surface/bed
 
     function show_surfbed(src, event)
         if (surf_avail || bed_avail)
 			if surfbed_check
                 switch disp_type
-                    case {'twtt' 'norm' 'flat'}
+					case {'twtt' 'norm' 'clutter' 'flat'}
                         if isgraphics(p_bed)
                             p_bed.Visible = 'on';
                             uistack(p_bed, 'top')
@@ -4354,6 +4476,29 @@ disp_group.SelectedObject = disp_check(1);
                     end
 				end
                 text((1e-3 * (dist_max + (0.015 * (dist_max - dist_min)))), (1e6 * (twtt_min - (0.04 * (twtt_max - twtt_min)))), '(dB)', 'Color', 'k', 'FontSize', 20)
+			case 'clutter'
+				imagesc((1e-3 .* data_cat.dist_lin), (1e6 .* data_cat.clutter), amp, [db_min db_max])				
+				axis([(1e-3 .* [dist_min dist_max]) (1e6 .* [twtt_min twtt_max])])
+                clim([db_min db_max])
+                if surfbed_check
+                    if surf_avail
+                        line((1e-3 .* data_cat.dist_lin), (1e6 .* data_cat.twtt_surf), 'LineStyle', 'none', 'Marker', '.', 'Color', 'm', 'MarkerSize', 8)
+                    end
+                    if bed_avail
+                        line((1e-3 .* data_cat.dist_lin), (1e6 .* data_cat.twtt_bed), 'LineStyle', 'none', 'Marker', '.', 'Color', 'm', 'MarkerSize', 8)
+                    end
+                end
+				if pk_check
+                    for ii = 1:pk.num_layer
+                        if ~isempty(find(~isnan(pk_ind_z(ii, :)), 1))
+                            tmp1 = line((1e-3 .* data_cat.dist_lin(~isnan(pk_ind_z(ii, :)))), (1e6 .* data_cat.twtt(pk_ind_z(ii, ~isnan(pk_ind_z(ii, :))))'), ...
+								'LineStyle', 'none', 'Marker', '.', 'Color', pk_color(ii, :), 'MarkerSize', 8);
+                            if (ii == curr_layer)
+                                tmp1.MarkerSize = 24;
+                            end
+                        end
+                    end
+				end
             case 'flat'
                 imagesc((1e-3 .* data_cat.dist_lin), (1e6 .* data_cat.twtt), amp_flat, [db_min db_max])
                 if surfbed_check
@@ -4413,6 +4558,8 @@ disp_group.SelectedObject = disp_check(1);
                     tmp1    = amp_depth(tmp1(2, 1):10:tmp1(2, 2), tmp1(1, 1):10:tmp1(1, 2));
 				case 'norm'
                     tmp1    = amp_norm(tmp1(2, 1):10:tmp1(2, 2), tmp1(1, 1):10:tmp1(1, 2));
+				case 'clutter'
+                    tmp1    = data_cat.clutter(tmp1(2, 1):10:tmp1(2, 2), tmp1(1, 1):10:tmp1(1, 2));			
                 case 'flat'
                     tmp1    = amp_flat(tmp1(2, 1):10:tmp1(2, 2), tmp1(1, 1):10:tmp1(1, 2));
             end
@@ -4484,6 +4631,13 @@ disp_group.SelectedObject = disp_check(1);
                     surfbed_check = true;
                 end
                 show_surfbed
+            case '5'
+                if int_core_check
+                    int_core_check = false;
+                else
+                    int_core_check = true;
+                end
+                show_int_core
 			case '7'
 				pk_trimx
             case 'a'
@@ -4520,7 +4674,7 @@ disp_group.SelectedObject = disp_check(1);
 			case 'o'
 				if (pk.num_layer > 1)
 					switch disp_type
-						case {'twtt' 'depth'}
+						case {'twtt' 'depth' 'clutter'}
 							twtt_min = data_cat.twtt(min(pk_ind_z, [], 'all', 'omitnan'));
 							twtt_max = data_cat.twtt(max(pk_ind_z, [], 'all', 'omitnan'));
 						case 'norm'
@@ -4536,7 +4690,7 @@ disp_group.SelectedObject = disp_check(1);
 					twtt_max_edit.String = sprintf('%3.1f', (1e6 * twtt_max));
 					ax_radar.YLim = 1e6 .* [twtt_min twtt_max];
 					switch disp_type
-						case {'twtt' 'depth'}
+						case {'twtt' 'depth' 'clutter'}
 							tmp1 = sum(~isnan(pk_ind_z));
 						case 'norm'
 							tmp1 = sum(~isnan(pk_ind_z_norm));
@@ -4611,9 +4765,9 @@ disp_group.SelectedObject = disp_check(1);
 				end
 			case 'equal'
 				tmp1		= interp1(data_cat.dist_lin, ind_num_trace, [dist_min dist_max], 'nearest');
-				if (~isempty(find(~isnan(ind_surf(tmp1(1):tmp1(2))), 1)) && ~isempty(find(~isnan(ind_bed(tmp1(1):tmp1(2))), 1)) && any(strcmp(disp_type, {'twtt' 'depth' 'norm' 'flat'})))
+				if (~isempty(find(~isnan(ind_surf(tmp1(1):tmp1(2))), 1)) && ~isempty(find(~isnan(ind_bed(tmp1(1):tmp1(2))), 1)) && any(strcmp(disp_type, {'twtt' 'depth' 'norm' 'clutter' 'flat'})))
 					switch disp_type
-						case {'twtt' 'depth'}
+						case {'twtt' 'depth' 'clutter'}
 							tmp2	= [mean(ind_surf(tmp1(1):tmp1(2)), 'omitnan') mean(ind_bed(tmp1(1):tmp1(2)), 'omitnan')];
 						case 'norm'
 							tmp2	= [mean(ind_surf_norm(tmp1(1):tmp1(2)), 'omitnan') mean(ind_bed_norm(tmp1(1):tmp1(2)), 'omitnan')];
@@ -4681,28 +4835,32 @@ disp_group.SelectedObject = disp_check(1);
                 switch disp_type
                     case 'twtt'
                         if flat_done
-                            disp_group.SelectedObject = disp_check(4);
+                            disp_group.SelectedObject = disp_check(5);
                             disp_type = 'flat';
                             plot_flat
 						elseif norm_done
                             disp_group.SelectedObject = disp_check(3);
                             disp_type = 'norm';
                             plot_norm
+						elseif clutter_avail
+                            disp_group.SelectedObject = disp_check(4);
+                            disp_type = 'clutter';
+                            plot_clutter
 						else
                             disp_group.SelectedObject = disp_check(2);
                             disp_type = 'depth';
                             plot_depth
                         end
                     case 'depth'
-                        if flat_done
-                            disp_group.SelectedObject = disp_check(4);
+						if flat_done
+                            disp_group.SelectedObject = disp_check(5);
                             disp_type = 'flat';
                             plot_flat
                         else
                             disp_group.SelectedObject = disp_check(1);
                             disp_type = 'twtt';
                             plot_twtt
-                        end
+						end
                     otherwise
                         disp_group.SelectedObject = disp_check(1);
                         disp_type = 'twtt';
@@ -4732,7 +4890,7 @@ disp_group.SelectedObject = disp_check(1);
 %% Test something
 
     function misctest(src, event)
-		
+		clutter_avail
 		pk_gui.KeyPressFcn = @keypress; pk_gui.WindowButtonDownFcn = @mouse_click;
 		status_box.String = 'Test done.';
 	end
