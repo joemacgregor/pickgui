@@ -8,7 +8,7 @@
 %   intersecting radargrams can later be matched between segments using
 %   FENCEGUI.
 %   
-%   Refer to manual for operation (pickgui_man.pdf). NOT YET UPDATED
+%   Refer to pickgui_hotkeys.pdf for shortcuts.
 %	
 %   If loading individual CReSIS data frames, PICKGUI requires the Mapping
 %   Toolbox be licensed and available.
@@ -22,7 +22,7 @@
 %   parallelization for those loops that can use it.
 %   
 % Joe MacGregor (NASA)
-% Last updated: 28 July 2025
+% Last updated: 12 August 2025
 
 %% Intialize variables
 
@@ -101,11 +101,11 @@ end
 [p_core, p_int, p_pk]		= deal(gobjects(0));
 [pk_ind_z, pk_ind_z_norm, pk_ind_z_flat] ...
 							= deal([]);
-[file_data, file_pk] ... % path_data, path_pk
+[file_data, file_pk path_data, path_pk, path_int] ...
                             = deal('');
-path_data					= '/Users/jamacgre/OneDrive - NASA/data/AntArchitecture/ant_cat/';
-path_pk						= '/Users/jamacgre/OneDrive - NASA/data/AntArchitecture/ant_cat_pk/';
-path_int					= '/Users/jamacgre/OneDrive - NASA/research/matlab/pickgui_v2/mat/';
+% path_data					= '/Users/jamacgre/OneDrive - NASA/data/AntArchitecture/ant_cat/';
+% path_pk						= '/Users/jamacgre/OneDrive - NASA/data/AntArchitecture/ant_cat_pk/';
+% path_int					= '/Users/jamacgre/OneDrive - NASA/research/matlab/pickgui_v2/mat/';
 cmap_curr					= 1;
 narrow_ax					= [dist_min dist_max twtt_min twtt_max];
 
@@ -2444,36 +2444,40 @@ disp_group.SelectedObject = disp_check(1);
         end
         
         tmp5                = 0;
-        
+		
         [pk_gui.KeyPressFcn, pk_gui.WindowButtonDownFcn] = deal('');
 		
         while true
             
-            status_box.String = 'L: delete left; R: delete right; C: cut (left start); U: undo; Q: quit.';
-            
-            % get pick and convert to indices
-            [ind_x_pk, ~, button] ...
+			if isempty(find(strcmp(button, {'L1' 'R1' 'LR2'}), 1))
+            	status_box.String ...
+							= 'L: delete left; R: delete right; C: cut (left start); U: undo; Q: quit.';
+            	% get pick and convert to indices
+            	[ind_x_pk, ~, button] ...
                             = ginput(1);
+				button		= char(button);
+			end
 			ind_x_pk		= interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, ind_x_pk, 'nearest', 'extrap');
-            
-            if (strcmpi(char(button), 'L') || strcmpi(char(button), 'R') || strcmpi(char(button), 'C'))
+			
+            if ~isempty(find(strcmpi(button, {'L' 'L1' 'R' 'R1' 'C'}), 1))
                 
-                switch char(button)
-                    case {'l' 'L'}
+                switch button
+                    case {'l' 'L' 'L1'}
                         tmp1= 1:ind_x_pk;
-                    case {'r' 'R'}
+                    case {'r' 'R' 'R1'}
                         tmp1= ind_x_pk:data_cat.num_trace;
                     case {'c' 'C'}
                         status_box.String = 'Now choose right end of cut...';
-                        [tmp2, ~] = ginput(1);
-						tmp2 = interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, tmp2, 'nearest', 'extrap');
+                        [tmp2, ~] ...
+							= ginput(1);
+						tmp2= interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, tmp2, 'nearest', 'extrap');
                         tmp4= tmp2; % in case of undo
                         tmp1= ind_x_pk:tmp2;
                 end
                 
                 [tmp2, tmp3]= deal(button, cell(1, 4));
                 
-                if (curr_layer == (pk.num_layer + 1))
+				if (curr_layer == (pk.num_layer + 1))
                     [tmp3{1}, tmp3{3}] ...
                             = deal(ind_surf(tmp1), data_cat.twtt_surf(tmp1));
                     [data_cat.twtt_surf(tmp1), ind_surf(tmp1)] ...
@@ -2513,13 +2517,13 @@ disp_group.SelectedObject = disp_check(1);
 					tmp3{4} = pk_ind_z_norm(curr_layer, tmp1);
                     [pk_ind_z(curr_layer, tmp1), pk_ind_z_norm(curr_layer, tmp1), pk_ind_z_flat(curr_layer, tmp1)] ...
                             = deal(NaN);
-                end
-                
+				end
+				
                 pk_fix
                 
                 tmp5        = ind_x_pk;
-                switch char(button)
-                    case {'l' 'L'}
+                switch button
+                    case {'l' 'L' 'L1'}
                         if (curr_layer == (pk.num_layer + 1))
                             status_box.String = ['Surface cut left at ' num2str((1e-3 * data_cat.dist_lin(ind_x_pk)), '%3.1f') ' km.'];
                         elseif (curr_layer == (pk.num_layer + 2))
@@ -2527,7 +2531,7 @@ disp_group.SelectedObject = disp_check(1);
                         else
                             status_box.String = ['Layer #' num2str(curr_layer) ' cut left at ' num2str((1e-3 * data_cat.dist_lin(ind_x_pk)), '%3.1f') ' km.'];
                         end
-                    case {'r' 'R'}
+                    case {'r' 'R' 'R1'}
                         if (curr_layer == (pk.num_layer + 1))
                             status_box.String = ['Surface cut right at ' num2str((1e-3 * data_cat.dist_lin(ind_x_pk)), '%3.1f') ' km.'];
                         elseif (curr_layer == (pk.num_layer + 2))
@@ -2545,16 +2549,20 @@ disp_group.SelectedObject = disp_check(1);
                         end
                 end
                 
-            elseif strcmpi(char(button), 'U') % undo adjustment done in current set
+				if ~isempty(find(strcmp(button, {'L1' 'R1'}), 1))
+					button		= 'LR2';
+				end
+				
+            elseif strcmpi(button, 'U') % undo adjustment done in current set
                 
                 if ~tmp5
                     continue
                 end
                 
-                if (strcmpi(char(tmp2), 'L') || strcmpi(char(tmp2), 'R') || strcmpi(char(tmp2), 'C'))
+                if ~isempty(find(strcmpi(tmp2, {'L' 'R' 'C'}), 1))
                     
                     tmp1    = cell(1, 3);
-                    switch char(tmp2)
+                    switch tmp2
                         case {'l' 'L'}
                             tmp1= 1:tmp5;
                         case {'r' 'R'}
@@ -2598,7 +2606,7 @@ disp_group.SelectedObject = disp_check(1);
                 pk_fix
                 status_box.String = 'Undid previous adjustment.';
                 
-            elseif strcmpi(char(button), 'Q')
+			elseif ~isempty(find(strcmpi(button, {'Q' 'LR2'}), 1))
                 
                 if (curr_layer == (pk.num_layer + 1))
                     status_box.String = 'Done adjusting surface.';
@@ -2631,18 +2639,19 @@ disp_group.SelectedObject = disp_check(1);
 
     function pk_fix(src, event)
         
-        if (curr_layer == (pk.num_layer + 1))
+		if (curr_layer == (pk.num_layer + 1))
             tmp1            = find(~isnan(ind_surf));
         elseif (curr_layer == (pk.num_layer + 2))
             tmp1            = find(~isnan(ind_bed));
         else
             tmp1            = find(~isnan(pk_ind_z(curr_layer, :)));
-        end
-        if (length(find(~isnan(tmp1))) < num_ind_layer_min)
+		end
+		
+		if (length(find(~isnan(tmp1))) < num_ind_layer_min)
             pk_del
             status_box.String = 'Layer now too small so it was deleted.';
             return
-        end
+		end
         
         if (curr_layer == (pk.num_layer + 1))
             
@@ -4612,7 +4621,7 @@ disp_group.SelectedObject = disp_check(1);
 
 %% Keyboard shortcuts for various functions
 
-    function keypress(~, event)
+    function keypress(src, event)
 		switch event.Key
 			case '1'
 				chunk_list.Value = 1;
@@ -4872,25 +4881,40 @@ disp_group.SelectedObject = disp_check(1);
 %% Mouse click
 
     function mouse_click(src, event)
-        if ((logical(pk.num_layer) || surf_avail || bed_avail))
-            tmp1            = src.CurrentPoint;
-            tmp2            = pk_gui.Position;
-            tmp3            = ax_radar.Position;
-            tmp4            = [(tmp2(1) + (tmp2(3) * tmp3(1))) (tmp2(1) + (tmp2(3) * (tmp3(1) + tmp3(3)))); (tmp2(2) + (tmp2(4) * tmp3(2))) (tmp2(2) + (tmp2(4) * (tmp3(2) + tmp3(4))))];
-            if ((tmp1(1) > (tmp4(1, 1))) && (tmp1(1) < (tmp4(1, 2))) && (tmp1(2) > (tmp4(2, 1))) && (tmp1(2) < (tmp4(2, 2))))
-                tmp1        = [((tmp1(1) - tmp4(1, 1)) / diff(tmp4(1, :))) ((tmp4(2, 2) - tmp1(2)) / diff(tmp4(2, :)))];
-                tmp2        = [ax_radar.XLim; ax_radar.YLim];
-                [ind_x_pk, ind_z_pk] ...
-                            = deal(((tmp1(1) * diff(tmp2(1, :))) + tmp2(1, 1)), ((tmp1(2) * diff(tmp2(2, :))) + tmp2(2, 1)));
-                pk_select_gui
-            end
-        end
+		if ((logical(pk.num_layer) || surf_avail || bed_avail))
+			tmp1            = src.CurrentPoint;
+			tmp2            = pk_gui.Position;
+			tmp3            = ax_radar.Position;
+			tmp4            = [(tmp2(1) + (tmp2(3) * tmp3(1))) (tmp2(1) + (tmp2(3) * (tmp3(1) + tmp3(3)))); (tmp2(2) + (tmp2(4) * tmp3(2))) (tmp2(2) + (tmp2(4) * (tmp3(2) + tmp3(4))))];
+			if ((tmp1(1) > (tmp4(1, 1))) && (tmp1(1) < (tmp4(1, 2))) && (tmp1(2) > (tmp4(2, 1))) && (tmp1(2) < (tmp4(2, 2))))
+				tmp1        = [((tmp1(1) - tmp4(1, 1)) / diff(tmp4(1, :))) ((tmp4(2, 2) - tmp1(2)) / diff(tmp4(2, :)))];
+				tmp2        = [ax_radar.XLim; ax_radar.YLim];
+				[ind_x_pk, ind_z_pk] ...
+							= deal(((tmp1(1) * diff(tmp2(1, :))) + tmp2(1, 1)), ((tmp1(2) * diff(tmp2(2, :))) + tmp2(2, 1)));
+				switch src.SelectionType
+					case 'normal'
+						pk_select_gui
+					case 'extend' % shift / left cut
+						button ...
+							= 'L1';
+						pk_adj
+						button ...
+							= NaN;
+					case 'alt' % ctrl / right cut
+						button ...
+							= 'R1';
+						pk_adj
+						button ...
+							= NaN;
+				end
+			end
+		end
     end
 
 %% Test something
 
     function misctest(src, event)
-		clutter_avail
+		
 		pk_gui.KeyPressFcn = @keypress; pk_gui.WindowButtonDownFcn = @mouse_click;
 		status_box.String = 'Test done.';
 	end
