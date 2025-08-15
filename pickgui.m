@@ -22,7 +22,7 @@
 %   parallelization for those loops that can use it.
 %   
 % Joe MacGregor (NASA)
-% Last updated: 12 August 2025
+% Last updated: 15 August 2025
 
 %% Intialize variables
 
@@ -161,24 +161,24 @@ dist_max_edit               = annotation('textbox', [0.59 0.005 0.04 0.03], 'Str
 push_param					= {	'Load data (l)'				[0.005 0.965 0.06 0.03]		@load_data		'b';
 								'Trim z'					[0.07 0.965 0.04 0.03]		@trim_z			'b';
 								'Load picks (i)'			[0.30 0.965 0.06 0.03]		@pk_load		'b';
-								'Pop fig. (q)'				[0.92 0.925 0.04 0.03]		@pop_fig		'g';
-								'Flatten (f)'				[0.42 0.925 0.04 0.03]		@flatten		'm';
+								% 'Pop fig. (q)'				[0.92 0.925 0.04 0.03]		@pop_fig		'g';
+								% 'Flatten (f)'				[0.42 0.925 0.04 0.03]		@flatten		'm';
 								'Semi-automatically (p/3)'	[0.46 0.925 0.09 0.03]		@pk_auto		'm';
-								'Delete (d)'				[0.80 0.885 0.05 0.03]		@pk_del			'r';
-								'Adjust (a)'				[0.7625 0.925 0.0425 0.03]	@pk_adj			'm';
-								'Merge (m)'					[0.805 0.925 0.04 0.03]		@pk_merge		'm';
-								'Focus (c)'					[0.715 0.925 0.045 0.03]	@pk_focus		'm';
-								'Surf./bed (b/4)'			[0.72 0.885 0.05 0.03]		@pk_surfbed		'm';
-								'Next (n)'					[0.6775 0.925 0.035 0.03]	@pk_next		'm';
-								'Last (b)'					[0.64 0.925 0.035 0.03]		@pk_last		'm';
-								'Split (x)'					[0.8475 0.925 0.035 0.03]	@pk_split		'm';
-								'Shift z (h)'				[0.885 0.925 0.035 0.03]	@pk_shift		'm';
+								% 'Delete (d)'				[0.80 0.885 0.05 0.03]		@pk_del			'r';
+								% 'Adjust (a)'				[0.7625 0.925 0.0425 0.03]	@pk_adj			'm';
+								% 'Merge (m)'					[0.805 0.925 0.04 0.03]		@pk_merge		'm';
+								% 'Focus (c)'					[0.715 0.925 0.045 0.03]	@pk_focus		'm';
+								% 'Surf./bed (b/4)'			[0.72 0.885 0.05 0.03]		@pk_surfbed		'm';
+								% 'Next (n)'					[0.6775 0.925 0.035 0.03]	@pk_next		'm';
+								% 'Last (b)'					[0.64 0.925 0.035 0.03]		@pk_last		'm';
+								% 'Split (x)'					[0.8475 0.925 0.035 0.03]	@pk_split		'm';
+								% 'Shift z (h)'				[0.885 0.925 0.035 0.03]	@pk_shift		'm';
 								'Test (t)'					[0.855 0.885 0.035 0.03]	@misctest		'r';
 								'Cross (v)'					[0.96 0.965 0.035 0.03]		@pk_cross		'm';
 								'Save (s)'					[0.965 0.925 0.03 0.03]		@pk_save		'g';
-								'Reset x/y (e)'				[0.945 0.885 0.05 0.03]		@reset_xz		'r';
-								'Reset dB'					[0.955 0.03 0.04 0.03]		@reset_db		'r';
-								'Zoom on (z)'				[0.21 0.885 0.045 0.03]		@zoom_on		'b';
+								% 'Reset x/y (e)'				[0.945 0.885 0.05 0.03]		@reset_xz		'r';
+								% 'Reset dB'					[0.955 0.03 0.04 0.03]		@reset_db		'r';
+								% 'Zoom on (z)'				[0.21 0.885 0.045 0.03]		@zoom_on		'b';
 								'Zoom off'					[0.26 0.885 0.04 0.03]		@zoom_off		'b';};
 
 for ii = 1:size(push_param, 1)
@@ -1341,6 +1341,12 @@ disp_group.SelectedObject = disp_check(1);
 					end
 			end
 			
+			if (button == 2) % shift or left-click
+				button		= 108; % equivalent to 'l', cut left
+			elseif (button == 3) % ctrl or right-click
+				button		= 114; % 'r' cut right
+			end
+			
             if (button == 1) % trace layer
                 
                 pk.num_layer= pk.num_layer + 1;
@@ -1497,7 +1503,7 @@ disp_group.SelectedObject = disp_check(1);
                             = deal(pk_ind_z(1:(end - 1), :), p_pk(1:(end - 1)), (pk.num_layer - 1), pk_ind_z_flat(1:(end - 1), :), pk_ind_z_norm(1:(end - 1), :));
                 status_box.String = 'Undid last layer.';
                 
-            elseif (strcmpi(char(button), 'L') || strcmpi(char(button), 'R') || strcmpi(char(button), 'C')) % delete portion of layer
+			elseif ~isempty(find(strcmpi(char(button), {'L' 'R' 'C'}), 1)) % delete portion of layer
                 
 				% no new layers yet
 				if (pk.num_layer < tmp3)
@@ -4914,7 +4920,7 @@ disp_group.SelectedObject = disp_check(1);
 %% Test something
 
     function misctest(src, event)
-		
+
 		pk_gui.KeyPressFcn = @keypress; pk_gui.WindowButtonDownFcn = @mouse_click;
 		status_box.String = 'Test done.';
 	end
