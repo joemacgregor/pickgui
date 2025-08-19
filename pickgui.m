@@ -22,7 +22,7 @@
 %   parallelization for those loops that can use it.
 %   
 % Joe MacGregor (NASA)
-% Last updated: 15 August 2025
+% Last updated: 19 August 2025
 
 %% Intialize variables
 
@@ -101,11 +101,11 @@ end
 [p_core, p_int, p_pk]		= deal(gobjects(0));
 [pk_ind_z, pk_ind_z_norm, pk_ind_z_flat] ...
 							= deal([]);
-[file_data, file_pk, path_data, path_pk, path_int] ...
+[file_data, file_pk] ...%, path_data, path_pk, path_int] ...
                             = deal('');
-% path_data					= '/Users/jamacgre/OneDrive - NASA/data/AntArchitecture/ant_cat/';
-% path_pk						= '/Users/jamacgre/OneDrive - NASA/data/AntArchitecture/ant_cat_pk/';
-% path_int					= '/Users/jamacgre/OneDrive - NASA/research/matlab/pickgui_v2/mat/';
+path_data					= '/Users/jamacgre/OneDrive - NASA/data/AntArchitecture/ant_cat/';
+path_pk						= '/Users/jamacgre/OneDrive - NASA/data/AntArchitecture/ant_cat_pk/';
+path_int					= '/Users/jamacgre/OneDrive - NASA/research/matlab/pickgui_v2/mat/';
 cmap_curr					= 1;
 narrow_ax					= [dist_min dist_max twtt_min twtt_max];
 
@@ -211,7 +211,7 @@ end
 % variable text annotations
 file_box                    = annotation('textbox', [0.005 0.925 0.20 0.03], 'String', '', 'Color', 'k', 'FontSize', size_font, 'BackgroundColor', 'w', 'EdgeColor', 'k', 'interpreter', 'none', 'LineWidth', 1);
 status_box                  = annotation('textbox', [0.64 0.965 0.315 0.03], 'String', '', 'Color', 'k', 'FontSize', size_font, 'BackgroundColor', 'w', 'EdgeColor', 'k', 'interpreter', 'none', 'LineWidth', 1);
-cbl                         = annotation('textbox', [0.93 0.03 0.03 0.03], 'String', '', 'FontSize', size_font, 'Color', 'k', 'EdgeColor', 'none', 'FontWeight', 'bold');
+annotation('textbox', [0.93 0.03 0.03 0.03], 'String', '(dB)', 'FontSize', size_font, 'Color', 'k', 'EdgeColor', 'none', 'FontWeight', 'bold')
 
 % value boxes
 length_chunk_edit           = uicontrol(pk_gui, 'Style', 'edit', 'String', num2str(length_chunk), 'Units', 'normalized', 'Position', [0.25 0.925 0.03 0.03], 'FontSize', size_font, 'ForegroundColor', 'k', 'BackgroundColor', 'w', ...
@@ -454,7 +454,7 @@ disp_group.SelectedObject = disp_check(1);
                             = deal(data_cat.twtt(1), data_cat.twtt(end), data_cat.twtt(1), data_cat.twtt(end), min(amp, [], 'all'), max(amp, [], 'all'), min(amp, [], 'all'), max(amp, [], 'all'), data_cat.dist_lin(1), ...
 								   data_cat.dist_lin(end), data_cat.dist_lin(1), data_cat.dist_lin(end));
         [twtt_min_slide.Min, twtt_max_slide.Min] = deal(1e6 * twtt_min_ref); [twtt_min_slide.Max, twtt_max_slide.Max] = deal(1e6 * twtt_max_ref); twtt_min_slide.Value = (1e6 * twtt_max_ref); twtt_max_slide.Value = (1e6 * twtt_min_ref);
-        twtt_min_edit.String = sprintf('%3.1f', (1e6 * twtt_min_ref)); twtt_max_edit.String = sprintf('%3.1f', (1e6 * twtt_max_ref));		
+        twtt_min_edit.String = sprintf('%3.1f', (1e6 * twtt_min_ref)); twtt_max_edit.String = sprintf('%3.1f', (1e6 * twtt_max_ref));
         [dist_min_slide.Min, dist_max_slide.Min] = deal(1e-3 * dist_min_ref); [dist_min_slide.Max, dist_max_slide.Max] = deal(1e-3 * dist_max_ref); dist_min_slide.Value = 1e-3 * dist_min_ref; dist_max_slide.Value = 1e-3 * dist_max_ref;
         dist_min_edit.String = sprintf('%3.1f', (1e-3 * dist_min_ref)); dist_max_edit.String = sprintf('%3.1f', (1e-3 * dist_max_ref));
         [cb_min_slide.Min, cb_max_slide.Max] = deal(db_min_ref); [cb_min_slide.Max, cb_max_slide.Max] = deal(db_max_ref); cb_min_slide.Value = db_min; cb_max_slide.Value = db_max;
@@ -551,6 +551,7 @@ disp_group.SelectedObject = disp_check(1);
         pk_select
         
         % plot data
+		reset_xz
         disp_group.SelectedObject = disp_check(1);
         load_done           = true;
         plot_twtt
@@ -1372,7 +1373,7 @@ disp_group.SelectedObject = disp_check(1);
 							tmp1 = (pk_ind_z((curr_layer .* ones((pk.num_layer + 1), 1)), :) - [ind_surf; pk_ind_z(1:(end - 1), :); ind_bed]) == 0; % find overlap with existing layers
 							tmp2 = false;
 							[~, tmp4] ...
-									= find(tmp1(:, 1:(ind_x_pk - 1))); % any overlap to left of pick
+								= find(tmp1(:, 1:(ind_x_pk - 1))); % any overlap to left of pick
 							if ~isempty(tmp4)
 								tmp4= max(tmp4); % rightmost overlap of left-hand section
 								pk_ind_z(curr_layer, 1:tmp4(1)) ...
@@ -1491,7 +1492,6 @@ disp_group.SelectedObject = disp_check(1);
                 [pk_ind_z, pk.num_layer, pk_ind_z_flat, pk_ind_z_norm] ...
                             = deal(pk_ind_z(tmp2, :), (pk.num_layer - 1), pk_ind_z_flat(tmp2, :), pk_ind_z_norm(tmp2, :));
                 status_box.String = ['Deleted layer #' num2str(tmp1) '.'];
-                % pause(0.1)
                 
             elseif strcmpi(char(button), 'U') % undo
                 
@@ -1743,13 +1743,13 @@ disp_group.SelectedObject = disp_check(1);
                     pause(0.1)
                 end
                 
-            elseif (button == 28)
+			elseif strcmp(char(button), '←')
                 pan_left
-            elseif (button == 29)
+			elseif strcmp(char(button), '→')
                 pan_right
-            elseif (button == 30)
+            elseif strcmp(char(button), '↑')
                 pan_up
-            elseif (button == 31)
+			elseif strcmp(char(button), '↓')
                 pan_down
             elseif strcmpi(char(button), 'I')
                 zoom_in
@@ -2772,9 +2772,11 @@ disp_group.SelectedObject = disp_check(1);
             pk_gui.KeyPressFcn = @keypress; pk_gui.WindowButtonDownFcn = @mouse_click;
             status_box.String = 'Layer merging canceled.';
             return
+		else
+			status_box.String = 'Merging...';
         end
         
-		ind_x_pk    = interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, ind_x_pk, 'nearest', 'extrap');
+		ind_x_pk			= interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, ind_x_pk, 'nearest', 'extrap');
         switch disp_type
             case {'twtt' 'norm' 'flat'}
                 ind_z_pk    = interp1(data_cat.twtt, 1:num_sample_trim, (1e-6 * ind_z_pk), 'nearest', 'extrap');
@@ -3502,9 +3504,6 @@ disp_group.SelectedObject = disp_check(1);
                 twtt_min_slide.Value = (1e6 * (twtt_max_ref - (twtt_min - twtt_min_ref)));
             end
         end
-        twtt_min_slide.Enable = 'off';
-        drawnow
-        twtt_min_slide.Enable = 'on';
     end
 
 %% Update maximum twtt
@@ -3552,9 +3551,6 @@ disp_group.SelectedObject = disp_check(1);
                 twtt_max_slide.Value = (1e6 * (twtt_max_ref - (twtt_max - twtt_min_ref)));
             end
         end
-        twtt_max_slide.Enable = 'off';
-		drawnow
-        twtt_max_slide.Enable = 'on';
     end
 
 %% Reset minimum twtt
@@ -3591,6 +3587,7 @@ disp_group.SelectedObject = disp_check(1);
 
     function update_twtt_range(src, event)
         ax_radar.YLim = 1e6 .* [twtt_min twtt_max];
+		update_data_plot
         narrow_cb
     end
 
@@ -3636,9 +3633,6 @@ disp_group.SelectedObject = disp_check(1);
         end
 		[db_min, db_max]	= deal(tmp1(1), tmp1(2));
         update_db_range
-        cb_min_slide.Enable = 'off';
-        drawnow
-        cb_min_slide.Enable = 'on';
     end
 
 %% Update maximum color slider
@@ -3683,9 +3677,6 @@ disp_group.SelectedObject = disp_check(1);
         end
         [db_min, db_max]	= deal(tmp1(1), tmp1(2));
         update_db_range
-        cb_max_slide.Enable = 'off';
-        drawnow
-        cb_max_slide.Enable = 'on';
     end
 
 %% Reset color sliders
@@ -3752,9 +3743,6 @@ disp_group.SelectedObject = disp_check(1);
                 dist_min_slide.Value = 1e-3 * dist_min;
             end
         end
-        dist_min_slide.Enable = 'off';
-        drawnow
-        dist_min_slide.Enable = 'on';
     end
 
 %% Update maximum distance
@@ -3796,9 +3784,6 @@ disp_group.SelectedObject = disp_check(1);
                 dist_max_slide.Value = 1e-3 * dist_max;
             end
         end
-        dist_max_slide.Enable = 'off';
-        drawnow
-        dist_max_slide.Enable = 'on';
     end
 
 %% Reset minimum distance
@@ -3831,6 +3816,7 @@ disp_group.SelectedObject = disp_check(1);
 
     function update_dist_range(src, event)
         ax_radar.XLim = 1e-3 .* [dist_min dist_max];
+		update_data_plot
         narrow_cb
     end
 
@@ -3895,7 +3881,7 @@ disp_group.SelectedObject = disp_check(1);
             twtt_min_edit.String = sprintf('%3.1f', tmp1(1));
             twtt_min        = 1e-6 * tmp1(1);
         end
-        if (tmp1(2) > (1e6 * twtt_max_ref))
+		if (tmp1(2) > (1e6 * twtt_max_ref))
             reset_twtt_max
         else
             if (((1e6 * twtt_max_ref) - (tmp1(2) - (1e6 * twtt_min_ref))) < twtt_max_slide.Min)
@@ -3907,7 +3893,8 @@ disp_group.SelectedObject = disp_check(1);
             end
             twtt_max_edit.String = sprintf('%3.1f', tmp1(2));
             twtt_max        = 1e-6 * tmp1(2);
-        end
+		end
+		update_data_plot
         narrow_cb
     end
 
@@ -4019,21 +4006,8 @@ disp_group.SelectedObject = disp_check(1);
 
     function disp_radio(~, event)
         disp_type           = event.NewValue.String;
-        switch disp_type
-            case 'twtt'
-                plot_twtt
-            case 'depth'
-                plot_depth
-			case 'norm'
-				plot_norm
-			case 'clutter'
-				plot_clutter
-            case 'flat'
-                plot_flat
-        end
-        [disp_check(:).Enable] = deal('off');
-        drawnow
-        [disp_check(:).Enable] = deal('on');
+		update_data_plot
+		update_pk_plot
     end
 
 %% Plot traveltime
@@ -4047,12 +4021,12 @@ disp_group.SelectedObject = disp_check(1);
             cmap_curr = 1;
             change_cmap
 		end
+        disp_type           = 'twtt';
 		if isgraphics(p_data)
-			[p_data.XData, p_data.CData] = deal((1e-3 .* data_cat.dist_lin), amp);
+			update_data_plot
 		else
 			p_data			= imagesc((1e-3 .* data_cat.dist_lin), (1e6 .* data_cat.twtt), amp, [db_min db_max]);
 		end
-        disp_type           = 'twtt';
 		update_pk_plot
         cb_def
     end
@@ -4068,8 +4042,8 @@ disp_group.SelectedObject = disp_check(1);
             cmap_curr = 1;
             change_cmap
 		end
-        [p_data.XData, p_data.CData] = deal((1e-3 .* data_cat.dist_lin), amp_depth);
         disp_type           = 'depth';
+		update_data_plot
 		update_pk_plot
         cb_def
     end
@@ -4091,8 +4065,8 @@ disp_group.SelectedObject = disp_check(1);
 		if ~norm_done
 			do_norm
 		end
-        [p_data.XData, p_data.CData] = deal((1e-3 .* data_cat.dist_lin), amp_norm);
         disp_type           = 'norm';
+		update_data_plot
 		update_pk_plot
 		cb_def
 	end
@@ -4104,8 +4078,8 @@ disp_group.SelectedObject = disp_check(1);
             cmap_curr = 1;
             change_cmap
 		end
-        [p_data.XData, p_data.CData] = deal((1e-3 .* data_cat.dist_lin), data_cat.clutter);
         disp_type           = 'clutter';
+		update_data_plot
 		update_pk_plot
 		cb_def
     end
@@ -4123,8 +4097,8 @@ disp_group.SelectedObject = disp_check(1);
             cmap_curr = 1;
             change_cmap
 		end
-        [p_data.XData, p_data.CData] = deal((1e-3 .* data_cat.dist_lin), amp_flat);
         disp_type           = 'flat';
+		update_data_plot
 		update_pk_plot
 		cb_def
     end
@@ -4133,17 +4107,41 @@ disp_group.SelectedObject = disp_check(1);
 
 	function cb_def(src, event)
         narrow_cb
-        cbl.String = '(dB)';
         cb_min_slide.Min = db_min_ref; cb_min_slide.Max = db_max_ref; cb_min_slide.Value = db_min;
         cb_max_slide.Min = db_min_ref; cb_max_slide.Max = db_max_ref; cb_max_slide.Value = db_max;
         cb_min_edit.String = sprintf('%3.0f', db_min);
         cb_max_edit.String = sprintf('%3.0f', db_max);
 	end
 
+%% Update data display
+
+function update_data_plot(src, event)
+	if ~isgraphics(p_data)
+		return
+	end
+	[tmp1, tmp2]			= deal(interp1(data_cat.twtt, 1:num_sample_trim, [twtt_min twtt_max], 'nearest', 'extrap'), interp1(data_cat.dist_lin, 1:data_cat.num_trace, [dist_min dist_max], 'nearest', 'extrap'));
+	switch disp_type
+		case 'twtt'
+			[p_data.XData, p_data.YData, p_data.CData] ...
+							= deal((1e-3 .* data_cat.dist_lin(tmp2(1):tmp2(2))), (1e6 .* data_cat.twtt(tmp1(1):tmp1(2))), amp(tmp1(1):tmp1(2), tmp2(1):tmp2(2)));
+		case 'depth'
+			[p_data.XData, p_data.YData, p_data.CData] ...
+							= deal((1e-3 .* data_cat.dist_lin(tmp2(1):tmp2(2))), (1e6 .* data_cat.twtt(tmp1(1):tmp1(2))), amp_depth(tmp1(1):tmp1(2), tmp2(1):tmp2(2)));
+		case 'norm'
+			[p_data.XData, p_data.YData, p_data.CData] ...
+							= deal((1e-3 .* data_cat.dist_lin(tmp2(1):tmp2(2))), (1e6 .* data_cat.twtt(tmp1(1):tmp1(2))), amp_norm(tmp1(1):tmp1(2), tmp2(1):tmp2(2)));
+		case 'clutter'
+			[p_data.XData, p_data.YData, p_data.CData] ...
+							= deal((1e-3 .* data_cat.dist_lin(tmp2(1):tmp2(2))), (1e6 .* data_cat.twtt(tmp1(1):tmp1(2))), data_cat.clutter(tmp1(1):tmp1(2), tmp2(1):tmp2(2)));
+		case 'flat'
+			[p_data.XData, p_data.YData, p_data.CData] ...
+							= deal((1e-3 .* data_cat.dist_lin(tmp2(1):tmp2(2))), (1e6 .* data_cat.twtt(tmp1(1):tmp1(2))), amp_flat(tmp1(1):tmp1(2), tmp2(1):tmp2(2)));
+	end
+end
+
 %% Update picks display
 
 	function update_pk_plot(src, event)
-		
 		switch disp_type
 			
 			case {'twtt' 'clutter'}
@@ -4365,6 +4363,7 @@ disp_group.SelectedObject = disp_check(1);
         end
         dist_min_edit.String = sprintf('%3.1f', (1e-3 * dist_min));
         dist_max_edit.String = sprintf('%3.1f', (1e-3 * dist_max));
+		update_dist_range
     end
 
 %% Adjust length of each chunk
@@ -4782,8 +4781,10 @@ disp_group.SelectedObject = disp_check(1);
 				tmp1		= interp1(data_cat.dist_lin, ind_num_trace, [dist_min dist_max], 'nearest');
 				if (~isempty(find(~isnan(ind_surf(tmp1(1):tmp1(2))), 1)) && ~isempty(find(~isnan(ind_bed(tmp1(1):tmp1(2))), 1)) && any(strcmp(disp_type, {'twtt' 'depth' 'norm' 'clutter' 'flat'})))
 					switch disp_type
-						case {'twtt' 'depth' 'clutter'}
+						case {'twtt' 'clutter'}
 							tmp2	= [mean(ind_surf(tmp1(1):tmp1(2)), 'omitnan') mean(ind_bed(tmp1(1):tmp1(2)), 'omitnan')];
+						case 'depth'
+							tmp2	= [1 (1 + (mean(ind_bed(tmp1(1):tmp1(2)), 'omitnan') - mean(ind_surf(tmp1(1):tmp1(2)), 'omitnan')))];
 						case 'norm'
 							tmp2	= [mean(ind_surf_norm(tmp1(1):tmp1(2)), 'omitnan') mean(ind_bed_norm(tmp1(1):tmp1(2)), 'omitnan')];
 							if isnan(tmp2(1))
@@ -4920,7 +4921,7 @@ disp_group.SelectedObject = disp_check(1);
 %% Test something
 
     function misctest(src, event)
-
+		
 		pk_gui.KeyPressFcn = @keypress; pk_gui.WindowButtonDownFcn = @mouse_click;
 		status_box.String = 'Test done.';
 	end
