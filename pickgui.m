@@ -22,7 +22,7 @@
 %   parallelization for those loops that can use it.
 %   
 % Joe MacGregor (NASA)
-% Last updated: 19 August 2025
+% Last updated: 21 August 2025
 
 %% Intialize variables
 
@@ -93,7 +93,7 @@ end
                             = deal(false);
 [cbfix_check2, cross_check, int_core_check]	...
 							= deal(true);
-[amp, amp_depth, amp_flat, amp_norm, data_cat, button, curr_chunk, curr_layer, dist_chunk, ii, ind_bed, ind_bed_flat, ind_bed_norm, ind_bed_smooth, ind_num_trace, ind_surf, ind_surf_flat, ind_surf_norm, ind_surf_smooth, ...
+[amp, amp_depth, amp_flat, amp_norm, data_cat, button, curr_chunk, curr_layer, dist_chunk, ii, ind_bed, ind_bed_flat, ind_bed_norm, ind_bed_smooth, ind_num_sample, ind_num_trace, ind_surf, ind_surf_flat, ind_surf_norm, ind_surf_smooth, ...
  ind_thick_smooth, ind_x_pk, ind_z_curr, ind_z_flat, ind_z_mat, ind_z_pk, jj, kk, num_chunk, num_sample_trim, pk_color, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8] ...
 							= deal(NaN);
 [p_bed, p_data, p_surf, pk_fig] ...
@@ -238,8 +238,7 @@ disp_check_param			= {'twtt'		0.01;
 							   'flat'		0.77};
 disp_check					= gobjects(1, size(disp_check_param, 1));
 for ii = 1:size(disp_check_param, 1) %#ok<*FXUP>
-	disp_check(ii)          = uicontrol(pk_gui, 'Style', 'radio', 'String', disp_check_param{ii, 1}, 'Units', 'normalized', 'Position', [disp_check_param{ii, 2} 0.1 0.2 0.8], 'Parent', disp_group, 'FontSize', size_font, ...
-		'HandleVisibility', 'off');
+	disp_check(ii)          = uicontrol(pk_gui, 'Style', 'radio', 'String', disp_check_param{ii, 1}, 'Units', 'normalized', 'Position', [disp_check_param{ii, 2} 0.1 0.2 0.8], 'Parent', disp_group, 'FontSize', size_font, 'HandleVisibility', 'off');
 end
 disp_group.SelectedObject = disp_check(1);
 [disp_check(2:end).Visible] = deal('off');
@@ -262,7 +261,7 @@ disp_group.SelectedObject = disp_check(1);
     function clear_data(src, event)
         pk					= struct;
         pk.layer            = struct;
-        [pk.num_layer, amp, amp_depth, amp_norm, button, curr_chunk, curr_layer, dist_chunk, ii, ind_bed, ind_bed_flat, ind_bed_norm, ind_bed_smooth, ind_num_trace, ind_surf, ind_surf_flat, ind_surf_norm, ...
+        [pk.num_layer, amp, amp_depth, amp_norm, button, curr_chunk, curr_layer, dist_chunk, ii, ind_bed, ind_bed_flat, ind_bed_norm, ind_bed_smooth, ind_num_sample, ind_num_trace, ind_surf, ind_surf_flat, ind_surf_norm, ...
 		 ind_surf_smooth, ind_thick_smooth, ind_x_pk, ind_z_curr, ind_z_flat, ind_z_mat, ind_z_pk, jj, kk, num_chunk, num_sample_trim, pk_color, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8] ...
                             = deal(0);
 		pk.ind_trim_start	= 1;
@@ -444,6 +443,7 @@ disp_group.SelectedObject = disp_check(1);
 		amp					= data_cat.amp;
 		data_cat			= rmfield(data_cat, 'amp');
         num_sample_trim     = data_cat.num_sample;
+		ind_num_sample		= 1:num_sample_trim;
 		ind_num_trace		= 1:data_cat.num_trace;
 		
         % make chunks
@@ -466,7 +466,7 @@ disp_group.SelectedObject = disp_check(1);
         if isfield(data_cat, 'twtt_surf')
             if ~isempty(find((~isnan(data_cat.twtt_surf) & ~isinf(data_cat.twtt_surf)), 1))
                 ind_surf(~isnan(data_cat.twtt_surf) & ~isinf(data_cat.twtt_surf)) ...
-                            = interp1(data_cat.twtt, 1:num_sample_trim, data_cat.twtt_surf(~isnan(data_cat.twtt_surf) & ~isinf(data_cat.twtt_surf)), 'nearest', 'extrap');
+                            = interp1(data_cat.twtt, ind_num_sample, data_cat.twtt_surf(~isnan(data_cat.twtt_surf) & ~isinf(data_cat.twtt_surf)), 'nearest', 'extrap');
                 if ~isempty(find(isnan(ind_surf), 1))
                     ind_surf(isnan(ind_surf)) ...
                             = round(interp1(find(~isnan(ind_surf)), ind_surf(~isnan(ind_surf)), find(isnan(ind_surf)), 'linear', 'extrap'));
@@ -492,7 +492,7 @@ disp_group.SelectedObject = disp_check(1);
         if isfield(data_cat, 'twtt_bed')
             if ~isempty(find((~isnan(data_cat.twtt_bed) & ~isinf(data_cat.twtt_bed)), 1))
                 ind_bed(~isnan(data_cat.twtt_bed) & ~isinf(data_cat.twtt_bed)) ...
-                            = interp1(data_cat.twtt, 1:num_sample_trim, data_cat.twtt_bed(~isnan(data_cat.twtt_bed) & ~isinf(data_cat.twtt_bed)), 'nearest', 'extrap');
+                            = interp1(data_cat.twtt, ind_num_sample, data_cat.twtt_bed(~isnan(data_cat.twtt_bed) & ~isinf(data_cat.twtt_bed)), 'nearest', 'extrap');
                 ind_bed(ind_bed > num_sample_trim) ...
                             = num_sample_trim;
                 bed_avail   = true;
@@ -581,7 +581,7 @@ disp_group.SelectedObject = disp_check(1);
         pause(0.1)
         
         % trim column vector
-        tmp1                = (interp1(data_cat.twtt, 1:num_sample_trim, twtt_min, 'nearest', 'extrap'):interp1(data_cat.twtt, 1:num_sample_trim, twtt_max, 'nearest', 'extrap'))';
+        tmp1                = (interp1(data_cat.twtt, ind_num_sample, twtt_min, 'nearest', 'extrap'):interp1(data_cat.twtt, ind_num_sample, twtt_max, 'nearest', 'extrap'))';
         if trim_done
             tmp2            = pk.ind_trim_start + tmp1(1) - 1;
         end
@@ -606,7 +606,8 @@ disp_group.SelectedObject = disp_check(1);
         end
         
         num_sample_trim     = length(tmp1);
-        
+        ind_num_sample		= 1:num_sample_trim;
+
         % adjust and trim surface and bed indices
         if surf_avail
             ind_surf(ind_surf > num_sample_trim) ...
@@ -636,7 +637,7 @@ disp_group.SelectedObject = disp_check(1);
 		if norm_done
 			do_norm
 			if pk_done
-				tmp1		= (1:num_sample_trim)'; % normalization vector
+				tmp1		= ind_num_sample'; % normalization vector
 				tmp2		= (tmp1(:, ones(1, data_cat.num_trace)) - ind_surf_smooth(ones(num_sample_trim, 1), :)) ./ ind_thick_smooth(ones(num_sample_trim, 1), :); % normalization matrix
 				for ii = 1:pk.num_layer
 					for jj = find(~isnan(pk_ind_z(ii, :)) & ~isnan(tmp2(1, :)))
@@ -973,7 +974,7 @@ disp_group.SelectedObject = disp_check(1);
 		
 		if norm_done
 			disp_check(3).Visible = 'on';
-			tmp1			= (1:num_sample_trim)'; % normalization vector
+			tmp1			= ind_num_sample'; % normalization vector
 			tmp2			= (tmp1(:, ones(1, data_cat.num_trace)) - ind_surf_smooth(ones(num_sample_trim, 1), :)) ./ ind_thick_smooth(ones(num_sample_trim, 1), :); % normalization matrix
 			for ii = 1:pk.num_layer
 				for jj = find(~isnan(pk_ind_z(ii, :)) & ~isnan(tmp2(1, :)))
@@ -1100,7 +1101,7 @@ disp_group.SelectedObject = disp_check(1);
                 
                 % calculate flattening matrix based on current polynomials
                 tmp1                = find(~isnan(ind_z_curr(ii, :)));
-                ind_z_mat           = single((1:num_sample_trim)');
+                ind_z_mat           = single(ind_num_sample');
                 ind_z_mat           = ind_z_mat(:, ones(1, length(tmp1))); % matrix of y indices
                 switch ord_poly
                     case 2
@@ -1189,7 +1190,7 @@ disp_group.SelectedObject = disp_check(1);
         end
         
         % flattened y indices based on fits to kept layers
-        ind_z_mat           = single((1:num_sample_trim)');
+        ind_z_mat           = single(ind_num_sample');
         ind_z_mat           = ind_z_mat(:, ones(1, data_cat.num_trace)); % matrix of y indices
         switch ord_poly
             case 2
@@ -1205,7 +1206,7 @@ disp_group.SelectedObject = disp_check(1);
                             = NaN;
         
         % prevent non-unique flattening
-		tmp3				= (1:num_sample_trim)';
+		tmp3				= ind_num_sample';
 		tmp4				= diff(ind_z_flat) <= 0;
         for ii = find(sum(tmp4))
             ind_z_flat((1 + find(diff(ind_z_flat(:, ii)) <= 0)), ii) ...
@@ -1318,14 +1319,13 @@ disp_group.SelectedObject = disp_check(1);
             status_box.String = 'Left-click: Pick; D: delete; U: undo; L: cut left; R: cut right; C: cut chunk; M: merge; Q: done...';
             
             % get pick and convert to indices
-            [ind_x_pk, ind_z_pk, button] ...
-                            = ginput(1);
+			finput
 			ind_x_pk		= interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, ind_x_pk, 'nearest', 'extrap');
 			switch disp_type
                 case {'twtt' 'norm' 'flat'}
-                    ind_z_pk= interp1(data_cat.twtt, 1:num_sample_trim, (1e-6 * ind_z_pk), 'nearest', 'extrap');
+                    ind_z_pk= interp1(data_cat.twtt, ind_num_sample, (1e-6 * ind_z_pk), 'nearest', 'extrap');
                 case 'depth'
-                    ind_z_pk= interp1(data_cat.twtt, 1:num_sample_trim, (1e-6 * (ind_z_pk + (1e6 * (data_cat.twtt_surf(ind_x_pk) - data_cat.twtt(1))))), 'nearest', 'extrap');
+                    ind_z_pk= interp1(data_cat.twtt, ind_num_sample, (1e-6 * (ind_z_pk + (1e6 * (data_cat.twtt_surf(ind_x_pk) - data_cat.twtt(1))))), 'nearest', 'extrap');
 			end
 			switch disp_type
 				case 'norm'
@@ -1524,6 +1524,7 @@ disp_group.SelectedObject = disp_check(1);
 					pause(0.5)
 					continue
 				end
+				
 				tmp2        = find(~isnan(tmp1));
 				
 				if ((length(tmp2) > 1) && (length(unique(tmp1(tmp2))) == length(tmp2)))
@@ -1539,10 +1540,11 @@ disp_group.SelectedObject = disp_check(1);
 				if strcmpi(char(button), 'C')
                     status_box.String = 'Now choose right end of cut...';
 					pause(0.1)
-                    [ind_x_pk(2), ~] ...
-                            = ginput(1);
-					ind_x_pk(2)	...
-							= interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, ind_x_pk(2), 'nearest', 'extrap');
+					tmp6	= button;
+					tmp7	= ind_x_pk;
+					finput
+					ind_x_pk= interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, ind_x_pk, 'nearest', 'extrap');
+					button	= tmp6;
 				end
 				
 				switch char(button)
@@ -1551,7 +1553,7 @@ disp_group.SelectedObject = disp_check(1);
                     case {'r' 'R'}
                         tmp2 = ind_x_pk:data_cat.num_trace;
                     case {'c' 'C'}
-                        tmp2= ind_x_pk(1):ind_x_pk(2);
+                        tmp2= tmp7:ind_x_pk;
 				end
 				
 				switch disp_type
@@ -1641,9 +1643,8 @@ disp_group.SelectedObject = disp_check(1);
 				p_pk(tmp1).Color = 'y';
                 
                 status_box.String = 'Now choose layer to merge with (Left-click to select or Q: quit ONLY)...';
-                
-				[ind_x_pk, ind_z_pk, button] ...
-                            = ginput(1);
+
+				finput
 				ind_x_pk	= interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, ind_x_pk, 'nearest', 'extrap');
 				if strcmpi(char(button), 'Q')
 					p_pk(tmp1).Color = [1 0.7 0.7];
@@ -1656,10 +1657,10 @@ disp_group.SelectedObject = disp_check(1);
                 switch disp_type
                     case {'twtt' 'flat' 'norm'}
                         ind_z_pk ...
-                            = interp1(data_cat.twtt, 1:num_sample_trim, (1e-6 * ind_z_pk), 'nearest', 'extrap');
+                            = interp1(data_cat.twtt, ind_num_sample, (1e-6 * ind_z_pk), 'nearest', 'extrap');
                     case 'depth'
                         ind_z_pk ...
-                            = interp1(data_cat.twtt, 1:num_sample_trim, (1e-6 * (ind_z_pk + (1e6 * (data_cat.twtt_surf(ind_x_pk) - data_cat.twtt(1))))), 'nearest', 'extrap');
+                            = interp1(data_cat.twtt, ind_num_sample, (1e-6 * (ind_z_pk + (1e6 * (data_cat.twtt_surf(ind_x_pk) - data_cat.twtt(1))))), 'nearest', 'extrap');
                 end
 				switch disp_type
 					case {'twtt' 'depth'}
@@ -1786,7 +1787,7 @@ disp_group.SelectedObject = disp_check(1);
 			case {'twtt' 'depth'}
 				
 				if norm_done
-					tmp1	= (1:num_sample_trim)'; % normalization vector
+					tmp1	= ind_num_sample'; % normalization vector
 					tmp2	= (tmp1(:, ones(1, data_cat.num_trace)) - ind_surf_smooth(ones(num_sample_trim, 1), :)) ./ ind_thick_smooth(ones(num_sample_trim, 1), :); % normalization matrix
 					for ii = tmp3:pk.num_layer
 						tmp4= find(~isnan(pk_ind_z(ii, :)) & ~isnan(tmp2(1, :)));
@@ -1811,7 +1812,7 @@ disp_group.SelectedObject = disp_check(1);
 				
 			case 'norm'
 				
-				tmp1		= (1:num_sample_trim)'; % normalization vector
+				tmp1		= ind_num_sample'; % normalization vector
 				for ii = tmp3:pk.num_layer
 					tmp2	= find(~isnan(pk_ind_z_norm(ii, :)));
 					tmp4	= (tmp1(:, ones(1, length(tmp2))) - ind_surf_smooth(ones(num_sample_trim, 1), tmp2)) ./ ind_thick_smooth(ones(num_sample_trim, 1), tmp2); % normalization matrix
@@ -1840,7 +1841,7 @@ disp_group.SelectedObject = disp_check(1);
                 pk_ind_z((pk_ind_z < 1) | (pk_ind_z > num_sample_trim)) ...
                             = NaN;
 				if norm_done
-					tmp1	= (1:num_sample_trim)'; % normalization vector
+					tmp1	= ind_num_sample'; % normalization vector
 					tmp2	= (tmp1(:, ones(1, data_cat.num_trace)) - ind_surf_smooth(ones(num_sample_trim, 1), :)) ./ ind_thick_smooth(ones(num_sample_trim, 1), :); % normalization matrix
 					for ii = tmp3:pk.num_layer
 						for jj = find(~isnan(pk_ind_z(ii, :)) & ~isnan(tmp2(1, :)))
@@ -2170,9 +2171,9 @@ disp_group.SelectedObject = disp_check(1);
 		
 		switch disp_type
 			case {'twtt' 'norm' 'clutter' 'flat'}
-                ind_z_pk   = interp1(data_cat.twtt, 1:num_sample_trim, (1e-6 * ind_z_pk), 'nearest', 'extrap');
+                ind_z_pk   = interp1(data_cat.twtt, ind_num_sample, (1e-6 * ind_z_pk), 'nearest', 'extrap');
             case 'depth'
-                ind_z_pk   = interp1(data_cat.twtt, 1:num_sample_trim, (1e-6 * (ind_z_pk + (1e6 * (data_cat.twtt_surf(ind_x_pk) - data_cat.twtt(1))))), 'nearest', 'extrap');
+                ind_z_pk   = interp1(data_cat.twtt, ind_num_sample, (1e-6 * (ind_z_pk + (1e6 * (data_cat.twtt_surf(ind_x_pk) - data_cat.twtt(1))))), 'nearest', 'extrap');
 		end
 		
 		if pk.num_layer
@@ -2459,8 +2460,7 @@ disp_group.SelectedObject = disp_check(1);
             	status_box.String ...
 							= 'L: delete left; R: delete right; C: cut (left start); U: undo; Q: quit.';
             	% get pick and convert to indices
-            	[ind_x_pk, ~, button] ...
-                            = ginput(1);
+				finput
 				button		= char(button);
 			end
 			ind_x_pk		= interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, ind_x_pk, 'nearest', 'extrap');
@@ -2474,11 +2474,11 @@ disp_group.SelectedObject = disp_check(1);
                         tmp1= ind_x_pk:data_cat.num_trace;
                     case {'c' 'C'}
                         status_box.String = 'Now choose right end of cut...';
-                        [tmp2, ~] ...
-							= ginput(1);
-						tmp2= interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, tmp2, 'nearest', 'extrap');
+						tmp7= ind_x_pk;
+						finput
+						tmp2= interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, ind_x_pk, 'nearest', 'extrap');
                         tmp4= tmp2; % in case of undo
-                        tmp1= ind_x_pk:tmp2;
+                        tmp1= tmp7:tmp2;
                 end
                 
                 [tmp2, tmp3]= deal(button, cell(1, 4));
@@ -2712,17 +2712,17 @@ disp_group.SelectedObject = disp_check(1);
             status_box.String = 'Pick cut (left start); Q: quit.';
             
             % get pick and convert to indices
-            [ind_x_pk, ~, button] ...
-                            = ginput(1);
+			finput
 			ind_x_pk		= interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, ind_x_pk, 'nearest', 'extrap');
             
             if (button == 1)
                 
                 status_box.String = 'Now choose right end of cut...';
-                [tmp2, ~]	= ginput(1);
-				tmp2		= interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, tmp2, 'nearest', 'extrap');
+				tmp7		= ind_x_pk;
+				finput
+				tmp2		= interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, ind_x_pk, 'nearest', 'extrap');				
                 tmp4		= tmp2; % in case of undo
-                tmp1		= ind_x_pk:tmp2;
+				tmp1		= tmp7:tmp2;
                 [pk_ind_z(:, tmp1), pk_ind_z_norm(:, tmp1), pk_ind_z_flat(:, tmp1)] ...
                             = deal(NaN);
                 
@@ -2766,8 +2766,7 @@ disp_group.SelectedObject = disp_check(1);
         end
         
         % get pick and convert to indices
-        [ind_x_pk, ind_z_pk, button] ...
-                            = ginput(1);
+		finput
         if strcmpi(char(button), 'Q')
             pk_gui.KeyPressFcn = @keypress; pk_gui.WindowButtonDownFcn = @mouse_click;
             status_box.String = 'Layer merging canceled.';
@@ -2779,9 +2778,9 @@ disp_group.SelectedObject = disp_check(1);
 		ind_x_pk			= interp1((1e-3 .* data_cat.dist_lin), ind_num_trace, ind_x_pk, 'nearest', 'extrap');
         switch disp_type
             case {'twtt' 'norm' 'flat'}
-                ind_z_pk    = interp1(data_cat.twtt, 1:num_sample_trim, (1e-6 * ind_z_pk), 'nearest', 'extrap');
+                ind_z_pk    = interp1(data_cat.twtt, ind_num_sample, (1e-6 * ind_z_pk), 'nearest', 'extrap');
             case 'depth'
-                ind_z_pk    = interp1(data_cat.twtt, 1:num_sample_trim, (1e-6 * (ind_z_pk + (1e6 * (data_cat.twtt_surf(ind_x_pk) - data_cat.twtt(1))))), 'nearest', 'extrap');
+                ind_z_pk    = interp1(data_cat.twtt, ind_num_sample, (1e-6 * (ind_z_pk + (1e6 * (data_cat.twtt_surf(ind_x_pk) - data_cat.twtt(1))))), 'nearest', 'extrap');
         end
         
         % get current layer positions at ind_x_pk, depending on what layers are available
@@ -2987,8 +2986,7 @@ disp_group.SelectedObject = disp_check(1);
         pause(0.1)
         
         % get pick and convert to indices
-        [ind_x_pk, ~, button] ...
-                            = ginput(1);
+		finput
         
         if strcmpi(char(button), 'Q')
 			pk_gui.KeyPressFcn = @keypress; pk_gui.WindowButtonDownFcn = @mouse_click;
@@ -3160,7 +3158,7 @@ disp_group.SelectedObject = disp_check(1);
 			pk_ind_z(ii, :) = pk_ind_z(ii, :) + tmp2;
 		end
 		if norm_done
-			tmp1			= (1:num_sample_trim)'; % normalization vector
+			tmp1			= ind_num_sample'; % normalization vector
 			tmp2			= (tmp1(:, ones(1, data_cat.num_trace)) - ind_surf_smooth(ones(num_sample_trim, 1), :)) ./ ind_thick_smooth(ones(num_sample_trim, 1), :); % normalization matrix
 			for ii = tmp3
 				tmp4		= find(~isnan(pk_ind_z(ii, :)) & ~isnan(tmp2(1, :)));
@@ -4113,13 +4111,13 @@ disp_group.SelectedObject = disp_check(1);
         cb_max_edit.String = sprintf('%3.0f', db_max);
 	end
 
-%% Update data display
+%% Update data display, overall faster than only updating CData when switching viewing modes
 
 function update_data_plot(src, event)
 	if ~isgraphics(p_data)
 		return
 	end
-	[tmp1, tmp2]			= deal(interp1(data_cat.twtt, 1:num_sample_trim, [twtt_min twtt_max], 'nearest', 'extrap'), interp1(data_cat.dist_lin, 1:data_cat.num_trace, [dist_min dist_max], 'nearest', 'extrap'));
+	[tmp1, tmp2]			= deal(interp1(data_cat.twtt, ind_num_sample, [twtt_min twtt_max], 'nearest', 'extrap'), interp1(data_cat.dist_lin, ind_num_trace, [dist_min dist_max], 'nearest', 'extrap'));
 	switch disp_type
 		case 'twtt'
 			[p_data.XData, p_data.YData, p_data.CData] ...
@@ -4221,7 +4219,7 @@ end
 		ind_surf_smooth		= smoothdata(ind_surf_smooth, 'rlowess', (length_smooth / median(diff(1e-3 .* data_cat.dist_lin), 'omitnan'))); % smoothed surface index
 		ind_bed_smooth		= smoothdata(ind_bed_smooth, 'rlowess', (length_smooth / median(diff(1e-3 .* data_cat.dist_lin), 'omitnan'))); % smoothed bed index
 		ind_thick_smooth	= ind_bed_smooth - ind_surf_smooth; % thickness index
-		tmp1				= (1:num_sample_trim)'; % normalization vector
+		tmp1				= ind_num_sample'; % normalization vector
 		tmp2				= (tmp1(:, ones(1, data_cat.num_trace)) - ind_surf_smooth(ones(num_sample_trim, 1), :)) ./ ind_thick_smooth(ones(num_sample_trim, 1), :); % normalization matrix
 		[ind_bed_norm, ind_surf_norm] ...
 							= deal(NaN(1, data_cat.num_trace));
@@ -4564,7 +4562,7 @@ end
         if (cbfix_check2 && ~isequal(narrow_ax, [ax_radar.XLim ax_radar.YLim]))
             tmp1            = zeros(2);
             tmp1(1, :)      = interp1(data_cat.dist_lin, ind_num_trace, [dist_min dist_max], 'nearest', 'extrap');
-            tmp1(2, :)      = interp1(data_cat.twtt, 1:num_sample_trim, [twtt_min twtt_max], 'nearest', 'extrap');
+            tmp1(2, :)      = interp1(data_cat.twtt, ind_num_sample, [twtt_min twtt_max], 'nearest', 'extrap');
             switch disp_type
                 case 'twtt'
                     tmp1    = amp(tmp1(2, 1):10:tmp1(2, 2), tmp1(1, 1):10:tmp1(1, 2));
@@ -4889,15 +4887,16 @@ end
 
     function mouse_click(src, event)
 		if ((logical(pk.num_layer) || surf_avail || bed_avail))
-			tmp1            = src.CurrentPoint;
-			tmp2            = pk_gui.Position;
-			tmp3            = ax_radar.Position;
-			tmp4            = [(tmp2(1) + (tmp2(3) * tmp3(1))) (tmp2(1) + (tmp2(3) * (tmp3(1) + tmp3(3)))); (tmp2(2) + (tmp2(4) * tmp3(2))) (tmp2(2) + (tmp2(4) * (tmp3(2) + tmp3(4))))];
+			tmp1            = src.CurrentPoint; % measured in pixels in current figure
+			tmp2            = pk_gui.Position; % figure window position in pixels
+			tmp1(1)			= tmp1(1) + tmp2(1); % horizontal adjustment to compensate for 2025a behavior on multiple monitors
+			tmp3            = ax_radar.Position; % axis relative position in figure
+			tmp4            = [(tmp2(1) + (tmp2(3) * tmp3(1))) (tmp2(1) + (tmp2(3) * (tmp3(1) + tmp3(3)))); (tmp2(2) + (tmp2(4) * tmp3(2))) (tmp2(2) + (tmp2(4) * (tmp3(2) + tmp3(4))))]; % axis absolute position
 			if ((tmp1(1) > (tmp4(1, 1))) && (tmp1(1) < (tmp4(1, 2))) && (tmp1(2) > (tmp4(2, 1))) && (tmp1(2) < (tmp4(2, 2))))
 				tmp1        = [((tmp1(1) - tmp4(1, 1)) / diff(tmp4(1, :))) ((tmp4(2, 2) - tmp1(2)) / diff(tmp4(2, :)))];
 				tmp2        = [ax_radar.XLim; ax_radar.YLim];
 				[ind_x_pk, ind_z_pk] ...
-							= deal(((tmp1(1) * diff(tmp2(1, :))) + tmp2(1, 1)), ((tmp1(2) * diff(tmp2(2, :))) + tmp2(2, 1)));
+							= deal(((tmp1(1) * diff(tmp2(1, :))) + tmp2(1, 1)), ((tmp1(2) * diff(tmp2(2, :))) + tmp2(2, 1))); % in axis units
 				switch src.SelectionType
 					case 'normal'
 						pk_select_gui
@@ -4917,6 +4916,40 @@ end
 			end
 		end
     end
+
+	function finput(src, event)
+		% Modified/simplified version of Chad Greene's finput: https://www.mathworks.com/matlabcentral/fileexchange/49727-finput
+		% 
+		% Copyright (c) 2015, Chad Greene
+		% All rights reserved.
+		% 
+		% Redistribution and use in source and binary forms, with or without
+		% modification, are permitted provided that the following conditions are
+		% met:
+		% 
+    	% 	* Redistributions of source code must retain the above copyright
+    	%   	notice, this list of conditions and the following disclaimer.
+    	% 	* Redistributions in binary form must reproduce the above copyright
+    	%   	notice, this list of conditions and the following disclaimer in
+    	%   	the documentation and/or other materials provided with the distribution
+		% 
+		% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+		% AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+		% IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+		% ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+		% LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+		% CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+		% SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+		% INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+		% CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+		% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+		% POSSIBILITY OF SUCH DAMAGE.
+		tmp8				= axes(pk_gui, 'Position', ax_radar.Position, 'XLim', ax_radar.XLim, 'YLim', ax_radar.YLim, 'YDir', 'reverse', 'XTick', [], 'YTick', [], 'Color', 'none');
+		[ind_x_pk, ind_z_pk, button] ...
+							= ginput(1);
+		delete(tmp8)
+		tmp8				= NaN;
+	end
 
 %% Test something
 
