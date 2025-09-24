@@ -22,7 +22,7 @@
 %   parallelization for those loops that can use it.
 %   
 % Joe MacGregor (NASA)
-% Last updated: 21 August 2025
+% Last updated: 17 September 2025
 
 %% Intialize variables
 
@@ -101,11 +101,11 @@ end
 [p_core, p_int, p_pk]		= deal(gobjects(0));
 [pk_ind_z, pk_ind_z_norm, pk_ind_z_flat] ...
 							= deal([]);
-[file_data, file_pk] ...%, path_data, path_pk, path_int] ...
+[file_data, file_pk, path_data, path_pk, path_int] ...
                             = deal('');
-path_data					= '/Users/jamacgre/OneDrive - NASA/data/AntArchitecture/ant_cat/';
-path_pk						= '/Users/jamacgre/OneDrive - NASA/data/AntArchitecture/ant_cat_pk/';
-path_int					= '/Users/jamacgre/OneDrive - NASA/research/matlab/pickgui_v2/mat/';
+% path_data					= '/Users/jamacgre/OneDrive - NASA/data/AntArchitecture/ant_cat/';
+% path_pk						= '/Users/jamacgre/OneDrive - NASA/data/AntArchitecture/ant_cat_pk/';
+% path_int					= '/Users/jamacgre/OneDrive - NASA/research/matlab/pickgui_v2/mat/';
 cmap_curr					= 1;
 narrow_ax					= [dist_min dist_max twtt_min twtt_max];
 
@@ -2740,7 +2740,7 @@ disp_group.SelectedObject = disp_check(1);
 
 %% Merge two layers
 
-    function pk_merge(src, event)
+	 function pk_merge(src, event)
         
         if ~any(strcmp(disp_type, {'twtt' 'depth' 'norm' 'flat'}))
             status_box.String = 'Must be in twtt, depth, norm or flat to merge layers.';
@@ -2841,6 +2841,18 @@ disp_group.SelectedObject = disp_check(1);
             return
         end
         
+		% confirm merge
+		tmp2				= p_pk(tmp1).Color;
+		p_pk(tmp1).Color	= 'y';
+		status_box.String = 'N: Cancel merge; otherwise: proceed...';
+		waitforbuttonpress
+		if strcmpi(pk_gui.CurrentCharacter, 'N')
+            pk_gui.KeyPressFcn = @keypress; pk_gui.WindowButtonDownFcn = @mouse_click;
+			status_box.String = 'Merging canceled.';
+			p_pk(tmp1).Color= tmp2;
+			return
+		end
+
         % force curr_layer to be surface or bed if merging with one of those
         if ((curr_layer <= pk.num_layer) && any(tmp1 == (pk.num_layer + [1 2])))
             [curr_layer, tmp1] ...
@@ -3455,6 +3467,8 @@ disp_group.SelectedObject = disp_check(1);
 		pk_gui.KeyPressFcn = @keypress; pk_gui.WindowButtonDownFcn = @mouse_click;
         status_box.String = [num2str(pk.num_layer) ' picked layer(s) saved as ' file_pk(1:(end - 4)) '.'];
 		close(pk_fig)
+		
+		figure(pk_gui)
     end
 
 %% Update minimum twtt
