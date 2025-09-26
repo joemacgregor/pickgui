@@ -22,7 +22,7 @@
 %   parallelization for those loops that can use it.
 %   
 % Joe MacGregor (NASA)
-% Last updated: 17 September 2025
+% Last updated: 26 September 2025
 
 %% Intialize variables
 
@@ -2160,7 +2160,6 @@ disp_group.SelectedObject = disp_check(1);
             status_box.String = ['Layer #' num2str(curr_layer) ' selected.'];
             
 		end
-		
     end
 
 %% Choose/select a layer interactively
@@ -2334,7 +2333,8 @@ disp_group.SelectedObject = disp_check(1);
             status_box.String = 'Focused on bed.';
         else
             status_box.String = ['Focused on layer #' num2str(curr_layer) '.'];
-        end
+		end
+		update_data_plot
         narrow_cb
     end
 
@@ -3383,8 +3383,8 @@ disp_group.SelectedObject = disp_check(1);
         tmp1                = pk;
         
         % save many variables in pk structure for easy reference independent of data later on
-        [pk.lat, pk.lon, pk.x, pk.y, pk.num_sample, pk.num_trace, pk.file_in, pk.file_cat, pk.twtt_min_ref, pk.twtt_max_ref, pk.dist, pk.dist_lin, pk.elev_air, pk.time, pk.elev_surf_corr, pk.twtt_surf, pk.twtt_bed, pk.twtt] ...
-                            = deal(data_cat.lat, data_cat.lon, data_cat.x, data_cat.y, data_cat.num_sample, data_cat.num_trace, {data_cat.radframeproc_call(:).file_in}, file_data(1:(end - 4)), twtt_min_ref, twtt_max_ref, ...
+        [pk.lat, pk.lon, pk.x, pk.y, pk.num_sample, pk.num_sample_trim, pk.num_trace, pk.file_in, pk.file_cat, pk.twtt_min_ref, pk.twtt_max_ref, pk.dist, pk.dist_lin, pk.elev_air, pk.time, pk.elev_surf_corr, pk.twtt_surf, pk.twtt_bed, pk.twtt] ...
+                            = deal(data_cat.lat, data_cat.lon, data_cat.x, data_cat.y, data_cat.num_sample, num_sample_trim, data_cat.num_trace, {data_cat.radframeproc_call(:).file_in}, file_data(1:(end - 4)), twtt_min_ref, twtt_max_ref, ...
 								   data_cat.dist, data_cat.dist_lin, data_cat.elev_air, data_cat.time, data_cat.elev_surf_corr, data_cat.twtt_surf, data_cat.twtt_bed, data_cat.twtt);
         
         % get traveltimes and echo intensities from indices, and adjust indices as appropriate assuming trimming has occurred
@@ -4695,8 +4695,8 @@ end
                 load_data
             case 'm'
                 pk_merge
-            case 'n'
-                pk_next
+            % case 'n'
+            %     pk_next
 			case 'o'
 				if (pk.num_layer > 1)
 					switch disp_type
